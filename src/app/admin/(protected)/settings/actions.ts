@@ -134,6 +134,22 @@ export async function updateContactInfoAction(formData: FormData): Promise<void>
   revalidateSettings();
 }
 
+export async function updateMarketingSettingsAction(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const data = {
+    metaPixelId: String(formData.get("metaPixelId") ?? "").trim() || null,
+  };
+
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: data,
+    create: { id: "singleton", ...data },
+  });
+
+  revalidateSettings();
+}
+
 export async function updateHeroContentAction(formData: FormData): Promise<void> {
   await requireStaff();
 

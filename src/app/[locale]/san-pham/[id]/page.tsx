@@ -20,6 +20,7 @@ import { ProductGallery } from "./ProductGallery";
 import { ProductActions } from "./ProductActions";
 import { SizeGuide } from "./SizeGuide";
 import { ProductJsonLd } from "./ProductJsonLd";
+import { ViewContentTracker } from "./ViewContentTracker";
 
 function getBrandCategory(product: NonNullable<Awaited<ReturnType<typeof getProductById>>>) {
   return (
@@ -96,6 +97,7 @@ export default async function ProductDetailPage({
   return (
     <>
       <ProductJsonLd product={product} brandLabel={brandCategory?.label} />
+      <ViewContentTracker id={product.id} name={product.name} price={product.price} />
       <BreadcrumbJsonLd
         items={[
           ...(brandCategory
@@ -176,6 +178,8 @@ export default async function ProductDetailPage({
 
               <ProductActions
                 productId={product.id}
+                productName={product.name}
+                price={product.price}
                 sizeQuantities={product.sizeQuantities}
               />
 

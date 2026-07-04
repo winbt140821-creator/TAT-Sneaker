@@ -45,6 +45,8 @@ next-env.d.ts
 # local sqlite database + uploaded product photos
 /*.db
 /*.db-journal
+/*.db-wal
+/*.db-shm
 /public/uploads
 
 # Claude Code local tooling state (per-machine, not part of the app)

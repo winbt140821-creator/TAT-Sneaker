@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/settings/lien-he", label: "Liên hệ" },
   { href: "/admin/settings/mang-xa-hoi", label: "Mạng xã hội" },
   { href: "/admin/settings/thanh-toan", label: "Thanh toán" },
+  { href: "/admin/settings/quang-cao", label: "Quảng cáo" },
 ];
 
 export function SettingsTabs() {

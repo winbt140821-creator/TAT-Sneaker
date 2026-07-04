@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -20,6 +20,7 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
 import { getCartProductsAction } from "../gio-hang/actions";
 import { createOrderAction, initiatePaymentAction, type PaymentMethod } from "./actions";
+import { trackInitiateCheckout } from "@/lib/meta-pixel";
 
 type CartProduct = Awaited<ReturnType<typeof getCartProductsAction>>[number];
 
@@ -136,6 +137,13 @@ export function CheckoutForm({
     },
     { total: 0, deposit: 0, maxLeadTime: 0 }
   );
+
+  const initiateCheckoutFired = useRef(false);
+  useEffect(() => {
+    if (initiateCheckoutFired.current || cartItems.length === 0 || summary.total === 0) return;
+    initiateCheckoutFired.current = true;
+    trackInitiateCheckout({ value: summary.total, numItems: cartItems.length });
+  }, [cartItems.length, summary.total]);
 
   // A deposit stays mandatory regardless of the COD/pay-in-full choice —
   // paying in full simply covers it as part of the full amount.

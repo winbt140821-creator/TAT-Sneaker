@@ -5,6 +5,7 @@ import { site } from "@/lib/site-config";
 import { SITE_URL } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
+import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -69,7 +70,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
+  const [locale, settings] = await Promise.all([getLocale(), getSiteSettings()]);
 
   return (
     <html
@@ -79,6 +80,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
         {children}
         <OrganizationJsonLd />
+        {settings?.metaPixelId && <MetaPixel pixelId={settings.metaPixelId} />}
       </body>
     </html>
   );

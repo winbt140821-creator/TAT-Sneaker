@@ -14,6 +14,7 @@ import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import { buildVietQrUrl } from "@/lib/vietqr-banks";
 import { OrderStatusStepper } from "@/components/OrderStatusStepper";
 import { TrackingCodeLink } from "./TrackingCodeLink";
+import { PurchaseTracker } from "./PurchaseTracker";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
@@ -95,6 +96,7 @@ export default async function OrderConfirmationPage({
   return (
     <>
       <Header />
+      <PurchaseTracker orderCode={order.code} value={total} />
       <main className="flex-1">
         <Breadcrumb trail={[t("breadcrumb"), order.code]} />
         <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">

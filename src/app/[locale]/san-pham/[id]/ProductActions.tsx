@@ -5,15 +5,20 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { addToCart } from "@/lib/cart-storage";
 import { getCarriedSizes, getQuantityForSize } from "@/lib/inventory";
+import { trackAddToCart } from "@/lib/meta-pixel";
 import { BagIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { WishlistButton } from "./WishlistButton";
 
 export function ProductActions({
   productId,
+  productName,
+  price,
   sizeQuantities,
 }: {
   productId: string;
+  productName: string;
+  price: number;
   sizeQuantities: Record<string, number>;
 }) {
   const router = useRouter();
@@ -44,12 +49,14 @@ export function ProductActions({
   function handleAddToCart() {
     if (!requireSize() || selectedSize == null) return;
     addToCart(productId, selectedSize, quantity);
+    trackAddToCart({ id: productId, name: productName, price, quantity });
     setFeedback({ type: "success", text: t("addedToCart", { size: selectedSize }) });
   }
 
   function handleBuyNow() {
     if (!requireSize() || selectedSize == null) return;
     addToCart(productId, selectedSize, quantity);
+    trackAddToCart({ id: productId, name: productName, price, quantity });
     router.push("/thanh-toan");
   }
 

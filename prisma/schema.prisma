@@ -144,6 +144,11 @@ model SiteSettings {
   bankAccountHolder String?
   bankTransferQrUrl String? // static fallback QR, shown only when bankBin isn't set
 
+  // Meta Pixel ID (Facebook Ads Manager > Events Manager > Data Sources).
+  // When set, fires PageView/ViewContent/AddToCart/InitiateCheckout/Purchase
+  // events so conversion ad campaigns can optimize and be measured.
+  metaPixelId String?
+
   heroEyebrow            String?
   heroEyebrowEnabled     Boolean @default(true)
   heroHeading            String?

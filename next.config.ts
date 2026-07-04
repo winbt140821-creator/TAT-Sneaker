@@ -17,11 +17,15 @@ const CSP_PROD = [
   "default-src 'self'",
   // Next.js ships inline hydration scripts — 'unsafe-inline' is a pragmatic
   // middle ground short of wiring up nonces through the proxy chain.
-  "script-src 'self' 'unsafe-inline'",
+  // Meta Pixel (src/components/MetaPixel.tsx) loads fbevents.js from
+  // connect.facebook.net and reports events by pinging facebook.com — only
+  // active pages/routes actually render the pixel (admin never does), but
+  // the CSP is site-wide so both hosts need to be allowed here regardless.
+  "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://graph.facebook.com https://img.vietqr.io",
+  "img-src 'self' data: https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://graph.facebook.com https://img.vietqr.io https://www.facebook.com",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://www.facebook.com",
   // Product videos (ProductDetail videoUrl) embed via youtube.com/embed.
   "frame-src https://www.youtube.com",
   // Sign-in redirects to Google/Facebook's own hosted auth pages.
