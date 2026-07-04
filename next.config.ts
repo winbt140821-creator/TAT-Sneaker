@@ -9,6 +9,18 @@ import createNextIntlPlugin from "next-intl/plugin";
 // distDir so its lockfile doesn't collide with the primary server's.
 const port = process.env.PORT;
 
+// Product photos, hero image, logo, and bank-transfer QR all get uploaded to
+// this R2 bucket in production (src/lib/uploads.ts) — parsed once here so
+// both next/image's remotePatterns and the CSP img-src can allow it.
+const r2Origin = (() => {
+  if (!process.env.R2_PUBLIC_URL) return null;
+  try {
+    return new URL(process.env.R2_PUBLIC_URL).origin;
+  } catch {
+    return null;
+  }
+})();
+
 // CSP only in production — dev needs 'unsafe-eval' and websocket connections
 // for Turbopack HMR/React Refresh that would otherwise have to be
 // enumerated exactly, and any mismatch just breaks the dev server for no
@@ -23,7 +35,7 @@ const CSP_PROD = [
   // the CSP is site-wide so both hosts need to be allowed here regardless.
   "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://graph.facebook.com https://img.vietqr.io https://www.facebook.com",
+  `img-src 'self' data: https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://graph.facebook.com https://img.vietqr.io https://www.facebook.com${r2Origin ? ` ${r2Origin}` : ""}`,
   "font-src 'self' data:",
   "connect-src 'self' https://www.facebook.com",
   // Product videos (ProductDetail videoUrl) embed via youtube.com/embed.
@@ -69,6 +81,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "graph.facebook.com" },
       // Dynamically generated bank-transfer QR (VietQR quick-link image API)
       { protocol: "https", hostname: "img.vietqr.io" },
+      // Cloudflare R2 (product photos, hero image, logo — see src/lib/uploads.ts)
+      ...(r2Origin ? [{ protocol: "https" as const, hostname: new URL(r2Origin).hostname }] : []),
     ],
   },
   async headers() {
