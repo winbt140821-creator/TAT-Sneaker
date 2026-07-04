@@ -272,7 +272,7 @@ export function AddressBookView({ addresses }: { addresses: Address[] }) {
                   type="button"
                   aria-label={t("addressEdit")}
                   onClick={() => openEdit(addr)}
-                  className="cursor-pointer text-graphite hover:text-ink"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center text-graphite hover:text-ink"
                 >
                   <PencilIcon className="h-4 w-4" />
                 </button>
@@ -280,7 +280,7 @@ export function AddressBookView({ addresses }: { addresses: Address[] }) {
                   type="button"
                   aria-label={t("addressDelete")}
                   onClick={() => handleDelete(addr.id)}
-                  className="cursor-pointer text-graphite hover:text-stamp"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center text-graphite hover:text-stamp"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>

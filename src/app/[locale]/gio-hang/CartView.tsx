@@ -183,7 +183,7 @@ export function CartView({
             <button
               type="button"
               onClick={() => removeFromCart(item.productId, item.size)}
-              className="shrink-0 cursor-pointer font-mono text-xs uppercase tracking-wide text-graphite hover:text-stamp hover:underline"
+              className="flex min-h-11 shrink-0 cursor-pointer items-center px-2 font-mono text-xs uppercase tracking-wide text-graphite hover:text-stamp hover:underline"
             >
               Xóa
             </button>

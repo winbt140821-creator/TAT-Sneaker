@@ -115,7 +115,7 @@ export function CategoryNav({
                   aria-expanded={isOpen}
                   aria-label={t("subcategoriesOf", { label: c.label })}
                   onClick={() => toggle(c.id)}
-                  className="flex h-5 w-5 cursor-pointer items-center justify-center text-kraft transition-colors hover:text-paper"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center text-kraft transition-colors hover:text-paper"
                 >
                   <ChevronDownIcon
                     className={

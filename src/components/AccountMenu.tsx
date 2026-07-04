@@ -59,7 +59,7 @@ export function AccountMenu({
           aria-label="Tài khoản"
           className="die-cut-flat absolute right-0 top-12 z-50 min-w-44 bg-paper py-1.5 shadow-[var(--shadow-card)]"
         >
-          <p className="truncate px-3 py-1.5 font-mono text-[11px] text-graphite">{name}</p>
+          <p className="truncate px-3 py-1.5 font-mono text-xs text-graphite">{name}</p>
           <Link
             role="menuitem"
             href="/tai-khoan"
