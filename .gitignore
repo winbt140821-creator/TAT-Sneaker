@@ -47,6 +47,10 @@ next-env.d.ts
 /*.db-journal
 /*.db-wal
 /*.db-shm
+prisma/*.db
+prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
 /public/uploads
 
 # Claude Code local tooling state (per-machine, not part of the app)
