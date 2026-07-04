@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { OrderStatus } from "@/generated/prisma/client";
+import { ORDER_STATUS_LABEL as STATUS_LABEL } from "@/lib/order-status";
 import {
   updateOrderStatusAction,
   setOrderDepositPaidAction,
@@ -10,14 +11,6 @@ import {
   syncShippingStatusAction,
 } from "../actions";
 import { CopyShipmentInfoButton } from "./CopyShipmentInfoButton";
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Chờ xác nhận",
-  CONFIRMED: "Đã xác nhận",
-  SHIPPED: "Đang giao",
-  DONE: "Hoàn tất",
-  CANCELLED: "Đã hủy",
-};
 
 const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
   VNPAY: "VNPay",

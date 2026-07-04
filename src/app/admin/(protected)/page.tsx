@@ -4,23 +4,8 @@ import { formatPrice } from "@/lib/products";
 import { getRevenueTotals } from "@/lib/revenue";
 import { hasAnyStock } from "@/lib/inventory";
 import { autoCancelStaleOrders } from "@/lib/order-cleanup";
+import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { OrderStatus } from "@/generated/prisma/client";
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  PENDING: "Chờ xác nhận",
-  CONFIRMED: "Đã xác nhận",
-  SHIPPED: "Đang giao",
-  DONE: "Hoàn tất",
-  CANCELLED: "Đã hủy",
-};
-
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  PENDING: "bg-graphite text-paper",
-  CONFIRMED: "bg-ink text-paper",
-  SHIPPED: "bg-forest text-paper",
-  DONE: "bg-forest text-paper",
-  CANCELLED: "bg-stamp text-paper",
-};
 
 export default async function AdminDashboardPage() {
   await autoCancelStaleOrders();

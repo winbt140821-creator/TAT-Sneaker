@@ -2,27 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
-import { OrderStatus } from "@/generated/prisma/client";
+import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 
 const PROVIDER_LABEL: Record<string, string> = {
   google: "Google",
   facebook: "Facebook",
-};
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  PENDING: "Chờ xác nhận",
-  CONFIRMED: "Đã xác nhận",
-  SHIPPED: "Đang giao",
-  DONE: "Hoàn tất",
-  CANCELLED: "Đã hủy",
-};
-
-const STATUS_STYLE: Record<OrderStatus, string> = {
-  PENDING: "bg-graphite text-paper",
-  CONFIRMED: "bg-ink text-paper",
-  SHIPPED: "bg-forest text-paper",
-  DONE: "bg-forest text-paper",
-  CANCELLED: "bg-stamp text-paper",
 };
 
 export default async function AdminCustomerDetailPage({

@@ -2,25 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { autoCancelStaleOrders } from "@/lib/order-cleanup";
+import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { OrderStatus } from "@/generated/prisma/client";
 import { deleteOrderAction } from "./actions";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Chờ xác nhận",
-  CONFIRMED: "Đã xác nhận",
-  SHIPPED: "Đang giao",
-  DONE: "Hoàn tất",
-  CANCELLED: "Đã hủy",
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  PENDING: "bg-graphite text-paper",
-  CONFIRMED: "bg-ink text-paper",
-  SHIPPED: "bg-forest text-paper",
-  DONE: "bg-forest text-paper",
-  CANCELLED: "bg-stamp text-paper",
-};
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   COD: "COD",

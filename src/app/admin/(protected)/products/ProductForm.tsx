@@ -7,9 +7,9 @@ import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { ALL_SIZES } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
-const ALL_SIZES = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
 const CONDITIONS = ["Còn hàng", "Hết Hàng", "Order", "Cũ"];
 
 const LEAD_TIME_DEFAULTS = {
