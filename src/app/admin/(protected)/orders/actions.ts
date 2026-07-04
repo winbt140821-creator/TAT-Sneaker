@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { OrderStatus } from "@/generated/prisma/client";
 import { createShipment, getShipmentStatus } from "@/lib/shipping/viettelpost";
+import { restoreOrderStock } from "@/lib/order-cleanup";
 
 export async function updateOrderStatusAction(id: string, formData: FormData) {
   await requireStaff();
@@ -14,10 +15,24 @@ export async function updateOrderStatusAction(id: string, formData: FormData) {
     throw new Error("Trạng thái không hợp lệ.");
   }
 
-  await prisma.order.update({
-    where: { id },
-    data: { status: status as OrderStatus },
-  });
+  const current = await prisma.order.findUnique({ where: { id }, select: { status: true } });
+  if (!current) throw new Error("Không tìm thấy đơn hàng.");
+
+  // Checkout reserves stock the moment an order is placed — cancelling one
+  // must give that stock back, or repeatedly placing/cancelling orders would
+  // permanently drain a size's inventory without ever selling it. Only fires
+  // on the transition into CANCELLED, not if it's already there.
+  if (status === OrderStatus.CANCELLED && current.status !== OrderStatus.CANCELLED) {
+    await prisma.$transaction(async (tx) => {
+      await restoreOrderStock(tx, id);
+      await tx.order.update({ where: { id }, data: { status: status as OrderStatus } });
+    });
+  } else {
+    await prisma.order.update({
+      where: { id },
+      data: { status: status as OrderStatus },
+    });
+  }
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);

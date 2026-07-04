@@ -9,6 +9,11 @@ import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
 import { createOrder as createPaypalOrder } from "@/lib/payments/paypal";
 
+// Thrown from inside the $transaction below to abort it and surface a normal
+// { error } result — the outer catch converts it, since Prisma's interactive
+// transaction just rethrows whatever the callback throws.
+class InsufficientStockError extends Error {}
+
 export type CheckoutItem = { productId: string; size: number; quantity: number };
 // "COD" means nothing is charged upfront — used only when no per-product
 // deposit is required AND the customer didn't choose to pay in full online.
@@ -86,49 +91,66 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // (0 if none), with the rest due on delivery.
   const amountDue = input.payInFull ? orderTotal : productDeposit;
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        code,
-        customerName,
-        customerPhone,
-        province,
-        ward,
-        address,
-        note: input.note?.trim() || null,
-        customerId: customer.id,
-        paymentMethod: input.paymentMethod,
-        depositAmount: amountDue,
-        items: {
-          create: input.items.map((item) => {
-            const product = byId.get(item.productId)!;
-            const unitDeposit = product.depositRequired ? (product.depositAmount ?? 0) : 0;
-            return {
-              productId: item.productId,
-              size: item.size,
-              quantity: item.quantity,
-              price: product.price,
-              costPrice: product.costPrice ?? 0,
-              depositAmount: unitDeposit,
-            };
-          }),
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      // Re-read and decrement stock inside the transaction (not from the
+      // `byId` snapshot fetched above) — two checkouts for the last pair
+      // arriving at nearly the same time must not both succeed just because
+      // they both saw "1 in stock" before either wrote anything.
+      for (const item of input.items) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!product) throw new InsufficientStockError("Một sản phẩm trong giỏ không còn tồn tại.");
+
+        const sizeQuantities = JSON.parse(product.sizeQuantities) as Record<string, number>;
+        const key = String(item.size);
+        const availableQty = sizeQuantities[key] ?? 0;
+        if (availableQty < item.quantity) {
+          throw new InsufficientStockError(
+            `${product.name} size ${item.size} chỉ còn ${availableQty} đôi.`
+          );
+        }
+
+        sizeQuantities[key] = availableQty - item.quantity;
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { sizeQuantities: JSON.stringify(sizeQuantities) },
+        });
+      }
+
+      return tx.order.create({
+        data: {
+          code,
+          customerName,
+          customerPhone,
+          province,
+          ward,
+          address,
+          note: input.note?.trim() || null,
+          customerId: customer.id,
+          paymentMethod: input.paymentMethod,
+          depositAmount: amountDue,
+          items: {
+            create: input.items.map((item) => {
+              const product = byId.get(item.productId)!;
+              const unitDeposit = product.depositRequired ? (product.depositAmount ?? 0) : 0;
+              return {
+                productId: item.productId,
+                size: item.size,
+                quantity: item.quantity,
+                price: product.price,
+                costPrice: product.costPrice ?? 0,
+                depositAmount: unitDeposit,
+              };
+            }),
+          },
         },
-      },
-    });
-
-    for (const item of input.items) {
-      const product = byId.get(item.productId)!;
-      const sizeQuantities = JSON.parse(product.sizeQuantities) as Record<string, number>;
-      const key = String(item.size);
-      sizeQuantities[key] = Math.max(0, (sizeQuantities[key] ?? 0) - item.quantity);
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { sizeQuantities: JSON.stringify(sizeQuantities) },
       });
-    }
-
-    return created;
-  });
+    });
+  } catch (err) {
+    if (err instanceof InsufficientStockError) return { error: err.message };
+    throw err;
+  }
 
   revalidatePath("/");
   revalidatePath("/admin/orders");

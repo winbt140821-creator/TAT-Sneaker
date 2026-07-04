@@ -1,5 +1,6 @@
 import { absoluteUrl } from "@/lib/seo";
 import { hasAnyStock } from "@/lib/inventory";
+import { jsonLdScript } from "@/lib/json-ld";
 import type { CatalogProduct } from "@/lib/catalog";
 
 export function ProductJsonLd({
@@ -40,6 +41,6 @@ export function ProductJsonLd({
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(json) }} />
   );
 }

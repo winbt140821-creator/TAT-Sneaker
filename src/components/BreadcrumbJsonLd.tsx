@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { absoluteUrl } from "@/lib/seo";
+import { jsonLdScript } from "@/lib/json-ld";
 
 // Structured-data twin of <Breadcrumb> — same trail, lets Google show the
 // breadcrumb path in search results instead of the raw URL. First item is
@@ -20,6 +21,6 @@ export async function BreadcrumbJsonLd({ items }: { items: { name: string; path:
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(json) }} />
   );
 }

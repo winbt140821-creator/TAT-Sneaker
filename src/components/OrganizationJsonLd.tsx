@@ -1,6 +1,7 @@
 import { site } from "@/lib/site-config";
 import { getSiteSettings, getSocialLinks } from "@/lib/settings";
 import { SITE_URL } from "@/lib/seo";
+import { jsonLdScript } from "@/lib/json-ld";
 
 // Renders once per page load via the root layout — lets Google build a
 // Knowledge Panel / sitelinks search box for the store as a whole, not just
@@ -26,7 +27,7 @@ export async function OrganizationJsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdScript(json) }}
     />
   );
 }
