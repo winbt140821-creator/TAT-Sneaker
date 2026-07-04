@@ -1,20 +1,25 @@
-import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { CatalogProduct } from "@/lib/catalog";
 import { ProductGrid } from "./ProductGrid";
 
-export async function CategorySection({
+// Not async, and takes the translated label as a prop instead of calling
+// getTranslations() itself — the homepage renders this once per brand
+// section (a dozen+ times), and re-fetching the same "product" namespace
+// that many times measurably added up (~0.5-1ms rendering aside, next-intl's
+// own per-call overhead multiplied by a dozen instances).
+export function CategorySection({
   heading,
   viewAllHref,
+  viewAllLabel,
   pills,
   products,
 }: {
   heading: string;
   viewAllHref?: string;
+  viewAllLabel?: string;
   pills?: { slug: string; label: string }[];
   products: CatalogProduct[];
 }) {
-  const t = await getTranslations("product");
   return (
     <section className="pb-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -25,7 +30,7 @@ export async function CategorySection({
               href={viewAllHref}
               className="flex shrink-0 items-center gap-1 font-mono text-xs uppercase tracking-wide text-forest hover:underline"
             >
-              {t("viewAll")}
+              {viewAllLabel}
             </Link>
           )}
         </div>

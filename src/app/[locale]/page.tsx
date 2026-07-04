@@ -66,11 +66,12 @@ export default async function Home({
     category || q || sort || minPrice || maxPrice || size || availability
   );
 
-  const [activeCategory, settings, t, tCommon] = await Promise.all([
+  const [activeCategory, settings, t, tCommon, tProduct] = await Promise.all([
     category ? getCategoryBySlug(category) : Promise.resolve(null),
     getSiteSettings(),
     getTranslations("home"),
     getTranslations("common"),
+    getTranslations("product"),
   ]);
 
   if (isFiltered) {
@@ -131,6 +132,7 @@ export default async function Home({
           <CategorySection
             heading={t("onSale")}
             viewAllHref="/?category=SALE"
+            viewAllLabel={tProduct("viewAll")}
             products={sale}
           />
         )}
@@ -140,6 +142,7 @@ export default async function Home({
             key={cat.id}
             heading={t("brandShoes", { brand: cat.label })}
             viewAllHref={`/?category=${encodeURIComponent(cat.slug)}`}
+            viewAllLabel={tProduct("viewAll")}
             pills={cat.children.map((c) => ({ slug: c.slug, label: c.label }))}
             products={products}
           />
