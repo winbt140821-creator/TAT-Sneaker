@@ -26,7 +26,6 @@ export default async function CheckoutPage() {
         <Breadcrumb trail={[t("breadcrumbCheckout")]} />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <CheckoutForm
-            paypalQrUrl={settings?.paypalQrUrl}
             bankName={settings?.bankName}
             bankAccountHolder={settings?.bankAccountHolder}
             usdExchangeRate={settings?.usdExchangeRate}

@@ -19,36 +19,15 @@ import { QuantityStepper } from "@/components/QuantityStepper";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
 import { getCartProductsAction } from "../gio-hang/actions";
-import {
-  createOrderAction,
-  initiatePaymentAction,
-  type PaymentMethod,
-  type PaymentProviderChoice,
-} from "./actions";
+import { createOrderAction, initiatePaymentAction, type PaymentMethod } from "./actions";
 
 type CartProduct = Awaited<ReturnType<typeof getCartProductsAction>>[number];
 
-// Visa/Mastercard/PayPal are merged into one selectable "CARD" choice since
-// they all actually check out through the same PayPal-hosted flow — PayPal
-// accepts card payment directly, no PayPal account needed. VNPay is hidden
-// from checkout for now (real gateway credentials aren't set up yet) but the
-// admin QR management for it is left in place in Settings in case it comes
-// back later.
-type OnlineChoice = "BANK_TRANSFER" | "CARD";
-
-const PROVIDER_FOR_CHOICE: Record<OnlineChoice, PaymentProviderChoice> = {
-  BANK_TRANSFER: "BANK_TRANSFER",
-  CARD: "PAYPAL",
-};
-
-const CHOICE_BADGES: Record<OnlineChoice, { label: string; bg: string }[]> = {
-  BANK_TRANSFER: [{ label: "NH", bg: "bg-graphite" }],
-  CARD: [
-    { label: "VISA", bg: "bg-[#1A1F71]" },
-    { label: "MC", bg: "bg-[#EB001B]" },
-    { label: "PP", bg: "bg-[#0070E0]" },
-  ],
-};
+// Bank transfer is the only online payment method shown at checkout for now.
+// VNPay and the card/PayPal option are both hidden until real gateway
+// credentials are set up (see src/lib/payments/*.ts) — the admin QR
+// management for them is left in place in Settings in case they come back
+// later.
 
 function TableOfContents({ t }: { t: ReturnType<typeof useTranslations<"checkout">> }) {
   const [open, setOpen] = useState(true);
@@ -97,13 +76,11 @@ function TableOfContents({ t }: { t: ReturnType<typeof useTranslations<"checkout
 }
 
 export function CheckoutForm({
-  paypalQrUrl,
   bankName,
   bankAccountHolder,
   usdExchangeRate,
   cnyExchangeRate,
 }: {
-  paypalQrUrl?: string | null;
   bankName?: string | null;
   bankAccountHolder?: string | null;
   usdExchangeRate?: number | null;
@@ -119,7 +96,6 @@ export function CheckoutForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payInFull, setPayInFull] = useState(false);
-  const [onlineChoice, setOnlineChoice] = useState<OnlineChoice>("BANK_TRANSFER");
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
   const cartItems = useSyncExternalStore(subscribeCart, getCartSnapshot, getServerCartSnapshot);
@@ -131,11 +107,6 @@ export function CheckoutForm({
     setProvinceCode(code);
     setWardCode("");
   }
-
-  const ONLINE_CHOICES: { value: OnlineChoice; label: string }[] = [
-    { value: "BANK_TRANSFER", label: t("methodBankTransfer") },
-    { value: "CARD", label: t("methodCard") },
-  ];
 
   const [products, setProducts] = useState<Record<string, CartProduct>>({});
   const idsKey = [...new Set(cartItems.map((i) => i.productId))].sort().join(",");
@@ -170,13 +141,7 @@ export function CheckoutForm({
   // paying in full simply covers it as part of the full amount.
   const needsOnlinePayment = payInFull || summary.deposit > 0;
   const amountDueNow = payInFull ? summary.total : summary.deposit;
-  const provider = PROVIDER_FOR_CHOICE[onlineChoice];
-  // Bank transfer intentionally shows no QR here — the order doesn't exist
-  // yet, so there's no order code to embed in the transfer note, which is
-  // the only thing that lets staff match a received deposit back to an
-  // order. The real QR (amount + order code baked in) shows up on the
-  // confirmation page right after the order is placed.
-  const qrUrl = onlineChoice === "CARD" ? paypalQrUrl : null;
+  const provider = "BANK_TRANSFER" as const;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -478,64 +443,19 @@ export function CheckoutForm({
                   ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
                   : t("paymentMethod")}
               </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {ONLINE_CHOICES.map((choice) => (
-                  <label
-                    key={choice.value}
-                    className="flex cursor-pointer items-center gap-2 border border-graphite bg-paper px-3 py-2 text-xs text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10"
-                  >
-                    <input
-                      type="radio"
-                      name="onlineChoice"
-                      value={choice.value}
-                      checked={onlineChoice === choice.value}
-                      onChange={() => setOnlineChoice(choice.value)}
-                      className="sr-only"
-                    />
-                    <span className="flex shrink-0 items-center gap-1">
-                      {CHOICE_BADGES[choice.value].map((badge) => (
-                        <span
-                          key={badge.label}
-                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[8px] font-bold text-white ${badge.bg}`}
-                        >
-                          {badge.label}
-                        </span>
-                      ))}
-                    </span>
-                    {choice.label}
-                  </label>
-                ))}
+              <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
+                {bankName && (
+                  <p>
+                    {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
+                  </p>
+                )}
+                {bankAccountHolder && (
+                  <p>
+                    {t("bankAccountHolderLabel")}: <span className="font-semibold">{bankAccountHolder}</span>
+                  </p>
+                )}
+                <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
               </div>
-
-              {onlineChoice === "BANK_TRANSFER" ? (
-                <div className="mt-3 flex flex-col gap-1 border-t border-kraft-dark pt-3 font-mono text-xs text-ink">
-                  {bankName && (
-                    <p>
-                      {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
-                    </p>
-                  )}
-                  {bankAccountHolder && (
-                    <p>
-                      {t("bankAccountHolderLabel")}: <span className="font-semibold">{bankAccountHolder}</span>
-                    </p>
-                  )}
-                  <p className="mt-2 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
-                </div>
-              ) : (
-                qrUrl && (
-                  <div className="mt-3 flex flex-col items-center gap-2 border-t border-kraft-dark pt-3">
-                    <Image
-                      src={qrUrl}
-                      alt={t("scanToPay")}
-                      width={200}
-                      height={200}
-                      unoptimized
-                      className="h-auto w-full max-w-[200px]"
-                    />
-                    <p className="text-center font-mono text-[10px] text-graphite">{t("scanToPay")}</p>
-                  </div>
-                )
-              )}
 
               <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
                 {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
