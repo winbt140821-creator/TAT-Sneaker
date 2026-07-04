@@ -5,9 +5,8 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { auth } from "@/auth";
-import { GoogleIcon, FacebookIcon } from "@/components/icons";
 import { redirectGuard } from "@/i18n/navigation";
-import { loginWithGoogleAction, loginWithFacebookAction } from "./actions";
+import { LoginButtons } from "./LoginButtons";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
 
@@ -37,27 +36,12 @@ export default async function CustomerLoginPage({
               </p>
             )}
 
-            <div className="mt-6 flex flex-col gap-3">
-              <form action={loginWithGoogleAction.bind(null, callbackUrl)}>
-                <button
-                  type="submit"
-                  className="die-cut-flat flex w-full cursor-pointer items-center justify-center gap-2 border border-graphite bg-paper px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wide text-ink transition-colors hover:border-ink"
-                >
-                  <GoogleIcon className="h-4 w-4" />
-                  {t("withGoogle")}
-                </button>
-              </form>
-
-              <form action={loginWithFacebookAction.bind(null, callbackUrl)}>
-                <button
-                  type="submit"
-                  className="die-cut-flat flex w-full cursor-pointer items-center justify-center gap-2 bg-[#1877F2] px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-[#1461cc]"
-                >
-                  <FacebookIcon className="h-4 w-4" />
-                  {t("withFacebook")}
-                </button>
-              </form>
-            </div>
+            <LoginButtons
+              callbackUrl={callbackUrl}
+              showFacebook={Boolean(process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET)}
+              withGoogleLabel={t("withGoogle")}
+              withFacebookLabel={t("withFacebook")}
+            />
           </div>
         </div>
       </main>

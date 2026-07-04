@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { createSession, verifyPassword } from "@/lib/auth";
-import { signIn } from "@/auth";
 
 export type LoginState = { error?: string };
 
@@ -60,8 +59,4 @@ export async function loginAction(
 
   await createSession(staff.id);
   redirect("/admin");
-}
-
-export async function loginWithGoogleAction() {
-  await signIn("google", { redirectTo: "/admin/google-callback" });
 }

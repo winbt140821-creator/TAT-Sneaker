@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { signIn } from "next-auth/react";
 import { GoogleIcon } from "@/components/icons";
-import { loginAction, loginWithGoogleAction, type LoginState } from "./actions";
+import { loginAction, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
 
@@ -11,15 +12,14 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-col gap-5">
-      <form action={loginWithGoogleAction}>
-        <button
-          type="submit"
-          className="die-cut-flat flex w-full cursor-pointer items-center justify-center gap-2 border border-graphite bg-paper px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wide text-ink transition-colors hover:border-ink"
-        >
-          <GoogleIcon className="h-4 w-4" />
-          Đăng nhập bằng Google
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={() => signIn("google", { callbackUrl: "/admin/google-callback" })}
+        className="die-cut-flat flex w-full cursor-pointer items-center justify-center gap-2 border border-graphite bg-paper px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wide text-ink transition-colors hover:border-ink"
+      >
+        <GoogleIcon className="h-4 w-4" />
+        Đăng nhập bằng Google
+      </button>
 
       <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-wide text-graphite">
         <span className="h-px flex-1 bg-kraft-dark" />
