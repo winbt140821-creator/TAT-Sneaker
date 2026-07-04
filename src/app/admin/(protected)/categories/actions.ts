@@ -5,16 +5,23 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
+import { saveUploadedImages } from "@/lib/uploads";
 
 export type CategoryFormState = { error?: string };
 
-function readCategoryForm(formData: FormData) {
+async function readCategoryForm(formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
   const parentId = String(formData.get("parentId") ?? "").trim() || null;
   const hot = formData.get("hot") === "on";
   const sale = formData.get("sale") === "on";
   const sortOrder = Number(formData.get("sortOrder") ?? 0) || 0;
+  const showcaseEnabled = formData.get("showcaseEnabled") === "on";
+  const keepShowcaseImage = String(formData.get("keepShowcaseImage") ?? "").trim() || null;
+  const showcaseFile = formData.get("showcaseImage");
+  const showcaseFiles = showcaseFile instanceof File && showcaseFile.size > 0 ? [showcaseFile] : [];
+  const uploaded = await saveUploadedImages(showcaseFiles);
+  const showcaseImageUrl = uploaded[0] ?? keepShowcaseImage;
   return {
     label,
     slug: slugInput ? slugify(slugInput) : slugify(label),
@@ -22,6 +29,8 @@ function readCategoryForm(formData: FormData) {
     hot,
     sale,
     sortOrder,
+    showcaseEnabled,
+    showcaseImageUrl,
   };
 }
 
@@ -30,7 +39,7 @@ export async function createCategoryAction(
   formData: FormData
 ): Promise<CategoryFormState> {
   await requireStaff();
-  const data = readCategoryForm(formData);
+  const data = await readCategoryForm(formData);
 
   if (!data.label || !data.slug) {
     return { error: "Vui lòng nhập tên danh mục." };
@@ -53,7 +62,7 @@ export async function updateCategoryAction(
   formData: FormData
 ): Promise<CategoryFormState> {
   await requireStaff();
-  const data = readCategoryForm(formData);
+  const data = await readCategoryForm(formData);
 
   if (!data.label || !data.slug) {
     return { error: "Vui lòng nhập tên danh mục." };

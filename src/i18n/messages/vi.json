@@ -81,7 +81,8 @@
     "latest": "Sản phẩm mới nhất",
     "onSale": "Đang giảm giá",
     "searchResultsFor": "Kết quả tìm kiếm cho \"{query}\"",
-    "brandShoes": "Giày {brand}"
+    "brandShoes": "Giày {brand}",
+    "featuredCategories": "Danh mục nổi bật"
   },
   "product": {
     "viewAll": "Xem tất cả →",
@@ -122,8 +123,7 @@
     "inStock": "Có sẵn",
     "leadTime": "Giao trong {min}-{max} ngày",
     "depositRequired": "Yêu cầu đặt cọc {amount} khi đặt hàng",
-    "condition": "Tình trạng:",
-    "verified": "✓ Đã kiểm định",
+    "quality": "Chất lượng:",
     "sku": "SKU:",
     "brand": "Thương hiệu:",
     "video": "Video sản phẩm",

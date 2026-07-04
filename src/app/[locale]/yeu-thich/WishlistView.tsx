@@ -30,6 +30,7 @@ export function WishlistView({
     formatPriceForLocale(vnd, locale, { usdExchangeRate, cnyExchangeRate });
   const t = useTranslations("wishlist");
   const tCommon = useTranslations("common");
+  const tDetail = useTranslations("productDetail");
   const ids = useSyncExternalStore(
     subscribeWishlist,
     getWishlistSnapshot,
@@ -139,16 +140,29 @@ export function WishlistView({
                 <h3 className="font-body text-sm font-medium leading-snug text-ink">
                   {product.name}
                 </h3>
-                <div className="mt-auto flex items-baseline gap-2 pt-2">
-                  <p className="font-mono text-base font-semibold text-forest">
+                <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-forest">
+                  {product.quality}
+                </p>
+                <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-2">
+                  <p className="font-mono text-lg font-bold text-forest">
                     {formatPrice(product.price)}
                   </p>
                   {product.originalPrice && (
-                    <p className="font-mono text-xs text-graphite/60 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </p>
+                    <>
+                      <p className="font-mono text-xs text-graphite/60 line-through">
+                        {formatPrice(product.originalPrice)}
+                      </p>
+                      <span className="bg-forest px-1.5 py-0.5 font-mono text-[10px] font-bold text-paper">
+                        -{discountPct}%
+                      </span>
+                    </>
                   )}
                 </div>
+                <p className="font-mono text-[11px] text-graphite">
+                  {product.availability === "PREORDER"
+                    ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
+                    : tDetail("inStock")}
+                </p>
               </Link>
             </div>
           );

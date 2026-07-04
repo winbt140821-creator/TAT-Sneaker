@@ -5,12 +5,10 @@ import { getNavCategories } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
 import { getCurrentStaff } from "@/lib/auth";
 import { auth } from "@/auth";
-import { BagIcon, DashboardIcon, HeartIcon, SearchIcon, UserIcon } from "./icons";
-import { CategoryNav } from "./CategoryNav";
+import { BagIcon, DashboardIcon, SearchIcon } from "./icons";
+import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
 import { CartBadge } from "./CartBadge";
-import { WishlistBadge } from "./WishlistBadge";
 import { AccountMenu } from "./AccountMenu";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
 
 async function SearchBar({ id }: { id: string }) {
@@ -38,7 +36,7 @@ async function SearchBar({ id }: { id: string }) {
   );
 }
 
-export async function Header({ activeCategorySlug }: { activeCategorySlug?: string }) {
+export async function Header() {
   const [categories, session, staff, t, settings] = await Promise.all([
     getNavCategories(),
     auth(),
@@ -48,10 +46,17 @@ export async function Header({ activeCategorySlug }: { activeCategorySlug?: stri
   ]);
 
   return (
-    <header className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
-        <Link href="/" className="min-w-0 flex-1 transition-opacity hover:opacity-80">
-          <Logo logoUrl={settings?.logoUrl} imageClassName="h-9 w-auto max-w-[140px] object-contain sm:h-16 sm:max-w-[220px]" />
+    <header
+      className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
+      style={{ viewTransitionName: "site-header" }}
+    >
+      <div className="relative mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+        <MobileCategoryDrawer categories={categories} />
+        <Link
+          href="/"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80 sm:static sm:left-auto sm:top-auto sm:min-w-0 sm:flex-1 sm:translate-x-0 sm:translate-y-0"
+        >
+          <Logo logoUrl={settings?.logoUrl} imageClassName="h-12 w-auto max-w-[170px] object-contain sm:h-16 sm:max-w-[220px]" />
         </Link>
 
         <div className="hidden max-w-md sm:block">
@@ -71,15 +76,6 @@ export async function Header({ activeCategorySlug }: { activeCategorySlug?: stri
               </span>
             </NextLink>
           )}
-          <LanguageSwitcher />
-          <Link
-            href="/yeu-thich"
-            aria-label={t("wishlistAria")}
-            className="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-graphite transition-colors hover:text-ink"
-          >
-            <HeartIcon className="h-5 w-5" />
-            <WishlistBadge />
-          </Link>
           <Link
             href="/gio-hang"
             aria-label={t("cartAria")}
@@ -88,25 +84,14 @@ export async function Header({ activeCategorySlug }: { activeCategorySlug?: stri
             <BagIcon className="h-5 w-5" />
             <CartBadge />
           </Link>
-          {session?.user ? (
-            <AccountMenu
-              name={session.user.name || session.user.email || t("accountFallback")}
-              avatarUrl={session.user.image}
-            />
-          ) : (
-            <Link
-              href="/dang-nhap"
-              aria-label={t("loginAria")}
-              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-graphite transition-colors hover:text-ink"
-            >
-              <UserIcon className="h-5 w-5" />
-            </Link>
-          )}
+          <AccountMenu
+            session={
+              session?.user
+                ? { name: session.user.name || session.user.email || t("accountFallback"), avatarUrl: session.user.image }
+                : null
+            }
+          />
         </div>
-      </div>
-
-      <div className="bg-ink px-4 sm:px-6">
-        <CategoryNav categories={categories} activeCategorySlug={activeCategorySlug} />
       </div>
 
       <div className="border-t border-kraft-dark px-4 py-2 sm:hidden">

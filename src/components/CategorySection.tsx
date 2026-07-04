@@ -51,7 +51,7 @@ export function CategorySection({
       </div>
 
       <div className="mt-6">
-        <ProductGrid products={products} />
+        <ProductGrid products={products} layout="scroll" />
       </div>
     </section>
   );

@@ -71,6 +71,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // Enables React's <ViewTransition> (see src/app/layout.tsx) — a native
+    // crossfade between pages on navigation, using the browser's View
+    // Transitions API. No-op (no crash) in browsers that don't support it.
+    viewTransition: true,
   },
   images: {
     remotePatterns: [

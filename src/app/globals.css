@@ -6,10 +6,14 @@
   --color-ink: #111111;
   --color-ink-soft: #27272a;
   --color-paper: #ffffff;
-  --color-stamp: #dc2626;
-  --color-stamp-dark: #b91c1c;
-  --color-forest: #16a34a;
-  --color-forest-dark: #15803d;
+  /* Brand palette: white / black / red. "forest" stays the primary-accent
+     token name (buttons, prices, active states) but is now red instead of
+     green; "stamp" (badges, destructive/cancel) is now near-black instead
+     of red, so the two don't collide when both show up together. */
+  --color-stamp: #18181b;
+  --color-stamp-dark: #000000;
+  --color-forest: #dc2626;
+  --color-forest-dark: #b91c1c;
   --color-graphite: #71717a;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -10px rgb(0 0 0 / 0.16);
@@ -88,4 +92,26 @@ body {
   outline: 2px solid var(--color-forest);
   outline-offset: 2px;
   border-radius: 1px;
+}
+
+/* Page-to-page crossfade (see src/app/[locale]/layout.tsx's <ViewTransition>).
+   The sticky Header opts out via viewTransitionName so it stays put instead
+   of crossfading/flickering along with the page content underneath it. */
+::view-transition-group(site-header) {
+  animation: none;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

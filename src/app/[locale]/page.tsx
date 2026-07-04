@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/Header";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
@@ -8,12 +9,21 @@ import { TrustBar } from "@/components/TrustBar";
 import { Toolbar } from "@/components/Toolbar";
 import { ProductGrid } from "@/components/ProductGrid";
 import { CategorySection } from "@/components/CategorySection";
+import { CategorySidebar } from "@/components/CategorySidebar";
+import { CategoryShowcase } from "@/components/CategoryShowcase";
 import { NewsSection } from "@/components/NewsSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { Pagination } from "@/components/Pagination";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
-import { getCategoryBySlug, getHomeSections, getProducts, type ProductSort } from "@/lib/catalog";
+import {
+  getCategoryBySlug,
+  getHomeSections,
+  getNavCategories,
+  getProducts,
+  getShowcaseCategories,
+  type ProductSort,
+} from "@/lib/catalog";
 import { getSiteSettings, heroPropsFromSettings } from "@/lib/settings";
 import { languageAlternates } from "@/lib/seo";
 
@@ -66,9 +76,10 @@ export default async function Home({
     category || q || sort || minPrice || maxPrice || size || availability
   );
 
-  const [activeCategory, settings, t, tCommon, tProduct] = await Promise.all([
+  const [activeCategory, settings, navCategories, t, tCommon, tProduct] = await Promise.all([
     category ? getCategoryBySlug(category) : Promise.resolve(null),
     getSiteSettings(),
+    getNavCategories(),
     getTranslations("home"),
     getTranslations("common"),
     getTranslations("product"),
@@ -89,6 +100,15 @@ export default async function Home({
       ...(activeCategory ? [activeCategory.label] : []),
       ...(q ? [t("searchResultsFor", { query: q })] : []),
     ];
+    // Pills for quick-switching between related sub-categories: children
+    // when viewing a parent (e.g. "Nike"), or siblings under the same parent
+    // when viewing a leaf sub-category (e.g. "Jordan 1 Low" shows every
+    // other Air Jordan line).
+    const pillCategories = activeCategory
+      ? activeCategory.children.length > 0
+        ? activeCategory.children
+        : (activeCategory.parent?.children ?? [])
+      : [];
 
     return (
       <>
@@ -97,11 +117,44 @@ export default async function Home({
             items={[{ name: activeCategory.label, path: `/?category=${encodeURIComponent(activeCategory.slug)}` }]}
           />
         )}
-        <Header activeCategorySlug={activeCategory?.slug} />
+        <Header />
         <main className="flex-1">
           <Breadcrumb trail={trail} />
-          <Hero {...heroPropsFromSettings(settings)} />
+          <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+            <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} />
+            <div className="min-w-0 flex-1">
+              <Hero {...heroPropsFromSettings(settings)} />
+            </div>
+          </div>
           <TrustBar />
+
+          {pillCategories.length > 0 && (
+            <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
+              <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {pillCategories.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/?category=${encodeURIComponent(p.slug)}`}
+                    className={
+                      "shrink-0 whitespace-nowrap bg-forest px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-forest-dark " +
+                      (p.slug === activeCategory?.slug ? "ring-2 ring-ink ring-offset-1" : "")
+                    }
+                  >
+                    {p.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeCategory && (
+            <div className="mx-auto max-w-7xl px-4 pt-6 text-center sm:px-6">
+              <h2 className="font-display text-2xl uppercase tracking-wide text-forest sm:text-3xl">
+                {activeCategory.label}
+              </h2>
+            </div>
+          )}
+
           <Toolbar
             from={products.length ? 1 : 0}
             to={products.length}
@@ -116,14 +169,22 @@ export default async function Home({
     );
   }
 
-  const { latest, sections, sale } = await getHomeSections();
+  const [{ latest, sections, sale }, showcaseCategories] = await Promise.all([
+    getHomeSections(),
+    getShowcaseCategories(),
+  ]);
 
   return (
     <>
       <Header />
       <main className="flex-1">
         <Breadcrumb trail={[tCommon("sneakers")]} />
-        <Hero {...heroPropsFromSettings(settings)} />
+        <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+          <CategorySidebar categories={navCategories} />
+          <div className="min-w-0 flex-1">
+            <Hero {...heroPropsFromSettings(settings)} />
+          </div>
+        </div>
         <TrustBar />
 
         <CategorySection heading={t("latest")} products={latest} />
@@ -150,6 +211,7 @@ export default async function Home({
 
         <NewsSection />
         <TestimonialsSection />
+        <CategoryShowcase categories={showcaseCategories} />
       </main>
       <Footer />
       <FloatingActions />

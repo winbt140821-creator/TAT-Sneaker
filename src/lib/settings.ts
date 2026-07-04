@@ -23,8 +23,15 @@ export function heroPropsFromSettings(settings: Awaited<ReturnType<typeof getSit
     { value: settings?.heroStat3Value, label: settings?.heroStat3Label },
   ].filter((s): s is { value: string; label: string } => Boolean(s.value && s.label));
 
+  const parsedImages: string[] = settings?.heroImages ? JSON.parse(settings.heroImages) : [];
+  const coverImages = parsedImages.length > 0
+    ? parsedImages
+    : settings?.heroImageUrl
+      ? [settings.heroImageUrl]
+      : [];
+
   return {
-    coverImageUrl: settings?.heroImageUrl,
+    coverImages,
     eyebrow: settings?.heroEyebrow,
     eyebrowEnabled: settings?.heroEyebrowEnabled ?? true,
     heading: settings?.heroHeading,

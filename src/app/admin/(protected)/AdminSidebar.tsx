@@ -8,14 +8,20 @@ import { Logo } from "@/components/Logo";
 import { logoutAction } from "../actions";
 
 type NavItem = { href: string; label: string; adminOnly?: boolean };
+type NavGroup = { label: string; items: NavItem[] };
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin";
+  return pathname === href || pathname.startsWith(href + "/");
+}
 
 export function AdminSidebar({
-  nav,
+  navGroups,
   staffName,
   staffRoleLabel,
   logoUrl,
 }: {
-  nav: NavItem[];
+  navGroups: NavGroup[];
   staffName: string;
   staffRoleLabel: string;
   logoUrl?: string | null;
@@ -80,15 +86,33 @@ export function AdminSidebar({
           </p>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 px-3 pt-4 sm:pt-0">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-sm px-2.5 py-2.5 font-mono text-xs uppercase tracking-wide text-kraft transition-colors hover:bg-ink-soft hover:text-paper"
-            >
-              {item.label}
-            </Link>
+        <nav className="flex flex-1 flex-col gap-4 px-3 pt-4 sm:pt-4">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="px-2.5 pb-1 font-mono text-[10px] uppercase tracking-wider text-graphite">
+                {group.label}
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {group.items.map((item) => {
+                  const active = isActivePath(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={
+                        "rounded-sm px-2.5 py-2.5 font-mono text-xs uppercase tracking-wide transition-colors " +
+                        (active
+                          ? "bg-forest text-paper"
+                          : "text-kraft hover:bg-ink-soft hover:text-paper")
+                      }
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </nav>
 

@@ -1,32 +1,51 @@
+import Image from "next/image";
 import { getSiteSettings } from "@/lib/settings";
-import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
-import { updateHeroImageAction, updateHeroContentAction } from "../actions";
+import { updateHeroImagesAction, updateHeroContentAction } from "../actions";
 
 export default async function AdminSettingsHomePage() {
   const settings = await getSiteSettings();
+  const heroImages: string[] = settings?.heroImages
+    ? JSON.parse(settings.heroImages)
+    : settings?.heroImageUrl
+      ? [settings.heroImageUrl]
+      : [];
 
   return (
     <div className="flex flex-col gap-10">
       <div>
         <h2 className="font-display text-xl text-ink">Ảnh bìa</h2>
         <p className="mt-1 font-mono text-xs text-graphite">
-          Ảnh bìa hiển thị trong banner đầu trang chủ. Để trống nếu muốn dùng thiết kế mặc định
-          (không ảnh).
+          Nhiều ảnh sẽ tự động chạy dạng slideshow ở banner đầu trang chủ. Để trống nếu muốn dùng
+          thiết kế mặc định (không ảnh).
         </p>
 
-        <form action={updateHeroImageAction} className="mt-6 flex max-w-md flex-col gap-4">
-          <ImageUploadField
-            id="image"
-            name="image"
-            label={settings?.heroImageUrl ? "Thay ảnh bìa mới" : "Tải lên ảnh bìa"}
-            currentUrl={settings?.heroImageUrl}
-            currentAlt="Ảnh bìa hiện tại"
-            previewWidth={640}
-            previewHeight={360}
-            previewClassName="die-cut h-auto w-full max-w-md object-cover"
-            removeFieldName="remove"
-            removeLabel="Gỡ ảnh bìa, dùng thiết kế mặc định"
+        <form action={updateHeroImagesAction} className="mt-6 flex max-w-md flex-col gap-3">
+          {heroImages.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {heroImages.map((url) => (
+                <div key={url} className="flex flex-col items-center gap-1">
+                  <Image
+                    src={url}
+                    alt=""
+                    width={120}
+                    height={68}
+                    className="h-[68px] w-[120px] border border-graphite object-cover"
+                  />
+                  <label className="flex items-center gap-1 font-mono text-[10px] text-graphite">
+                    <input type="checkbox" name="keepImages" value={url} defaultChecked />
+                    Giữ
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+          <input
+            type="file"
+            name="images"
+            accept="image/*"
+            multiple
+            className="w-full max-w-full font-mono text-xs text-ink file:mr-3 file:cursor-pointer file:border file:border-graphite file:bg-paper file:px-3 file:py-1.5 file:font-mono file:text-xs file:uppercase"
           />
 
           <SubmitButton>Lưu thay đổi</SubmitButton>

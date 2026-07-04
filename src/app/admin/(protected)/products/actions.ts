@@ -17,12 +17,9 @@ function readProductForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim() || generateSku();
   const price = Math.round(Number(formData.get("price") ?? 0));
-  const originalPriceRaw = String(formData.get("originalPrice") ?? "").trim();
-  const originalPrice = originalPriceRaw ? Math.round(Number(originalPriceRaw)) : null;
   const costPriceRaw = String(formData.get("costPrice") ?? "").trim();
   const costPrice = costPriceRaw ? Math.round(Number(costPriceRaw)) : null;
-  const condition = String(formData.get("condition") ?? "Còn hàng");
-  const verified = formData.get("verified") === "on";
+  const quality = String(formData.get("quality") ?? "Auth");
   const accent = String(formData.get("accent") ?? "#4a4638");
   const carriedSizes = formData.getAll("carriedSizes").map(Number).filter((n) => !Number.isNaN(n));
   const sizeQuantities: Record<string, number> = {};
@@ -51,10 +48,8 @@ function readProductForm(formData: FormData) {
     name,
     sku,
     price,
-    originalPrice,
     costPrice,
-    condition,
-    verified,
+    quality,
     accent,
     sizeQuantities,
     categoryIds,
@@ -91,10 +86,8 @@ export async function createProductAction(
         name: data.name,
         sku: data.sku,
         price: data.price,
-        originalPrice: data.originalPrice,
         costPrice: data.costPrice,
-        condition: data.condition,
-        verified: data.verified,
+        quality: data.quality,
         accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(uploaded),
@@ -141,10 +134,8 @@ export async function updateProductAction(
         name: data.name,
         sku: data.sku,
         price: data.price,
-        originalPrice: data.originalPrice,
         costPrice: data.costPrice,
-        condition: data.condition,
-        verified: data.verified,
+        quality: data.quality,
         accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(images),

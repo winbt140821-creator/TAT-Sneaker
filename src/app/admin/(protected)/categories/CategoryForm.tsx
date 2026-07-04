@@ -5,6 +5,7 @@ import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
 import type { CategoryFormState } from "./actions";
 
 const initialState: CategoryFormState = {};
@@ -24,6 +25,8 @@ export function CategoryForm({
     hot?: boolean;
     sale?: boolean;
     sortOrder?: number;
+    showcaseEnabled?: boolean;
+    showcaseImageUrl?: string | null;
   };
   submitLabel: string;
 }) {
@@ -82,6 +85,26 @@ export function CategoryForm({
           Kiểu giảm giá (đỏ)
         </label>
       </div>
+
+      <fieldset className="flex flex-col gap-3 die-cut-flat bg-paper p-3">
+        <legend className="font-mono text-xs uppercase tracking-wide text-graphite">
+          Danh mục nổi bật (cuối trang chủ)
+        </legend>
+        <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-graphite">
+          <input type="checkbox" name="showcaseEnabled" defaultChecked={defaultValues?.showcaseEnabled} />
+          Hiện trong khối &ldquo;Danh mục nổi bật&rdquo; ở cuối trang chủ
+        </label>
+        <ImageUploadField
+          id="showcaseImage"
+          name="showcaseImage"
+          label="Ảnh đại diện danh mục"
+          currentUrl={defaultValues?.showcaseImageUrl}
+          currentAlt={defaultValues?.label ?? ""}
+          previewWidth={160}
+          previewHeight={120}
+          keepFieldName="keepShowcaseImage"
+        />
+      </fieldset>
 
       <FormError message={state.error} />
 

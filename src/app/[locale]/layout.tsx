@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ViewTransition } from "react";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { routing } from "@/i18n/routing";
@@ -19,5 +20,13 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
-  return <NextIntlClientProvider locale={locale}>{children}</NextIntlClientProvider>;
+  return (
+    <NextIntlClientProvider locale={locale}>
+      {/* Crossfade between pages on navigation (native View Transitions API,
+          enabled via experimental.viewTransition in next.config.ts) — the
+          sticky Header opts out via its own viewTransitionName so it doesn't
+          flicker/crossfade along with the page content. */}
+      <ViewTransition>{children}</ViewTransition>
+    </NextIntlClientProvider>
+  );
 }

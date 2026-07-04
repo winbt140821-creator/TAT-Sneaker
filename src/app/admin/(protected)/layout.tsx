@@ -7,19 +7,43 @@ import { AdminSidebar } from "./AdminSidebar";
 // noindex covers every page under this route group in one place.
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-const NAV = [
-  { href: "/admin", label: "Tổng quan" },
-  { href: "/admin/orders", label: "Đơn hàng" },
-  { href: "/admin/customers", label: "Khách hàng" },
-  { href: "/admin/revenue", label: "Doanh thu" },
-  { href: "/admin/products", label: "Sản phẩm" },
-  { href: "/admin/inventory", label: "Kho hàng" },
-  { href: "/admin/categories", label: "Danh mục" },
-  { href: "/admin/news", label: "Tin tức" },
-  { href: "/admin/testimonials", label: "Đánh giá" },
-  { href: "/admin/pages", label: "Trang nội dung" },
-  { href: "/admin/settings", label: "Cài đặt" },
-  { href: "/admin/staff", label: "Nhân viên", adminOnly: true },
+const NAV_GROUPS = [
+  {
+    label: "Tổng quan",
+    items: [{ href: "/admin", label: "Tổng quan" }],
+  },
+  {
+    label: "Bán hàng",
+    items: [
+      { href: "/admin/orders", label: "Đơn hàng" },
+      { href: "/admin/customers", label: "Khách hàng" },
+      { href: "/admin/revenue", label: "Doanh thu" },
+    ],
+  },
+  {
+    label: "Sản phẩm",
+    items: [
+      { href: "/admin/products", label: "Sản phẩm" },
+      { href: "/admin/sale", label: "Sale / Khuyến mãi" },
+      { href: "/admin/inventory", label: "Kho hàng" },
+      { href: "/admin/categories", label: "Danh mục" },
+    ],
+  },
+  {
+    label: "Nội dung",
+    items: [
+      { href: "/admin/news", label: "Tin tức" },
+      { href: "/admin/testimonials", label: "Đánh giá" },
+      { href: "/admin/pages", label: "Trang nội dung" },
+    ],
+  },
+  {
+    label: "Hệ thống",
+    items: [
+      { href: "/admin/settings", label: "Cài đặt" },
+      { href: "/admin/staff", label: "Nhân viên", adminOnly: true },
+    ],
+  },
 ];
 
 export default async function AdminLayout({
@@ -31,10 +55,15 @@ export default async function AdminLayout({
   // requests, but Server Functions must never rely on that alone.
   const [staff, settings] = await Promise.all([requireStaff(), getSiteSettings()]);
 
+  const navGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.adminOnly || staff.role === "ADMIN"),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <div className="flex min-h-dvh flex-col bg-kraft sm:flex-row">
       <AdminSidebar
-        nav={NAV.filter((item) => !item.adminOnly || staff.role === "ADMIN")}
+        navGroups={navGroups}
         staffName={staff.name}
         staffRoleLabel={staff.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
         logoUrl={settings?.logoUrl}

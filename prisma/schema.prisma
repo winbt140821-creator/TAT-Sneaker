@@ -34,6 +34,8 @@ model Session {
   staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([staffId])
 }
 
 // Nav categories, self-referential so a top-level brand (Jordan) can have
@@ -46,12 +48,19 @@ model Category {
   hot           Boolean        @default(false)
   sale          Boolean        @default(false)
   sortOrder     Int            @default(0)
+  // Featured-categories grid near the bottom of the homepage — admin picks
+  // which categories appear there and uploads a representative photo for
+  // each, independent of whether it's shown in the main nav.
+  showcaseEnabled   Boolean @default(false)
+  showcaseImageUrl  String?
   parentId      String?
   parent        Category?      @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children      Category[]     @relation("CategoryChildren")
   products      Product[]      @relation("ProductCategories")
   sizeChartRows SizeChartRow[]
   createdAt     DateTime       @default(now())
+
+  @@index([parentId])
 }
 
 // Per-brand size conversion table shown on the PDP under "Bảng đo size
@@ -69,6 +78,8 @@ model SizeChartRow {
   ukSize     String
   cmSize     String
   sortOrder  Int      @default(0)
+
+  @@index([categoryId])
 }
 
 // Sourcing model: in-stock items ship from existing inventory, preorder
@@ -85,10 +96,8 @@ model Product {
   sku           String   @unique
   name          String
   price         Int
-  originalPrice Int?
   costPrice     Int? // giá nhập (VND), admin-only — used to compute profit on the revenue dashboard, never shown to customers
-  condition     String // "Deadstock" | "VNDS" | "9/10"
-  verified      Boolean  @default(true)
+  quality       String // "Auth" | "Best Quality" | "Rep 11"
   accent        String   @default("#4a4638")
   // JSON-encoded Record<size, quantity> — e.g. {"36":2,"37":0,"40":5}. A size
   // key's presence means the product carries that size (shown to customers,
@@ -109,9 +118,26 @@ model Product {
   leadTimeMaxDays Int                 @default(5)
 
   categories    Category[]  @relation("ProductCategories")
+  saleCampaigns SaleCampaign[] @relation("SaleCampaignProducts")
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// Holiday/seasonal discount campaigns — replaces the old per-product
+// "originalPrice" field. Admin toggles `active` on/off instead of editing a
+// sale price on every product; the discount is computed at read time
+// (catalog display, cart totals, checkout price snapshot) from whichever
+// active campaign gives the best discount for a given product.
+model SaleCampaign {
+  id              String    @id @default(cuid())
+  name            String
+  discountPercent Int
+  active          Boolean   @default(false)
+  appliesToAll    Boolean   @default(true)
+  products        Product[] @relation("SaleCampaignProducts")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // Single-row table (id is always "singleton") for site-wide, admin-editable content.
@@ -120,7 +146,8 @@ model Product {
 model SiteSettings {
   id            String   @id @default("singleton")
   logoUrl       String? // shown instead of the text wordmark in Header/Footer/admin when set
-  heroImageUrl  String?
+  heroImageUrl  String? // legacy single-image field, superseded by heroImages below
+  heroImages    String? // JSON string[] — hero banner carousel, admin-editable, multiple slides
   address       String?
   phone         String?
   email         String?
@@ -239,6 +266,8 @@ model Address {
   zip        String?
   isDefault  Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  @@index([customerId])
 }
 
 enum OrderStatus {
@@ -288,6 +317,8 @@ model Order {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([customerId])
 }
 
 enum PaymentProvider {
@@ -342,4 +373,7 @@ model OrderItem {
   costPrice Int @default(0) // snapshot of unit cost price at order time, for profit reporting
 
   depositAmount Int @default(0) // snapshot of per-unit deposit required at order time
+
+  @@index([orderId])
+  @@index([productId])
 }

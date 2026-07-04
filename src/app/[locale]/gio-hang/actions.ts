@@ -1,19 +1,21 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { getActiveCampaigns, salePriceFor } from "@/lib/sale";
 
 export async function getCartProductsAction(ids: string[]) {
   if (ids.length === 0) return [];
 
-  const products = await prisma.product.findMany({
-    where: { id: { in: ids } },
-  });
+  const [products, campaigns] = await Promise.all([
+    prisma.product.findMany({ where: { id: { in: ids } } }),
+    getActiveCampaigns(),
+  ]);
 
   return products.map((p) => ({
     id: p.id,
     sku: p.sku,
     name: p.name,
-    price: p.price,
+    price: salePriceFor(p.id, p.price, campaigns).price,
     images: JSON.parse(p.images) as string[],
     sizeQuantities: JSON.parse(p.sizeQuantities) as Record<string, number>,
     depositRequired: p.depositRequired,

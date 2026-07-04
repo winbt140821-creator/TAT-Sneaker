@@ -1,11 +1,11 @@
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { site } from "@/lib/site-config";
+import { HeroCarousel } from "./HeroCarousel";
 
 export type HeroStat = { value: string; label: string };
 
 export async function Hero({
-  coverImageUrl,
+  coverImages,
   eyebrow,
   eyebrowEnabled = true,
   heading,
@@ -15,7 +15,7 @@ export async function Hero({
   statsEnabled = true,
   stats,
 }: {
-  coverImageUrl?: string | null;
+  coverImages?: string[];
   eyebrow?: string | null;
   eyebrowEnabled?: boolean;
   heading?: string | null;
@@ -32,7 +32,7 @@ export async function Hero({
     { value: t("statExchangeValue"), label: t("statExchangeLabel") },
   ];
 
-  const hasCover = Boolean(coverImageUrl);
+  const hasCover = Boolean(coverImages && coverImages.length > 0);
   const eyebrowText = eyebrow || t("eyebrow");
   const headingLines = (heading || t("heading")).split("\n");
   const descriptionText =
@@ -43,18 +43,15 @@ export async function Hero({
   const showText = eyebrowEnabled || headingEnabled || descriptionEnabled;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
-      <div className="die-cut relative overflow-hidden bg-paper px-6 py-10 sm:px-10 sm:py-14">
+    <div
+      className={
+        "die-cut relative h-full overflow-hidden bg-paper px-4 py-6 sm:px-10 sm:py-14 lg:min-h-[420px] " +
+        (hasCover ? "aspect-[4/3] sm:aspect-auto" : "")
+      }
+    >
         {hasCover && (
           <>
-            <Image
-              src={coverImageUrl!}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
+            <HeroCarousel images={coverImages!} />
             <div className="absolute inset-0 bg-ink/60" aria-hidden="true" />
           </>
         )}
@@ -90,7 +87,7 @@ export async function Hero({
               <p
                 className={
                   "mt-4 max-w-md font-body text-sm sm:text-base " +
-                  (hasCover ? "text-kraft" : "text-graphite")
+                  (hasCover ? "line-clamp-2 sm:line-clamp-none text-kraft" : "text-graphite")
                 }
               >
                 {descriptionText}
@@ -102,7 +99,8 @@ export async function Hero({
         {statsEnabled && (
           <dl
             className={
-              "relative grid grid-cols-3 gap-4 border-t pt-6 " +
+              "relative grid-cols-3 gap-4 border-t pt-6 " +
+              (hasCover ? "hidden sm:grid " : "grid ") +
               (showText ? "mt-10" : "mt-0") +
               " " +
               (hasCover ? "border-paper/30" : "border-kraft-dark")
@@ -131,7 +129,6 @@ export async function Hero({
             ))}
           </dl>
         )}
-      </div>
-    </section>
+    </div>
   );
 }

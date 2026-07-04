@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:deploy:turso": "tsx prisma/deploy-turso.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1079.0",

@@ -1,4 +1,4 @@
-export type Condition = "Deadstock" | "VNDS" | "9/10";
+export type Quality = "Auth" | "Best Quality" | "Rep 11";
 
 export type Product = {
   id: string;
@@ -7,8 +7,7 @@ export type Product = {
   brand: string;
   price: number;
   originalPrice?: number;
-  condition: Condition;
-  verified: boolean;
+  quality: Quality;
   accent: string;
   sizes: number[]; // available sizes
   soldSizes: number[]; // sold-out sizes, shown struck through
@@ -63,8 +62,7 @@ export const products: Product[] = NAMES.map((n, i) => {
     brand: n.brand,
     price,
     originalPrice: onSale ? Math.round((price * 1.2) / 10000) * 10000 : undefined,
-    condition: (["Deadstock", "VNDS", "9/10"] as const)[i % 3],
-    verified: i % 5 !== 4,
+    quality: (["Auth", "Best Quality", "Rep 11"] as const)[i % 3],
     accent: n.accent,
     sizes: available,
     soldSizes: sold,

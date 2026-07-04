@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { getActiveCampaigns, salePriceFor } from "@/lib/sale";
 import { auth } from "@/auth";
 import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
@@ -48,8 +49,13 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   }
 
   const productIds = [...new Set(input.items.map((i) => i.productId))];
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
+  const [products, campaigns] = await Promise.all([
+    prisma.product.findMany({ where: { id: { in: productIds } } }),
+    getActiveCampaigns(),
+  ]);
   const byId = new Map(products.map((p) => [p.id, p]));
+  const priceFor = (productId: string, basePrice: number) =>
+    salePriceFor(productId, basePrice, campaigns).price;
 
   for (const item of input.items) {
     const product = byId.get(item.productId);
@@ -77,7 +83,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   const orderTotal = input.items.reduce((sum, item) => {
     const product = byId.get(item.productId)!;
-    return sum + product.price * item.quantity;
+    return sum + priceFor(product.id, product.price) * item.quantity;
   }, 0);
 
   const productDeposit = input.items.reduce((sum, item) => {
@@ -138,7 +144,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
                 productId: item.productId,
                 size: item.size,
                 quantity: item.quantity,
-                price: product.price,
+                price: priceFor(product.id, product.price),
                 costPrice: product.costPrice ?? 0,
                 depositAmount: unitDeposit,
               };

@@ -81,7 +81,8 @@
     "latest": "Latest arrivals",
     "onSale": "On sale",
     "searchResultsFor": "Search results for \"{query}\"",
-    "brandShoes": "{brand} shoes"
+    "brandShoes": "{brand} shoes",
+    "featuredCategories": "Featured categories"
   },
   "product": {
     "viewAll": "View all →",
@@ -122,8 +123,7 @@
     "inStock": "In stock",
     "leadTime": "Ships in {min}-{max} days",
     "depositRequired": "Requires a {amount} deposit at checkout",
-    "condition": "Condition:",
-    "verified": "✓ Verified",
+    "quality": "Quality:",
     "sku": "SKU:",
     "brand": "Brand:",
     "video": "Product video",

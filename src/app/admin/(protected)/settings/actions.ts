@@ -36,27 +36,19 @@ export async function updateLogoAction(formData: FormData): Promise<void> {
   revalidateSettings();
 }
 
-export async function updateHeroImageAction(formData: FormData): Promise<void> {
+export async function updateHeroImagesAction(formData: FormData): Promise<void> {
   await requireStaff();
 
-  const remove = formData.get("remove") === "on";
-  const file = formData.get("image");
-  const files = file instanceof File && file.size > 0 ? [file] : [];
+  const keepImages = formData.getAll("keepImages").map(String);
+  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
   const uploaded = await saveUploadedImages(files);
+  const heroImages = [...keepImages, ...uploaded];
 
-  if (remove) {
-    await prisma.siteSettings.upsert({
-      where: { id: "singleton" },
-      update: { heroImageUrl: null },
-      create: { id: "singleton", heroImageUrl: null },
-    });
-  } else if (uploaded[0]) {
-    await prisma.siteSettings.upsert({
-      where: { id: "singleton" },
-      update: { heroImageUrl: uploaded[0] },
-      create: { id: "singleton", heroImageUrl: uploaded[0] },
-    });
-  }
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { heroImages: JSON.stringify(heroImages) },
+    create: { id: "singleton", heroImages: JSON.stringify(heroImages) },
+  });
 
   revalidateSettings();
 }

@@ -37,7 +37,10 @@ const DEFAULT_DESCRIPTION = site.tagline;
 // static pages, category listings) shares with no image at all.
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const ogImage = settings?.heroImageUrl || settings?.logoUrl || undefined;
+  const firstHeroImage: string | undefined = settings?.heroImages
+    ? JSON.parse(settings.heroImages)[0]
+    : undefined;
+  const ogImage = firstHeroImage || settings?.heroImageUrl || settings?.logoUrl || undefined;
 
   return {
     metadataBase: new URL(SITE_URL),

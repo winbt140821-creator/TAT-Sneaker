@@ -42,7 +42,7 @@ export async function generateMetadata({
   const title = brandCategory
     ? `${product.name} - Giày ${brandCategory.label} chính hãng`
     : product.name;
-  const description = `${product.name} — ${product.condition}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Đã qua kiểm định 3 bước, giao hàng toàn quốc, thanh toán khi nhận hàng.`;
+  const description = `${product.name} — ${product.quality}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Đã qua kiểm định 3 bước, giao hàng toàn quốc, thanh toán khi nhận hàng.`;
   const image = product.images[0];
   const path = `/san-pham/${product.id}`;
 
@@ -106,7 +106,7 @@ export default async function ProductDetailPage({
           { name: product.name, path: `/san-pham/${product.id}` },
         ]}
       />
-      <Header activeCategorySlug={brandCategory?.slug} />
+      <Header />
       <main className="flex-1">
         <Breadcrumb
           trail={[
@@ -128,15 +128,18 @@ export default async function ProductDetailPage({
               <h1 className="font-display text-2xl leading-snug text-ink sm:text-3xl">
                 {product.name}
               </h1>
+              <p className="mt-1 font-mono text-sm font-bold uppercase tracking-wide text-forest">
+                {product.quality}
+              </p>
 
-              <div className="mt-3 flex items-baseline gap-3">
-                <p className="font-mono text-2xl font-semibold text-forest">{price}</p>
+              <div className="mt-3 flex flex-wrap items-baseline gap-3">
+                <p className="font-mono text-3xl font-bold text-forest">{price}</p>
                 {originalPrice && (
                   <>
                     <p className="font-mono text-base text-graphite/60 line-through">
                       {originalPrice}
                     </p>
-                    <span className="bg-stamp px-2 py-0.5 font-mono text-xs font-semibold text-paper">
+                    <span className="bg-forest px-2 py-0.5 font-mono text-xs font-bold text-paper">
                       -{discountPct}%
                     </span>
                   </>
@@ -185,11 +188,7 @@ export default async function ProductDetailPage({
 
               <div className="mt-6 flex flex-col gap-1 border-t border-kraft-dark pt-4 font-mono text-xs text-graphite">
                 <p>
-                  {t("condition")}{" "}
-                  <span className="text-ink">{product.condition}</span>
-                  {product.verified && (
-                    <span className="ml-2 text-forest">{t("verified")}</span>
-                  )}
+                  {t("quality")} <span className="text-ink">{product.quality}</span>
                 </p>
                 <p>
                   {t("sku")} <span className="text-ink">{product.sku}</span>

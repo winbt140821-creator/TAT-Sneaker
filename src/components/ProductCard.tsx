@@ -13,8 +13,9 @@ export async function ProductCard({
   product: CatalogProduct;
   index: number;
 }) {
-  const [t, price, originalPrice] = await Promise.all([
+  const [t, tDetail, price, originalPrice] = await Promise.all([
     getTranslations("product"),
+    getTranslations("productDetail"),
     formatPriceForCurrentLocale(product.price),
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
   ]);
@@ -59,13 +60,26 @@ export async function ProductCard({
         <h3 className="font-body text-sm font-medium leading-snug text-ink">
           {product.name}
         </h3>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-forest">
+          {product.quality}
+        </p>
 
         <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-2">
-          <p className="font-mono text-base font-semibold text-forest">{price}</p>
+          <p className="font-mono text-lg font-bold text-forest">{price}</p>
           {originalPrice && (
-            <p className="font-mono text-xs text-graphite/60 line-through">{originalPrice}</p>
+            <>
+              <p className="font-mono text-xs text-graphite/60 line-through">{originalPrice}</p>
+              <span className="bg-forest px-1.5 py-0.5 font-mono text-[10px] font-bold text-paper">
+                -{discountPct}%
+              </span>
+            </>
           )}
         </div>
+        <p className="font-mono text-[11px] text-graphite">
+          {product.availability === "PREORDER"
+            ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
+            : tDetail("inStock")}
+        </p>
       </div>
     </Link>
   );

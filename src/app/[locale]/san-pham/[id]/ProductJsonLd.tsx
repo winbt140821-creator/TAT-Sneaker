@@ -33,10 +33,10 @@ export function ProductJsonLd({
       priceCurrency: "VND",
       price: product.price,
       availability,
-      itemCondition:
-        product.condition === "Cũ"
-          ? "https://schema.org/UsedCondition"
-          : "https://schema.org/NewCondition",
+      // All stock is new (never a used/worn listing) — "quality" here is an
+      // authenticity/replica tier (Auth/Best Quality/Rep 11), not physical
+      // wear condition, so it doesn't map to schema.org's UsedCondition.
+      itemCondition: "https://schema.org/NewCondition",
     },
   };
 

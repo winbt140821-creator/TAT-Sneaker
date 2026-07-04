@@ -81,7 +81,8 @@
     "latest": "最新上架",
     "onSale": "特价促销",
     "searchResultsFor": "\"{query}\" 的搜索结果",
-    "brandShoes": "{brand} 鞋款"
+    "brandShoes": "{brand} 鞋款",
+    "featuredCategories": "热门分类"
   },
   "product": {
     "viewAll": "查看全部 →",
@@ -122,8 +123,7 @@
     "inStock": "现货",
     "leadTime": "预计 {min}-{max} 天发货",
     "depositRequired": "下单需支付 {amount} 定金",
-    "condition": "成色：",
-    "verified": "✓ 已验货",
+    "quality": "品质：",
     "sku": "货号：",
     "brand": "品牌：",
     "video": "商品视频",

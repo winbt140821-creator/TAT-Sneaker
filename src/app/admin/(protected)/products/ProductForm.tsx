@@ -10,7 +10,7 @@ import { FormError } from "@/components/admin/form/FormError";
 import { ALL_SIZES } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
-const CONDITIONS = ["Còn hàng", "Hết Hàng", "Order", "Cũ"];
+const QUALITY_TIERS = ["Auth", "Best Quality", "Rep 11"];
 
 const LEAD_TIME_DEFAULTS = {
   IN_STOCK: { min: 3, max: 5 },
@@ -37,10 +37,8 @@ export function ProductForm({
     name?: string;
     sku?: string;
     price?: number;
-    originalPrice?: number | null;
     costPrice?: number | null;
-    condition?: string;
-    verified?: boolean;
+    quality?: string;
     accent?: string;
     sizeQuantities?: Record<string, number>;
     categoryIds?: string[];
@@ -93,29 +91,7 @@ export function ProductForm({
     defaultValues?.leadTimeMaxDays ?? LEAD_TIME_DEFAULTS.IN_STOCK.max
   );
   const [depositRequired, setDepositRequired] = useState(defaultValues?.depositRequired ?? false);
-  const [originalPrice, setOriginalPrice] = useState(
-    defaultValues?.originalPrice != null ? String(defaultValues.originalPrice) : ""
-  );
   const [price, setPrice] = useState(defaultValues?.price != null ? String(defaultValues.price) : "");
-  const [discountPct, setDiscountPct] = useState("");
-
-  function applyDiscount(pctStr: string, originalStr: string) {
-    const pct = Number(pctStr);
-    const original = Number(originalStr);
-    if (pctStr && originalStr && !Number.isNaN(pct) && !Number.isNaN(original) && original > 0) {
-      setPrice(String(Math.round(original * (1 - pct / 100))));
-    }
-  }
-
-  function handleDiscountChange(value: string) {
-    setDiscountPct(value);
-    applyDiscount(value, originalPrice);
-  }
-
-  function handleOriginalPriceChange(value: string) {
-    setOriginalPrice(value);
-    if (discountPct) applyDiscount(discountPct, value);
-  }
 
   function handleAvailabilityChange(next: "IN_STOCK" | "PREORDER") {
     setAvailability(next);
@@ -147,29 +123,6 @@ export function ProductForm({
         />
 
         <TextField
-          id="originalPrice"
-          name="originalPrice"
-          label="Giá bán trước sale (để trống nếu không giảm giá)"
-          type="number"
-          min={0}
-          value={originalPrice}
-          onChange={(e) => handleOriginalPriceChange(e.target.value)}
-        />
-
-        <TextField
-          id="discountPct"
-          label="Giảm giá (%, tuỳ chọn)"
-          type="number"
-          min={0}
-          max={100}
-          placeholder="VD: 15"
-          value={discountPct}
-          onChange={(e) => handleDiscountChange(e.target.value)}
-          disabled={!originalPrice}
-          hint="Nhập % để tự tính giá bán từ giá gốc bên cạnh."
-        />
-
-        <TextField
           id="price"
           name="price"
           label="Giá bán (đ)"
@@ -178,17 +131,18 @@ export function ProductForm({
           required
           value={price}
           onChange={(e) => setPrice(e.target.value)}
+          hint="Giảm giá theo dịp lễ được quản lý ở trang Sale/Khuyến mãi, không nhập ở đây."
         />
 
         <SelectField
-          id="condition"
-          name="condition"
-          label="Tình trạng"
-          defaultValue={defaultValues?.condition ?? "Còn hàng"}
+          id="quality"
+          name="quality"
+          label="Chất lượng"
+          defaultValue={defaultValues?.quality ?? "Auth"}
         >
-          {CONDITIONS.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {QUALITY_TIERS.map((q) => (
+            <option key={q} value={q}>
+              {q}
             </option>
           ))}
         </SelectField>
@@ -206,11 +160,6 @@ export function ProductForm({
           />
         </div>
       </div>
-
-      <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-graphite">
-        <input type="checkbox" name="verified" defaultChecked={defaultValues?.verified ?? true} />
-        Đã kiểm định (hiện huy hiệu Auth)
-      </label>
 
       <fieldset>
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">
