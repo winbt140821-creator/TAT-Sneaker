@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --color-kraft: #f4f4f5;
+  --color-kraft-dark: #e4e4e7;
+  --color-ink: #111111;
+  --color-ink-soft: #27272a;
+  --color-paper: #ffffff;
+  --color-stamp: #dc2626;
+  --color-stamp-dark: #b91c1c;
+  --color-forest: #16a34a;
+  --color-forest-dark: #15803d;
+  --color-graphite: #71717a;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -10px rgb(0 0 0 / 0.16);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 14px 28px -12px rgb(0 0 0 / 0.22);
+}
+
+@theme inline {
+  --color-kraft: var(--color-kraft);
+  --color-kraft-dark: var(--color-kraft-dark);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-paper: var(--color-paper);
+  --color-stamp: var(--color-stamp);
+  --color-stamp-dark: var(--color-stamp-dark);
+  --color-forest: var(--color-forest);
+  --color-forest-dark: var(--color-forest-dark);
+  --color-graphite: var(--color-graphite);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-display);
+  --font-logo: var(--font-logo);
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+}
+
+/* Every form control site-wide uses Tailwind's text-sm (14px). Below 16px,
+   iOS Safari auto-zooms the page on focus — jarring on a mobile-first
+   audience. Override on mobile only so desktop keeps its existing density. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Be Vietnam Pro is a variable-weight family (unlike the old Archivo Black,
+   which was inherently bold at its only weight) — default it to bold here so
+   every heading doesn't need its own font-weight utility. */
+.font-display {
+  font-weight: 700;
+}
+
+/* clean bordered card — thin hairline border, soft shadow, no texture */
+.die-cut {
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid var(--color-kraft-dark);
+  box-shadow: var(--shadow-card);
+}
+
+.die-cut-flat {
+  border: 1px solid var(--color-kraft-dark);
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .hover-lift:active {
+    transform: translateY(-1px);
+    transition-duration: 100ms;
+  }
+}
+
+/* visible keyboard focus, kept intentional rather than the browser default */
+:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+  border-radius: 1px;
+}

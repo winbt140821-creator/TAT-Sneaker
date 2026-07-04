@@ -1,0 +1,340 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum StaffRole {
+  ADMIN
+  STAFF
+}
+
+model Staff {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  role                StaffRole @default(STAFF)
+  failedLoginAttempts Int       @default(0) // reset to 0 on successful login; brute-force lockout counter
+  lockedUntil         DateTime? // set after too many failed attempts; login rejected until this passes
+  createdAt           DateTime  @default(now())
+  sessions            Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// Nav categories, self-referential so a top-level brand (Jordan) can have
+// dropdown sub-items (1's, 4's, Legacy 312...). Adding a category here is
+// the entire mechanism behind "easily add a folder" from the admin panel.
+model Category {
+  id            String         @id @default(cuid())
+  label         String
+  slug          String         @unique
+  hot           Boolean        @default(false)
+  sale          Boolean        @default(false)
+  sortOrder     Int            @default(0)
+  parentId      String?
+  parent        Category?      @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Category[]     @relation("CategoryChildren")
+  products      Product[]      @relation("ProductCategories")
+  sizeChartRows SizeChartRow[]
+  createdAt     DateTime       @default(now())
+}
+
+// Per-brand size conversion table shown on the PDP under "Bảng đo size
+// giày". categoryId always points at a top-level (brand) Category — a
+// product's brandCategory (see san-pham/[id]/page.tsx) is already the
+// top-level category it's tagged with, so no extra "find the brand
+// ancestor" logic is needed. Sizes are strings (not Int) since some brands
+// use half sizes or letter sizing (S/M/L).
+model SizeChartRow {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  vnSize     String
+  usSize     String
+  ukSize     String
+  cmSize     String
+  sortOrder  Int      @default(0)
+}
+
+// Sourcing model: in-stock items ship from existing inventory, preorder
+// items are ordered in from supplier once the customer buys. Each carries
+// its own default lead time (editable per product) so admin can tighten or
+// loosen the estimate without a code change.
+enum ProductAvailability {
+  IN_STOCK
+  PREORDER
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  price         Int
+  originalPrice Int?
+  costPrice     Int? // giá nhập (VND), admin-only — used to compute profit on the revenue dashboard, never shown to customers
+  condition     String // "Deadstock" | "VNDS" | "9/10"
+  verified      Boolean  @default(true)
+  accent        String   @default("#4a4638")
+  // JSON-encoded Record<size, quantity> — e.g. {"36":2,"37":0,"40":5}. A size
+  // key's presence means the product carries that size (shown to customers,
+  // greyed out if quantity is 0); absence means the product doesn't come in
+  // that size at all. See src/lib/inventory.ts for accessor helpers.
+  sizeQuantities String @default("{}")
+  images        String      @default("[]") // JSON-encoded string[] of /uploads/... URLs
+  videoUrl      String? // YouTube video link shown on the product detail page
+
+  // Deposit: per-product toggle since only some items (e.g. preorders) need
+  // one upfront. depositAmount is a flat VND amount, not a percentage, so
+  // admin can price it independently of the sale price.
+  depositRequired Boolean @default(false)
+  depositAmount   Int? // VND amount required as deposit when depositRequired is true
+
+  availability    ProductAvailability @default(IN_STOCK)
+  leadTimeMinDays Int                 @default(3)
+  leadTimeMaxDays Int                 @default(5)
+
+  categories    Category[]  @relation("ProductCategories")
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Single-row table (id is always "singleton") for site-wide, admin-editable content.
+// Text fields are nullable — the app falls back to hardcoded defaults when unset,
+// same pattern as heroImageUrl.
+model SiteSettings {
+  id            String   @id @default("singleton")
+  logoUrl       String? // shown instead of the text wordmark in Header/Footer/admin when set
+  heroImageUrl  String?
+  address       String?
+  phone         String?
+  email         String?
+  footerAbout   String? // short description shown in the footer brand column
+  vnpayQrUrl  String? // VNPay QR code shown on checkout when the cart requires a deposit and VNPay is picked
+  paypalQrUrl String? // PayPal QR code shown on checkout when the cart requires a deposit and PayPal is picked
+  usdExchangeRate Int? // VND per 1 USD, admin-set fixed rate, used only to compute PayPal charge amounts (PayPal cannot settle in VND)
+  cnyExchangeRate Int? // VND per 1 CNY, admin-set fixed rate, used to display prices in CNY when the zh locale is active
+
+  // Orders that require a deposit but never get it paid clutter the admin
+  // order list — null disables auto-cancel entirely (admin cancels by hand).
+  // See src/lib/order-cleanup.ts.
+  autoCancelUnpaidDepositHours Int?
+
+  // Manual bank transfer — no bank API integration, customer transfers by
+  // hand using this info, staff confirms receipt manually (same pattern as
+  // the VNPay/PayPal QR flow above).
+  bankName          String?
+  bankBin           String? // VietQR bank BIN code, used to generate a dynamic QR with the exact amount pre-filled
+  bankAccountNumber String?
+  bankAccountHolder String?
+  bankTransferQrUrl String? // static fallback QR, shown only when bankBin isn't set
+
+  heroEyebrow            String?
+  heroEyebrowEnabled     Boolean @default(true)
+  heroHeading            String?
+  heroHeadingEnabled     Boolean @default(true)
+  heroDescription        String?
+  heroDescriptionEnabled Boolean @default(true)
+  heroStatsEnabled       Boolean @default(true)
+  heroStat1Value         String?
+  heroStat1Label         String?
+  heroStat2Value         String?
+  heroStat2Label         String?
+  heroStat3Value         String?
+  heroStat3Label         String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// Admin-managed social icons shown in the footer, individually toggleable.
+// Also doubles as the source for the floating Messenger/Zalo quick-contact
+// bubbles (matched by platform name).
+model SocialLink {
+  id        String  @id @default(cuid())
+  platform  String // e.g. "Facebook", "TikTok", "Instagram", "YouTube", "Zalo", "Messenger"
+  url       String
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+}
+
+model NewsArticle {
+  id          String   @id @default(cuid())
+  title       String
+  excerpt     String
+  imageUrl    String?
+  publishedAt DateTime @default(now())
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Testimonial {
+  id         String   @id @default(cuid())
+  quote      String
+  authorName String
+  avatarUrl  String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+// Editable content for the fixed set of footer links (policies, guides,
+// about/contact). The slug set is seeded once and matches Footer.tsx's
+// COLUMNS — admin can edit title/content but the pages themselves aren't
+// freely creatable since they're tied to specific nav slots.
+model StaticPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  updatedAt DateTime @updatedAt
+}
+
+// Customer-facing accounts, created on first social login (Google/Facebook).
+// Deliberately separate from Staff — customers never get admin access via
+// this model. Auth.js runs in JWT-only mode (no DB adapter), so this is a
+// plain app-owned table upserted from the signIn callback in src/auth.ts.
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  provider  String // "google" | "facebook"
+  createdAt DateTime @default(now())
+  orders    Order[]
+  addresses Address[]
+}
+
+// Saved shipping addresses for a customer's account (address book) — separate
+// from the address snapshot stored on each Order, which never changes after
+// checkout even if the saved address is later edited or deleted.
+model Address {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fullName   String
+  phone      String
+  company    String?
+  address    String
+  province   String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key
+  ward       String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key
+  zip        String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DONE
+  CANCELLED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  customerName  String
+  customerPhone String
+  province      String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key
+  ward          String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key
+  address       String // street-level detail only (số nhà, tên đường) once province/ward exist; full free-text blob on older orders
+  note          String?
+  status        OrderStatus @default(PENDING)
+  items         OrderItem[]
+  customerId    String? // null for guest checkout
+  customer      Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  // "COD" | "VNPAY" | "PAYPAL" | "BANK_TRANSFER" — what the customer picked
+  // at checkout. Not a Prisma enum so it can't collide with PaymentProvider
+  // (COD has no Payment row at all, since nothing is charged for it).
+  paymentMethod String @default("COD")
+
+  // Reused for both "deposit required for order/preorder items" (existing
+  // rule, unconditional regardless of paymentMethod) AND "customer chose to
+  // pay the full order online" — in the latter case this equals the order
+  // total. Whichever it is, the same pay/confirm-received flow below just
+  // works; UI decides the label from paymentMethod + whether this equals
+  // the order total.
+  depositAmount Int     @default(0)
+  depositPaid   Boolean @default(false) // staff marks true once deposit/full payment is received
+
+  // Viettel Post shipment tracking. trackingCode is set once staff creates
+  // the shipment via the carrier API; shippingStatus is the carrier's raw
+  // status text, refreshed on demand (see src/lib/shipping/viettelpost.ts).
+  trackingCode     String?
+  shippingStatus   String?
+  shippingSyncedAt DateTime?
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PaymentProvider {
+  VNPAY
+  PAYPAL
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+// Online deposit payments (VNPay/PayPal, see src/lib/payments/). A separate
+// table (rather than just Order.depositPaid) so retries/failures have an
+// audit trail — a customer can fail on VNPay then succeed on PayPal, which
+// a single boolean can't represent. Order.depositPaid stays as a derived
+// convenience flag, flipped true only once a linked Payment reaches
+// SUCCEEDED; the existing manual-QR/COD flow keeps flipping it by hand.
+model Payment {
+  id       String          @id @default(cuid())
+  orderId  String
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider PaymentProvider
+  status   PaymentStatus   @default(PENDING)
+
+  amount   Int // VND: whole units, matches existing convention. USD: cents.
+  currency String // "VND" | "USD"
+
+  providerRef       String? // our reference / idempotency key sent to the provider
+  providerTxnId     String? // provider's own transaction id, once confirmed
+  providerRawStatus String? // raw status/response code, for support debugging
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([provider, providerRef])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  size      Int
+  quantity  Int     @default(1)
+  price     Int // snapshot of unit price at order time
+  costPrice Int @default(0) // snapshot of unit cost price at order time, for profit reporting
+
+  depositAmount Int @default(0) // snapshot of per-unit deposit required at order time
+}
