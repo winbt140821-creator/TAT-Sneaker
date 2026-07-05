@@ -169,7 +169,7 @@ export default async function Home({
     );
   }
 
-  const [{ latest, sections, sale }, showcaseCategories] = await Promise.all([
+  const [{ latest, sections, sale, bestSelling }, showcaseCategories] = await Promise.all([
     getHomeSections(),
     getShowcaseCategories(),
   ]);
@@ -188,6 +188,10 @@ export default async function Home({
         <TrustBar />
 
         <CategorySection heading={t("latest")} products={latest} />
+
+        {bestSelling.length > 0 && (
+          <CategorySection heading={t("bestSelling")} products={bestSelling} />
+        )}
 
         {sale.length > 0 && (
           <CategorySection

@@ -79,6 +79,7 @@
   },
   "home": {
     "latest": "Latest arrivals",
+    "bestSelling": "Best sellers",
     "onSale": "On sale",
     "searchResultsFor": "Search results for \"{query}\"",
     "brandShoes": "{brand} shoes",

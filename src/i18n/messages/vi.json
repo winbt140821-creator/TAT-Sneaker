@@ -79,6 +79,7 @@
   },
   "home": {
     "latest": "Sản phẩm mới nhất",
+    "bestSelling": "Sản phẩm bán chạy",
     "onSale": "Đang giảm giá",
     "searchResultsFor": "Kết quả tìm kiếm cho \"{query}\"",
     "brandShoes": "Giày {brand}",

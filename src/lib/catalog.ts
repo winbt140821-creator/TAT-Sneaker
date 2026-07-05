@@ -171,7 +171,7 @@ export async function getHomeSections() {
   const campaigns = await getActiveCampaigns();
   const saleIds = saleProductIds(campaigns);
 
-  const [latest, categories, sale] = await Promise.all([
+  const [latest, categories, sale, bestSellingGroups] = await Promise.all([
     prisma.product.findMany({ orderBy: { createdAt: "desc" }, take: HOME_SECTION_SIZE }),
     prisma.category.findMany({
       where: { parentId: null, sale: false },
@@ -181,6 +181,15 @@ export async function getHomeSections() {
     prisma.product.findMany({
       where: saleIds === "ALL" ? {} : { id: { in: saleIds } },
       orderBy: { createdAt: "desc" },
+      take: HOME_SECTION_SIZE,
+    }),
+    // Ranked by total units sold across non-cancelled orders — cancelled
+    // orders never reflect real demand for the item.
+    prisma.orderItem.groupBy({
+      by: ["productId"],
+      where: { order: { status: { not: "CANCELLED" } } },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
       take: HOME_SECTION_SIZE,
     }),
   ]);
@@ -209,9 +218,20 @@ export async function getHomeSections() {
     return { category, products: withSale(products.map(parseProduct)) };
   });
 
+  const bestSellingProducts = bestSellingGroups.length
+    ? await prisma.product.findMany({ where: { id: { in: bestSellingGroups.map((g) => g.productId) } } })
+    : [];
+  const bestSellingById = new Map(bestSellingProducts.map((p) => [p.id, p]));
+  // groupBy's own order (by total units sold) has to be reapplied — findMany
+  // with `id: { in: [...] }` doesn't preserve the order of the id list.
+  const bestSelling = bestSellingGroups
+    .map((g) => bestSellingById.get(g.productId))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
   return {
     latest: withSale(latest.map(parseProduct)),
     sections: sections.filter((s) => s.products.length > 0),
     sale: withSale(sale.map(parseProduct)),
+    bestSelling: withSale(bestSelling.map(parseProduct)),
   };
 }
