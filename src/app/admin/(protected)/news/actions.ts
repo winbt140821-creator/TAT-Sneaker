@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
-import { saveUploadedImages } from "@/lib/uploads";
 
 export type NewsFormState = { error?: string };
 
@@ -13,11 +12,10 @@ function readNewsForm(formData: FormData) {
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const publishedAtRaw = String(formData.get("publishedAt") ?? "").trim();
   const publishedAt = publishedAtRaw ? new Date(publishedAtRaw) : new Date();
-  const file = formData.get("image");
-  const files = file instanceof File && file.size > 0 ? [file] : [];
+  const newImage = String(formData.get("image") ?? "").trim();
   const keepImage = String(formData.get("keepImage") ?? "");
 
-  return { title, excerpt, publishedAt, files, keepImage };
+  return { title, excerpt, publishedAt, newImage, keepImage };
 }
 
 export async function createNewsAction(
@@ -31,7 +29,6 @@ export async function createNewsAction(
     return { error: "Vui lòng nhập tiêu đề và tóm tắt." };
   }
 
-  const uploaded = await saveUploadedImages(data.files);
   const count = await prisma.newsArticle.count();
 
   await prisma.newsArticle.create({
@@ -39,7 +36,7 @@ export async function createNewsAction(
       title: data.title,
       excerpt: data.excerpt,
       publishedAt: data.publishedAt,
-      imageUrl: uploaded[0] ?? null,
+      imageUrl: data.newImage || null,
       sortOrder: count,
     },
   });
@@ -61,8 +58,7 @@ export async function updateNewsAction(
     return { error: "Vui lòng nhập tiêu đề và tóm tắt." };
   }
 
-  const uploaded = await saveUploadedImages(data.files);
-  const imageUrl = uploaded[0] ?? (data.keepImage || null);
+  const imageUrl = data.newImage || data.keepImage || null;
 
   await prisma.newsArticle.update({
     where: { id },

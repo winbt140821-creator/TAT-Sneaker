@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import Image from "next/image";
 import { useState } from "react";
 import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
 import { ALL_SIZES } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
@@ -80,7 +80,6 @@ export function ProductForm({
     setCustomSizes((prev) => prev.filter((x) => x !== s));
     setCheckedSizes((prev) => prev.filter((x) => x !== s));
   }
-  const [images, setImages] = useState<string[]>(defaultValues?.images ?? []);
   const [availability, setAvailability] = useState<"IN_STOCK" | "PREORDER">(
     defaultValues?.availability ?? "IN_STOCK"
   );
@@ -383,39 +382,7 @@ export function ProductForm({
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend className="font-mono text-xs uppercase tracking-wide text-graphite">Hình ảnh</legend>
-        <div className="mt-2 flex flex-col gap-3">
-          {images.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {images.map((url) => (
-                <div key={url} className="flex flex-col items-center gap-1">
-                  <Image src={url} alt="" width={72} height={72} className="h-[72px] w-[72px] border border-graphite object-cover" />
-                  <label className="flex items-center gap-1 font-mono text-[10px] text-graphite">
-                    <input
-                      type="checkbox"
-                      name="keepImages"
-                      value={url}
-                      defaultChecked
-                      onChange={(e) => {
-                        if (!e.target.checked) setImages((prev) => prev.filter((u) => u !== url));
-                      }}
-                    />
-                    Giữ
-                  </label>
-                </div>
-              ))}
-            </div>
-          )}
-          <input
-            type="file"
-            name="images"
-            accept="image/*"
-            multiple
-            className="w-full max-w-full font-mono text-xs text-ink file:mr-3 file:cursor-pointer file:border file:border-graphite file:bg-paper file:px-3 file:py-1.5 file:font-mono file:text-xs file:uppercase"
-          />
-        </div>
-      </fieldset>
+      <ImageUploadFieldMulti name="images" label="Hình ảnh" initialImages={defaultValues?.images ?? []} />
 
       <TextField
         id="videoUrl"

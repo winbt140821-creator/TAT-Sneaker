@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
-import { saveUploadedImages } from "@/lib/uploads";
 
 export type CategoryFormState = { error?: string };
 
@@ -18,10 +17,8 @@ async function readCategoryForm(formData: FormData) {
   const sortOrder = Number(formData.get("sortOrder") ?? 0) || 0;
   const showcaseEnabled = formData.get("showcaseEnabled") === "on";
   const keepShowcaseImage = String(formData.get("keepShowcaseImage") ?? "").trim() || null;
-  const showcaseFile = formData.get("showcaseImage");
-  const showcaseFiles = showcaseFile instanceof File && showcaseFile.size > 0 ? [showcaseFile] : [];
-  const uploaded = await saveUploadedImages(showcaseFiles);
-  const showcaseImageUrl = uploaded[0] ?? keepShowcaseImage;
+  const newShowcaseImage = String(formData.get("showcaseImage") ?? "").trim() || null;
+  const showcaseImageUrl = newShowcaseImage ?? keepShowcaseImage;
   return {
     label,
     slug: slugInput ? slugify(slugInput) : slugify(label),

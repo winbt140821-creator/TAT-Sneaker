@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
-import { saveUploadedImages } from "@/lib/uploads";
 import { getBankByBin } from "@/lib/vietqr-banks";
 
 function revalidateSettings() {
@@ -15,9 +14,7 @@ export async function updateLogoAction(formData: FormData): Promise<void> {
   await requireStaff();
 
   const remove = formData.get("remove") === "on";
-  const file = formData.get("image");
-  const files = file instanceof File && file.size > 0 ? [file] : [];
-  const uploaded = await saveUploadedImages(files);
+  const newUrl = String(formData.get("image") ?? "").trim() || null;
 
   if (remove) {
     await prisma.siteSettings.upsert({
@@ -25,11 +22,11 @@ export async function updateLogoAction(formData: FormData): Promise<void> {
       update: { logoUrl: null },
       create: { id: "singleton", logoUrl: null },
     });
-  } else if (uploaded[0]) {
+  } else if (newUrl) {
     await prisma.siteSettings.upsert({
       where: { id: "singleton" },
-      update: { logoUrl: uploaded[0] },
-      create: { id: "singleton", logoUrl: uploaded[0] },
+      update: { logoUrl: newUrl },
+      create: { id: "singleton", logoUrl: newUrl },
     });
   }
 
@@ -39,10 +36,7 @@ export async function updateLogoAction(formData: FormData): Promise<void> {
 export async function updateHeroImagesAction(formData: FormData): Promise<void> {
   await requireStaff();
 
-  const keepImages = formData.getAll("keepImages").map(String);
-  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
-  const uploaded = await saveUploadedImages(files);
-  const heroImages = [...keepImages, ...uploaded];
+  const heroImages = formData.getAll("images").map(String);
 
   await prisma.siteSettings.upsert({
     where: { id: "singleton" },
@@ -60,9 +54,7 @@ async function updateQrFieldAction(
   await requireStaff();
 
   const remove = formData.get("remove") === "on";
-  const file = formData.get("image");
-  const files = file instanceof File && file.size > 0 ? [file] : [];
-  const uploaded = await saveUploadedImages(files);
+  const newUrl = String(formData.get("image") ?? "").trim() || null;
 
   if (remove) {
     await prisma.siteSettings.upsert({
@@ -70,11 +62,11 @@ async function updateQrFieldAction(
       update: { [field]: null },
       create: { id: "singleton", [field]: null },
     });
-  } else if (uploaded[0]) {
+  } else if (newUrl) {
     await prisma.siteSettings.upsert({
       where: { id: "singleton" },
-      update: { [field]: uploaded[0] },
-      create: { id: "singleton", [field]: uploaded[0] },
+      update: { [field]: newUrl },
+      create: { id: "singleton", [field]: newUrl },
     });
   }
 

@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
-import { saveUploadedImages } from "@/lib/uploads";
 import { ProductAvailability } from "@/generated/prisma/client";
 
 export type ProductFormState = { error?: string };
@@ -28,8 +27,7 @@ function readProductForm(formData: FormData) {
     sizeQuantities[String(s)] = Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
   const categoryIds = formData.getAll("categoryIds").map(String);
-  const keepImages = formData.getAll("keepImages").map(String);
-  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  const images = formData.getAll("images").map(String);
   const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
 
   const availabilityRaw = String(formData.get("availability") ?? "IN_STOCK");
@@ -53,8 +51,7 @@ function readProductForm(formData: FormData) {
     accent,
     sizeQuantities,
     categoryIds,
-    keepImages,
-    files,
+    images,
     videoUrl,
     availability,
     leadTimeMinDays,
@@ -78,8 +75,6 @@ export async function createProductAction(
     return { error: "Vui lòng nhập số tiền cọc." };
   }
 
-  const uploaded = await saveUploadedImages(data.files);
-
   try {
     await prisma.product.create({
       data: {
@@ -90,7 +85,7 @@ export async function createProductAction(
         quality: data.quality,
         accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
-        images: JSON.stringify(uploaded),
+        images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
         availability: data.availability,
         leadTimeMinDays: data.leadTimeMinDays,
@@ -124,9 +119,6 @@ export async function updateProductAction(
     return { error: "Vui lòng nhập số tiền cọc." };
   }
 
-  const uploaded = await saveUploadedImages(data.files);
-  const images = [...data.keepImages, ...uploaded];
-
   try {
     await prisma.product.update({
       where: { id },
@@ -138,7 +130,7 @@ export async function updateProductAction(
         quality: data.quality,
         accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
-        images: JSON.stringify(images),
+        images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
         availability: data.availability,
         leadTimeMinDays: data.leadTimeMinDays,

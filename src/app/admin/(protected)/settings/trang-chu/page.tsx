@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { getSiteSettings } from "@/lib/settings";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
+import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
 import { updateHeroImagesAction, updateHeroContentAction } from "../actions";
 
 export default async function AdminSettingsHomePage() {
@@ -21,33 +21,7 @@ export default async function AdminSettingsHomePage() {
         </p>
 
         <form action={updateHeroImagesAction} className="mt-6 flex max-w-md flex-col gap-3">
-          {heroImages.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {heroImages.map((url) => (
-                <div key={url} className="flex flex-col items-center gap-1">
-                  <Image
-                    src={url}
-                    alt=""
-                    width={120}
-                    height={68}
-                    className="h-[68px] w-[120px] border border-graphite object-cover"
-                  />
-                  <label className="flex items-center gap-1 font-mono text-[10px] text-graphite">
-                    <input type="checkbox" name="keepImages" value={url} defaultChecked />
-                    Giữ
-                  </label>
-                </div>
-              ))}
-            </div>
-          )}
-          <input
-            type="file"
-            name="images"
-            accept="image/*"
-            multiple
-            className="w-full max-w-full font-mono text-xs text-ink file:mr-3 file:cursor-pointer file:border file:border-graphite file:bg-paper file:px-3 file:py-1.5 file:font-mono file:text-xs file:uppercase"
-          />
-
+          <ImageUploadFieldMulti name="images" label="Ảnh bìa" initialImages={heroImages} />
           <SubmitButton>Lưu thay đổi</SubmitButton>
         </form>
       </div>
