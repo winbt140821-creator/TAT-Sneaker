@@ -19,14 +19,24 @@ export function ImageUploadFieldMulti({
   name,
   label,
   initialImages = [],
+  onUploadingChange,
 }: {
   name: string;
   label: string;
   initialImages?: string[];
+  // Lets the parent form disable its submit button while an upload is in
+  // flight — otherwise submitting mid-upload saves the form with that image
+  // missing since its URL hasn't landed in the images array yet.
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function updateUploading(next: boolean) {
+    setUploading(next);
+    onUploadingChange?.(next);
+  }
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -39,7 +49,7 @@ export function ImageUploadFieldMulti({
     }
 
     setError(null);
-    setUploading(true);
+    updateUploading(true);
     try {
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
@@ -67,7 +77,7 @@ export function ImageUploadFieldMulti({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload thất bại");
     } finally {
-      setUploading(false);
+      updateUploading(false);
     }
   }
 

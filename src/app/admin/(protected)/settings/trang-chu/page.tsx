@@ -1,6 +1,6 @@
 import { getSiteSettings } from "@/lib/settings";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
-import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
+import { MultiImageUploadForm } from "@/components/admin/form/MultiImageUploadForm";
 import { updateHeroImagesAction, updateHeroContentAction } from "../actions";
 
 export default async function AdminSettingsHomePage() {
@@ -20,10 +20,12 @@ export default async function AdminSettingsHomePage() {
           thiết kế mặc định (không ảnh).
         </p>
 
-        <form action={updateHeroImagesAction} className="mt-6 flex max-w-md flex-col gap-3">
-          <ImageUploadFieldMulti name="images" label="Ảnh bìa" initialImages={heroImages} />
-          <SubmitButton>Lưu thay đổi</SubmitButton>
-        </form>
+        <MultiImageUploadForm
+          action={updateHeroImagesAction}
+          name="images"
+          label="Ảnh bìa"
+          initialImages={heroImages}
+        />
       </div>
 
       <div className="border-t border-kraft-dark pt-8">

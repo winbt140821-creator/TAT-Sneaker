@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { TextField } from "@/components/admin/form/TextField";
 import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
@@ -24,6 +24,7 @@ export function TestimonialForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-4">
@@ -53,11 +54,12 @@ export function TestimonialForm({
         previewHeight={56}
         previewClassName="h-14 w-14 rounded-full border border-graphite object-cover"
         keepFieldName="keepAvatar"
+        onUploadingChange={setAvatarUploading}
       />
 
       <FormError message={state.error} />
 
-      <SubmitButton>{submitLabel}</SubmitButton>
+      <SubmitButton disabled={avatarUploading}>{submitLabel}</SubmitButton>
     </form>
   );
 }

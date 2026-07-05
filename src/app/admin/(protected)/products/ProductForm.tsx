@@ -72,6 +72,7 @@ export function ProductForm({
     defaultValues?.sizeQuantities ?? {}
   );
   const [bulkQty, setBulkQty] = useState("");
+  const [imagesUploading, setImagesUploading] = useState(false);
 
   function handleApplyBulkQty() {
     const n = Math.floor(Number(bulkQty));
@@ -432,7 +433,12 @@ export function ProductForm({
         </div>
       </fieldset>
 
-      <ImageUploadFieldMulti name="images" label="Hình ảnh" initialImages={defaultValues?.images ?? []} />
+      <ImageUploadFieldMulti
+        name="images"
+        label="Hình ảnh"
+        initialImages={defaultValues?.images ?? []}
+        onUploadingChange={setImagesUploading}
+      />
 
       <TextField
         id="videoUrl"
@@ -445,7 +451,7 @@ export function ProductForm({
 
       <FormError message={state.error} />
 
-      <SubmitButton>{submitLabel}</SubmitButton>
+      <SubmitButton disabled={imagesUploading}>{submitLabel}</SubmitButton>
     </form>
   );
 }

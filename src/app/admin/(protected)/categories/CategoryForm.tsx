@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
@@ -31,6 +31,7 @@ export function CategoryForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
+  const [imageUploading, setImageUploading] = useState(false);
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
@@ -103,12 +104,16 @@ export function CategoryForm({
           previewWidth={160}
           previewHeight={120}
           keepFieldName="keepShowcaseImage"
+          onUploadingChange={setImageUploading}
         />
       </fieldset>
 
       <FormError message={state.error} />
 
-      <SubmitButton className="mt-2 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
+      <SubmitButton
+        disabled={imageUploading}
+        className="mt-2 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60"
+      >
         {submitLabel}
       </SubmitButton>
     </form>

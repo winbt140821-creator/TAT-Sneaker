@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { TextField } from "@/components/admin/form/TextField";
 import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
@@ -25,6 +25,7 @@ export function NewsForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
+  const [imageUploading, setImageUploading] = useState(false);
   const dateValue = defaultValues?.publishedAt
     ? defaultValues.publishedAt.toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
@@ -60,11 +61,12 @@ export function NewsForm({
         previewHeight={90}
         previewClassName="h-[90px] w-[120px] border border-graphite object-cover"
         keepFieldName="keepImage"
+        onUploadingChange={setImageUploading}
       />
 
       <FormError message={state.error} />
 
-      <SubmitButton>{submitLabel}</SubmitButton>
+      <SubmitButton disabled={imageUploading}>{submitLabel}</SubmitButton>
     </form>
   );
 }

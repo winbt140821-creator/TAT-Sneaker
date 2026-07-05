@@ -35,6 +35,7 @@ export function ImageUploadField({
   removeLabel = "Gỡ ảnh, dùng mặc định",
   keepFieldName,
   unoptimized,
+  onUploadingChange,
 }: {
   label: string;
   name: string;
@@ -51,6 +52,10 @@ export function ImageUploadField({
   // re-compression (quality=75) blurs their modules enough to break
   // scannability, so QR previews opt out of image optimization.
   unoptimized?: boolean;
+  // Lets the parent form disable its submit button while an upload is in
+  // flight — otherwise submitting mid-upload saves the form with that image
+  // missing since its URL hasn't landed in the form yet.
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const inputId = id ?? name;
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -60,6 +65,11 @@ export function ImageUploadField({
 
   const previewUrl = removed ? null : (uploadedUrl ?? currentUrl);
 
+  function updateUploading(next: boolean) {
+    setUploading(next);
+    onUploadingChange?.(next);
+  }
+
   async function handleFile(file: File | undefined) {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
@@ -68,7 +78,7 @@ export function ImageUploadField({
     }
 
     setError(null);
-    setUploading(true);
+    updateUploading(true);
     try {
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
@@ -91,7 +101,7 @@ export function ImageUploadField({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload thất bại");
     } finally {
-      setUploading(false);
+      updateUploading(false);
     }
   }
 

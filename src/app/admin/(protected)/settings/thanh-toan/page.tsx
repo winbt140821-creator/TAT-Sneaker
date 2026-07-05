@@ -1,7 +1,7 @@
 import { getSiteSettings } from "@/lib/settings";
 import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
-import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
+import { SingleImageUploadForm } from "@/components/admin/form/SingleImageUploadForm";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { VIETQR_BANKS } from "@/lib/vietqr-banks";
 import {
@@ -66,26 +66,26 @@ export default async function AdminSettingsPaymentsPage() {
           <SubmitButton>Lưu thay đổi</SubmitButton>
         </form>
 
-        <form action={updateBankTransferQrAction} className="mt-6 flex max-w-md flex-col gap-4">
-          <ImageUploadField
-            id="bankTransferQrImage"
-            name="image"
-            label={settings?.bankTransferQrUrl ? "Thay mã QR mới" : "Tải lên mã QR (tùy chọn)"}
-            currentUrl={settings?.bankTransferQrUrl}
-            currentAlt="Mã QR chuyển khoản hiện tại"
-            previewWidth={200}
-            previewHeight={200}
-            previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
-            removeFieldName="remove"
-            removeLabel="Gỡ mã QR"
-            unoptimized
-          />
-          <p className="font-mono text-[10px] text-graphite">
-            Có thể tự tạo mã QR chuyển khoản nhanh (VietQR) rồi tải lên đây — không bắt buộc,
-            khách vẫn chuyển được bằng số tài khoản phía trên nếu bỏ trống.
-          </p>
-          <SubmitButton>Lưu thay đổi</SubmitButton>
-        </form>
+        <SingleImageUploadForm
+          action={updateBankTransferQrAction}
+          id="bankTransferQrImage"
+          name="image"
+          label={settings?.bankTransferQrUrl ? "Thay mã QR mới" : "Tải lên mã QR (tùy chọn)"}
+          currentUrl={settings?.bankTransferQrUrl}
+          currentAlt="Mã QR chuyển khoản hiện tại"
+          previewWidth={200}
+          previewHeight={200}
+          previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
+          removeFieldName="remove"
+          removeLabel="Gỡ mã QR"
+          unoptimized
+          extra={
+            <p className="font-mono text-[10px] text-graphite">
+              Có thể tự tạo mã QR chuyển khoản nhanh (VietQR) rồi tải lên đây — không bắt buộc,
+              khách vẫn chuyển được bằng số tài khoản phía trên nếu bỏ trống.
+            </p>
+          }
+        />
       </div>
 
       <div className="border-t border-kraft-dark pt-8">
@@ -95,23 +95,20 @@ export default async function AdminSettingsPaymentsPage() {
           phần này để bạn có thể bật lại VNPay sau khi có tài khoản VNPay Sandbox/thật.
         </p>
 
-        <form action={updateVnpayQrAction} className="mt-6 flex max-w-md flex-col gap-4">
-          <ImageUploadField
-            id="vnpayQrImage"
-            name="image"
-            label={settings?.vnpayQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
-            currentUrl={settings?.vnpayQrUrl}
-            currentAlt="Mã QR VNPay hiện tại"
-            previewWidth={200}
-            previewHeight={200}
-            previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
-            removeFieldName="remove"
-            removeLabel="Gỡ mã QR"
-            unoptimized
-          />
-
-          <SubmitButton>Lưu thay đổi</SubmitButton>
-        </form>
+        <SingleImageUploadForm
+          action={updateVnpayQrAction}
+          id="vnpayQrImage"
+          name="image"
+          label={settings?.vnpayQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
+          currentUrl={settings?.vnpayQrUrl}
+          currentAlt="Mã QR VNPay hiện tại"
+          previewWidth={200}
+          previewHeight={200}
+          previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
+          removeFieldName="remove"
+          removeLabel="Gỡ mã QR"
+          unoptimized
+        />
       </div>
 
       <div className="border-t border-kraft-dark pt-8">
@@ -121,23 +118,20 @@ export default async function AdminSettingsPaymentsPage() {
           đặt cọc trước.
         </p>
 
-        <form action={updatePaypalQrAction} className="mt-6 flex max-w-md flex-col gap-4">
-          <ImageUploadField
-            id="paypalQrImage"
-            name="image"
-            label={settings?.paypalQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
-            currentUrl={settings?.paypalQrUrl}
-            currentAlt="Mã QR PayPal hiện tại"
-            previewWidth={200}
-            previewHeight={200}
-            previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
-            removeFieldName="remove"
-            removeLabel="Gỡ mã QR"
-            unoptimized
-          />
-
-          <SubmitButton>Lưu thay đổi</SubmitButton>
-        </form>
+        <SingleImageUploadForm
+          action={updatePaypalQrAction}
+          id="paypalQrImage"
+          name="image"
+          label={settings?.paypalQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
+          currentUrl={settings?.paypalQrUrl}
+          currentAlt="Mã QR PayPal hiện tại"
+          previewWidth={200}
+          previewHeight={200}
+          previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
+          removeFieldName="remove"
+          removeLabel="Gỡ mã QR"
+          unoptimized
+        />
       </div>
 
       <div className="border-t border-kraft-dark pt-8">
