@@ -37,7 +37,13 @@ const CSP_PROD = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: https://lh3.googleusercontent.com https://platform-lookaside.fbsbx.com https://graph.facebook.com https://img.vietqr.io https://www.facebook.com${r2Origin ? ` ${r2Origin}` : ""}`,
   "font-src 'self' data:",
-  "connect-src 'self' https://www.facebook.com",
+  // Product/hero/showcase image uploads PUT straight from the browser to R2
+  // via a presigned URL (src/lib/uploads.ts) — bypassing Server Actions to
+  // dodge Vercel's ~4.5MB request body cap. Without this, the browser blocks
+  // the PUT itself before it ever leaves the page ("violates CSP directive
+  // connect-src"), which looks identical to a network failure/CORS error in
+  // the console.
+  "connect-src 'self' https://www.facebook.com https://*.r2.cloudflarestorage.com",
   // Product videos (ProductDetail videoUrl) embed via youtube.com/embed.
   "frame-src https://www.youtube.com",
   // Sign-in redirects to Google/Facebook's own hosted auth pages.
