@@ -27,34 +27,38 @@ export default async function AdminProductsPage() {
         {products.map((p) => {
           const images: string[] = JSON.parse(p.images || "[]");
           return (
-            <div key={p.id} className="die-cut flex flex-wrap items-start gap-4 bg-paper p-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30">
-                {images[0] ? (
-                  <Image src={images[0]} alt={p.name} width={64} height={64} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="font-mono text-[10px] text-graphite">Chưa có ảnh</span>
-                )}
-              </div>
+            <div key={p.id} className="die-cut flex flex-col gap-3 bg-paper p-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30">
+                  {images[0] ? (
+                    <Image src={images[0]} alt={p.name} width={64} height={64} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="font-mono text-[10px] text-graphite">Chưa có ảnh</span>
+                  )}
+                </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
-                <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {p.categories.map((c) => (
-                    <span key={c.id} className="bg-kraft-dark/40 px-1.5 py-0.5 font-mono text-[10px] text-graphite">
-                      {c.label}
-                    </span>
-                  ))}
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
+                  <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {p.categories.map((c) => (
+                      <span key={c.id} className="bg-kraft-dark/40 px-1.5 py-0.5 font-mono text-[10px] text-graphite">
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <p className="shrink-0 font-mono text-sm font-semibold text-forest">{formatPrice(p.price)}</p>
+              <div className="flex shrink-0 items-center justify-between gap-4 sm:ml-auto sm:justify-end">
+                <p className="font-mono text-sm font-semibold text-forest">{formatPrice(p.price)}</p>
 
-              <RowActions
-                editHref={`/admin/products/${p.id}/edit`}
-                deleteAction={deleteProductAction.bind(null, p.id)}
-                deleteConfirmMessage={`Xóa sản phẩm "${p.name}"?`}
-              />
+                <RowActions
+                  editHref={`/admin/products/${p.id}/edit`}
+                  deleteAction={deleteProductAction.bind(null, p.id)}
+                  deleteConfirmMessage={`Xóa sản phẩm "${p.name}"?`}
+                />
+              </div>
             </div>
           );
         })}
