@@ -63,6 +63,20 @@ export function ProductForm({
     return existing.filter((s) => !ALL_SIZES.includes(s)).sort((a, b) => a - b);
   });
   const [newSize, setNewSize] = useState("");
+  const [quantities, setQuantities] = useState<Record<number, number>>(
+    defaultValues?.sizeQuantities ?? {}
+  );
+  const [bulkQty, setBulkQty] = useState("");
+
+  function handleApplyBulkQty() {
+    const n = Math.floor(Number(bulkQty));
+    if (bulkQty === "" || Number.isNaN(n) || n < 0 || checkedSizes.length === 0) return;
+    setQuantities((prev) => {
+      const next = { ...prev };
+      for (const s of checkedSizes) next[s] = n;
+      return next;
+    });
+  }
 
   function handleAddCustomSize() {
     const n = Math.floor(Number(newSize));
@@ -266,6 +280,33 @@ export function ProductForm({
           <p className="font-mono text-[11px] text-graphite">
             Tích size sản phẩm có, sau đó nhập số lượng đôi đang có cho size đó (0 = hết hàng).
           </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={bulkQty}
+              onChange={(e) => setBulkQty(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleApplyBulkQty();
+                }
+              }}
+              placeholder="Số lượng chung"
+              aria-label="Số lượng áp dụng cho tất cả size đã chọn"
+              className="w-32 border border-graphite bg-paper px-2 py-1.5 text-sm text-ink focus:border-forest"
+            />
+            <button
+              type="button"
+              onClick={handleApplyBulkQty}
+              className="cursor-pointer bg-ink px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
+            >
+              Áp dụng cho size đã chọn
+            </button>
+          </div>
+
           <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
             {ALL_SIZES.map((s) => {
               const carried = checkedSizes.includes(s);
@@ -299,7 +340,10 @@ export function ProductForm({
                     min={0}
                     step={1}
                     disabled={!carried}
-                    defaultValue={defaultValues?.sizeQuantities?.[s] ?? 0}
+                    value={quantities[s] ?? 0}
+                    onChange={(e) =>
+                      setQuantities((prev) => ({ ...prev, [s]: Number(e.target.value) }))
+                    }
                     aria-label={`Số lượng size ${s}`}
                     className="w-14 border border-graphite bg-paper px-1.5 py-1 text-center font-mono text-xs text-ink focus:border-forest disabled:opacity-30"
                   />
@@ -346,7 +390,10 @@ export function ProductForm({
                     min={0}
                     step={1}
                     disabled={!carried}
-                    defaultValue={defaultValues?.sizeQuantities?.[s] ?? 0}
+                    value={quantities[s] ?? 0}
+                    onChange={(e) =>
+                      setQuantities((prev) => ({ ...prev, [s]: Number(e.target.value) }))
+                    }
                     aria-label={`Số lượng size ${s}`}
                     className="w-14 border border-graphite bg-paper px-1.5 py-1 text-center font-mono text-xs text-ink focus:border-forest disabled:opacity-30"
                   />
