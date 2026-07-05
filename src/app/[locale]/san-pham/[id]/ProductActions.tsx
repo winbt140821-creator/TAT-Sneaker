@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { addToCart } from "@/lib/cart-storage";
-import { getCarriedSizes, getQuantityForSize } from "@/lib/inventory";
+import {
+  getCarriedSizes,
+  getQuantityForSize,
+  hasRealStockForSize,
+  IN_STOCK_LEAD_TIME,
+} from "@/lib/inventory";
 import { trackAddToCart } from "@/lib/meta-pixel";
 import { BagIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
@@ -15,14 +20,21 @@ export function ProductActions({
   productName,
   price,
   sizeQuantities,
+  availability,
+  leadTimeMinDays,
+  leadTimeMaxDays,
 }: {
   productId: string;
   productName: string;
   price: number;
   sizeQuantities: Record<string, number>;
+  availability: "IN_STOCK" | "PREORDER";
+  leadTimeMinDays: number;
+  leadTimeMaxDays: number;
 }) {
   const router = useRouter();
   const t = useTranslations("productActions");
+  const tDetail = useTranslations("productDetail");
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; text: string } | null>(
@@ -31,6 +43,10 @@ export function ProductActions({
 
   const availableQty = selectedSize != null ? getQuantityForSize(sizeQuantities, selectedSize) : null;
   const carriedSizes = getCarriedSizes(sizeQuantities);
+  // Preorder items keep every size orderable regardless of real stock (see
+  // hasRealStockForSize) — only an IN_STOCK product's size can be truly sold
+  // out (quantity 0).
+  const selectedSizeHasRealStock = availableQty != null && hasRealStockForSize(availableQty);
 
   function pickSize(size: number) {
     setSelectedSize(size);
@@ -66,7 +82,9 @@ export function ProductActions({
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">{t("size")}</legend>
         <ul className="mt-2 flex flex-wrap gap-2" aria-label={t("chooseSize")}>
           {carriedSizes.map((s) => {
-            const disabled = getQuantityForSize(sizeQuantities, s) <= 0;
+            // Preorder sizes are always orderable regardless of real stock —
+            // only an IN_STOCK product's size can be truly sold out.
+            const disabled = availability === "IN_STOCK" && getQuantityForSize(sizeQuantities, s) <= 0;
             const isSelected = selectedSize === s;
             return (
               <li key={s}>
@@ -103,9 +121,16 @@ export function ProductActions({
           increaseDisabled={availableQty != null && quantity >= availableQty}
           onIncrease={() => setQuantity((q) => (availableQty != null ? Math.min(availableQty, q + 1) : q + 1))}
         />
-        {availableQty != null && (
-          <p className="font-mono text-xs text-graphite">{t("stockLeft", { count: availableQty })}</p>
-        )}
+        {availableQty != null &&
+          (availability === "PREORDER" ? (
+            <p className="font-mono text-xs text-graphite">
+              {selectedSizeHasRealStock
+                ? `${tDetail("inStock")} — ${tDetail("leadTime", IN_STOCK_LEAD_TIME)}`
+                : `${tDetail("preorder")} — ${tDetail("leadTime", { min: leadTimeMinDays, max: leadTimeMaxDays })}`}
+            </p>
+          ) : (
+            <p className="font-mono text-xs text-graphite">{t("stockLeft", { count: availableQty })}</p>
+          ))}
       </div>
 
       {feedback && (

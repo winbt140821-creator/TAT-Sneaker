@@ -10,7 +10,7 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { Link } from "@/i18n/navigation";
 import { getProductById, getRelatedProducts } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
-import { hasAnyStock } from "@/lib/inventory";
+import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { formatPrice } from "@/lib/products";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import { getYoutubeEmbedUrl } from "@/lib/youtube";
@@ -92,7 +92,10 @@ export default async function ProductDetailPage({
   ];
 
   const discountPct = getDiscountPct(product.price, product.originalPrice);
-  const inStock = product.availability !== "PREORDER" && hasAnyStock(product.sizeQuantities);
+  const inStock =
+    product.availability === "PREORDER"
+      ? hasRealStockAnywhere(product.sizeQuantities)
+      : hasAnyStock(product.sizeQuantities);
 
   const videoEmbedUrl = getYoutubeEmbedUrl(product.videoUrl);
 
@@ -152,20 +155,16 @@ export default async function ProductDetailPage({
                 <span
                   className={
                     "px-2 py-1 font-mono text-[11px] font-semibold uppercase tracking-wide " +
-                    (product.availability === "PREORDER"
-                      ? "bg-stamp text-paper"
-                      : "bg-forest text-paper")
+                    (inStock ? "bg-forest text-paper" : "bg-stamp text-paper")
                   }
                 >
-                  {product.availability === "PREORDER"
-                    ? t("preorder")
-                    : inStock
-                      ? t("inStock")
-                      : t("outOfStock")}
+                  {inStock ? t("inStock") : product.availability === "PREORDER" ? t("preorder") : t("outOfStock")}
                 </span>
-                <span className="font-mono text-xs text-graphite">
-                  {t("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })}
-                </span>
+                {!inStock && product.availability === "PREORDER" && (
+                  <span className="font-mono text-xs text-graphite">
+                    {t("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })}
+                  </span>
+                )}
               </div>
 
               {product.depositRequired && (
@@ -190,6 +189,9 @@ export default async function ProductDetailPage({
                 productName={product.name}
                 price={product.price}
                 sizeQuantities={product.sizeQuantities}
+                availability={product.availability}
+                leadTimeMinDays={product.leadTimeMinDays}
+                leadTimeMaxDays={product.leadTimeMaxDays}
               />
 
               <div className="mt-6 flex flex-col gap-1 border-t border-kraft-dark pt-4 font-mono text-xs text-graphite">

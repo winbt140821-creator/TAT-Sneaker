@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { ProductAvailability } from "@/generated/prisma/client";
+import { ALL_SIZES, PREORDER_DEFAULT_QTY } from "@/lib/inventory";
 
 export type ProductFormState = { error?: string };
 
@@ -20,18 +21,35 @@ function readProductForm(formData: FormData) {
   const costPrice = costPriceRaw ? Math.round(Number(costPriceRaw)) : null;
   const quality = String(formData.get("quality") ?? "Auth");
   const carriedSizes = formData.getAll("carriedSizes").map(Number).filter((n) => !Number.isNaN(n));
-  const sizeQuantities: Record<string, number> = {};
-  for (const s of carriedSizes) {
-    const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? 0));
-    sizeQuantities[String(s)] = Number.isFinite(raw) && raw > 0 ? raw : 0;
-  }
-  const categoryIds = formData.getAll("categoryIds").map(String);
-  const images = formData.getAll("images").map(String);
-  const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
 
   const availabilityRaw = String(formData.get("availability") ?? "IN_STOCK");
   const availability =
     availabilityRaw === "PREORDER" ? ProductAvailability.PREORDER : ProductAvailability.IN_STOCK;
+
+  const sizeQuantities: Record<string, number> = {};
+  if (availability === ProductAvailability.PREORDER) {
+    // Preorder items don't need real stock to be orderable — every standard
+    // size is sellable by default (see PREORDER_DEFAULT_QTY), and admin only
+    // has to edit the sizes where a pair is actually on hand already.
+    for (const s of ALL_SIZES) {
+      const carried = carriedSizes.includes(s);
+      const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? PREORDER_DEFAULT_QTY));
+      sizeQuantities[String(s)] = carried && Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
+    }
+    // Custom (non-standard) sizes still opt in via the checkbox like before.
+    for (const s of carriedSizes.filter((s) => !ALL_SIZES.includes(s))) {
+      const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? PREORDER_DEFAULT_QTY));
+      sizeQuantities[String(s)] = Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
+    }
+  } else {
+    for (const s of carriedSizes) {
+      const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? 0));
+      sizeQuantities[String(s)] = Number.isFinite(raw) && raw > 0 ? raw : 0;
+    }
+  }
+  const categoryIds = formData.getAll("categoryIds").map(String);
+  const images = formData.getAll("images").map(String);
+  const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
   const leadTimeMinDays = Math.max(0, Math.round(Number(formData.get("leadTimeMinDays") ?? 0)));
   const leadTimeMaxDays = Math.max(
     leadTimeMinDays,

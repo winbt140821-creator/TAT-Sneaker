@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import type { CatalogProduct } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
-import { hasAnyStock } from "@/lib/inventory";
+import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { SneakerArt, silhouetteFor } from "./SneakerArt";
 
 export async function ProductCard({
@@ -21,7 +21,14 @@ export async function ProductCard({
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
   ]);
   const discountPct = getDiscountPct(product.price, product.originalPrice);
-  const inStock = product.availability !== "PREORDER" && hasAnyStock(product.sizeQuantities);
+  // A preorder-flagged product still shows as a normal in-stock item once
+  // any size has been given real ready stock (see hasRealStockForSize) —
+  // the "Đặt trước" framing only makes sense while nothing is on hand yet.
+  const inStock =
+    product.availability === "PREORDER"
+      ? hasRealStockAnywhere(product.sizeQuantities)
+      : hasAnyStock(product.sizeQuantities);
+  const showPreorderBadge = product.availability === "PREORDER" && !inStock;
 
   return (
     <Link
@@ -51,7 +58,7 @@ export async function ProductCard({
           </span>
         )}
 
-        {product.availability === "PREORDER" && (
+        {showPreorderBadge && (
           <span className="absolute right-2 top-2 bg-stamp px-2 py-0.5 font-mono text-[10px] font-semibold text-paper">
             {t("preorder")}
           </span>
@@ -78,10 +85,10 @@ export async function ProductCard({
           )}
         </div>
         <p className="font-mono text-[11px] text-graphite">
-          {product.availability === "PREORDER"
-            ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
-            : inStock
-              ? tDetail("inStock")
+          {inStock
+            ? tDetail("inStock")
+            : product.availability === "PREORDER"
+              ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
               : tDetail("outOfStock")}
         </p>
       </div>

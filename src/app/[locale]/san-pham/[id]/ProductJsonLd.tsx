@@ -1,5 +1,5 @@
 import { absoluteUrl } from "@/lib/seo";
-import { hasAnyStock } from "@/lib/inventory";
+import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { jsonLdScript } from "@/lib/json-ld";
 import type { CatalogProduct } from "@/lib/catalog";
 
@@ -11,9 +11,14 @@ export function ProductJsonLd({
   brandLabel?: string;
 }) {
   const url = absoluteUrl(`/san-pham/${product.id}`);
-  const hasStock = hasAnyStock(product.sizeQuantities);
-  const availability =
+  // A PREORDER product with real stock on at least one size (see
+  // hasRealStockForSize) is functionally in stock, not just preorderable.
+  const hasStock =
     product.availability === "PREORDER"
+      ? hasRealStockAnywhere(product.sizeQuantities)
+      : hasAnyStock(product.sizeQuantities);
+  const availability =
+    product.availability === "PREORDER" && !hasStock
       ? "https://schema.org/PreOrder"
       : hasStock
         ? "https://schema.org/InStock"

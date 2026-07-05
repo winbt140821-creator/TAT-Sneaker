@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { getWishlistProductsAction } from "./actions";
 import type { CatalogProduct } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
-import { hasAnyStock } from "@/lib/inventory";
+import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 
 export function WishlistView({
   usdExchangeRate,
@@ -99,7 +99,10 @@ export function WishlistView({
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {items.map((product, i) => {
           const discountPct = getDiscountPct(product.price, product.originalPrice);
-          const inStock = product.availability !== "PREORDER" && hasAnyStock(product.sizeQuantities);
+          const inStock =
+            product.availability === "PREORDER"
+              ? hasRealStockAnywhere(product.sizeQuantities)
+              : hasAnyStock(product.sizeQuantities);
 
           return (
             <div key={product.id} className="die-cut hover-lift group flex flex-col bg-paper">
@@ -161,10 +164,10 @@ export function WishlistView({
                   )}
                 </div>
                 <p className="font-mono text-[11px] text-graphite">
-                  {product.availability === "PREORDER"
-                    ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
-                    : inStock
-                      ? tDetail("inStock")
+                  {inStock
+                    ? tDetail("inStock")
+                    : product.availability === "PREORDER"
+                      ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
                       : tDetail("outOfStock")}
                 </p>
               </Link>
