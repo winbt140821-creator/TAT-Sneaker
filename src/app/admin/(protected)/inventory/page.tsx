@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
-import { adjustSizeQuantityAction } from "./actions";
+import { adjustSizeQuantityAction, updateShippingFeeAction, bulkUpdateShippingFeeAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
 import { getCarriedSizes, getTotalQuantity } from "@/lib/inventory";
 
@@ -39,6 +39,32 @@ export default async function AdminInventoryPage({
           Tổng số đôi toàn kho
         </p>
       </div>
+
+      <form
+        action={bulkUpdateShippingFeeAction}
+        className="die-cut-flat mt-4 flex flex-wrap items-end gap-3 bg-paper p-3"
+      >
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="bulkShippingFee" className="font-mono text-xs uppercase tracking-wide text-graphite">
+            Phí ship áp dụng cho tất cả sản phẩm (đ)
+          </label>
+          <input
+            id="bulkShippingFee"
+            name="bulkShippingFee"
+            type="number"
+            min={0}
+            step={1}
+            placeholder="VD: 30000"
+            className="w-40 border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+          />
+        </div>
+        <button
+          type="submit"
+          className="cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
+        >
+          Áp dụng cho tất cả sản phẩm
+        </button>
+      </form>
 
       <form role="search" action="/admin/inventory" className="relative mt-4 max-w-sm">
         <label htmlFor="inventory-search" className="sr-only">
@@ -142,9 +168,33 @@ export default async function AdminInventoryPage({
                 })}
               </ul>
 
-              <p className="ml-auto shrink-0 font-mono text-sm font-semibold text-ink">
+              <p className="shrink-0 font-mono text-sm font-semibold text-ink">
                 Tổng: <span className="text-forest">{productTotal}</span> đôi
               </p>
+
+              <form
+                action={updateShippingFeeAction.bind(null, p.id)}
+                className="ml-auto flex shrink-0 items-center gap-1.5"
+              >
+                <label htmlFor={`shippingFee-${p.id}`} className="font-mono text-[10px] uppercase tracking-wide text-graphite">
+                  Phí ship
+                </label>
+                <input
+                  id={`shippingFee-${p.id}`}
+                  name="shippingFee"
+                  type="number"
+                  min={0}
+                  step={1}
+                  defaultValue={p.shippingFee}
+                  className="w-24 border border-graphite bg-paper px-2 py-1 text-right font-mono text-xs text-ink focus:border-forest"
+                />
+                <button
+                  type="submit"
+                  className="cursor-pointer bg-ink px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
+                >
+                  Lưu
+                </button>
+              </form>
             </div>
           );
         })}

@@ -37,7 +37,6 @@ export default async function EditProductPage({
             price: product.price,
             costPrice: product.costPrice,
             quality: product.quality,
-            accent: product.accent,
             sizeQuantities: JSON.parse(product.sizeQuantities || "{}"),
             categoryIds: product.categories.map((c) => c.id),
             images: JSON.parse(product.images || "[]"),

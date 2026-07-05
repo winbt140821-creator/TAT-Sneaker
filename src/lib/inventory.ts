@@ -4,7 +4,7 @@
 // its value is how many pairs are currently in stock for that size.
 export type SizeQuantities = Record<string, number>;
 
-export const ALL_SIZES = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
+export const ALL_SIZES = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47];
 
 export function parseSizeQuantities(raw: string): SizeQuantities {
   return JSON.parse(raw) as SizeQuantities;

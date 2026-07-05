@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import type { CatalogProduct } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
+import { hasAnyStock } from "@/lib/inventory";
 import { SneakerArt, silhouetteFor } from "./SneakerArt";
 
 export async function ProductCard({
@@ -20,6 +21,7 @@ export async function ProductCard({
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
   ]);
   const discountPct = getDiscountPct(product.price, product.originalPrice);
+  const inStock = product.availability !== "PREORDER" && hasAnyStock(product.sizeQuantities);
 
   return (
     <Link
@@ -78,7 +80,9 @@ export async function ProductCard({
         <p className="font-mono text-[11px] text-graphite">
           {product.availability === "PREORDER"
             ? tDetail("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })
-            : tDetail("inStock")}
+            : inStock
+              ? tDetail("inStock")
+              : tDetail("outOfStock")}
         </p>
       </div>
     </Link>

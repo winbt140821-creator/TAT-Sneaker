@@ -29,3 +29,23 @@ export async function adjustSizeQuantityAction(productId: string, size: number, 
   revalidatePath("/admin");
   revalidatePath("/");
 }
+
+export async function updateShippingFeeAction(productId: string, formData: FormData) {
+  await requireStaff();
+
+  const shippingFee = Math.max(0, Math.round(Number(formData.get("shippingFee") ?? 0)));
+  await prisma.product.update({ where: { id: productId }, data: { shippingFee } });
+
+  revalidatePath("/admin/inventory");
+}
+
+/** Applies the same shipping fee to every product at once — for when admin
+ *  wants one flat rate site-wide instead of setting each item individually. */
+export async function bulkUpdateShippingFeeAction(formData: FormData) {
+  await requireStaff();
+
+  const shippingFee = Math.max(0, Math.round(Number(formData.get("bulkShippingFee") ?? 0)));
+  await prisma.product.updateMany({ data: { shippingFee } });
+
+  revalidatePath("/admin/inventory");
+}

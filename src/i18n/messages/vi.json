@@ -122,6 +122,7 @@
     "promo4": "Giá niêm yết, không phát sinh phụ phí",
     "preorder": "Đặt trước",
     "inStock": "Có sẵn",
+    "outOfStock": "Hết hàng",
     "leadTime": "Giao trong {min}-{max} ngày",
     "depositRequired": "Yêu cầu đặt cọc {amount} khi đặt hàng",
     "quality": "Chất lượng:",

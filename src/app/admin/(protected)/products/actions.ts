@@ -19,7 +19,6 @@ function readProductForm(formData: FormData) {
   const costPriceRaw = String(formData.get("costPrice") ?? "").trim();
   const costPrice = costPriceRaw ? Math.round(Number(costPriceRaw)) : null;
   const quality = String(formData.get("quality") ?? "Auth");
-  const accent = String(formData.get("accent") ?? "#4a4638");
   const carriedSizes = formData.getAll("carriedSizes").map(Number).filter((n) => !Number.isNaN(n));
   const sizeQuantities: Record<string, number> = {};
   for (const s of carriedSizes) {
@@ -48,7 +47,6 @@ function readProductForm(formData: FormData) {
     price,
     costPrice,
     quality,
-    accent,
     sizeQuantities,
     categoryIds,
     images,
@@ -83,7 +81,6 @@ export async function createProductAction(
         price: data.price,
         costPrice: data.costPrice,
         quality: data.quality,
-        accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
@@ -128,7 +125,6 @@ export async function updateProductAction(
         price: data.price,
         costPrice: data.costPrice,
         quality: data.quality,
-        accent: data.accent,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,

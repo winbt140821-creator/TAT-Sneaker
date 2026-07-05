@@ -10,6 +10,7 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { Link } from "@/i18n/navigation";
 import { getProductById, getRelatedProducts } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
+import { hasAnyStock } from "@/lib/inventory";
 import { formatPrice } from "@/lib/products";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import { getYoutubeEmbedUrl } from "@/lib/youtube";
@@ -91,6 +92,7 @@ export default async function ProductDetailPage({
   ];
 
   const discountPct = getDiscountPct(product.price, product.originalPrice);
+  const inStock = product.availability !== "PREORDER" && hasAnyStock(product.sizeQuantities);
 
   const videoEmbedUrl = getYoutubeEmbedUrl(product.videoUrl);
 
@@ -155,7 +157,11 @@ export default async function ProductDetailPage({
                       : "bg-forest text-paper")
                   }
                 >
-                  {product.availability === "PREORDER" ? t("preorder") : t("inStock")}
+                  {product.availability === "PREORDER"
+                    ? t("preorder")
+                    : inStock
+                      ? t("inStock")
+                      : t("outOfStock")}
                 </span>
                 <span className="font-mono text-xs text-graphite">
                   {t("leadTime", { min: product.leadTimeMinDays, max: product.leadTimeMaxDays })}

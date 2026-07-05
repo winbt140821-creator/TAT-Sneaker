@@ -122,6 +122,7 @@
     "promo4": "明码标价，无额外费用",
     "preorder": "预订",
     "inStock": "现货",
+    "outOfStock": "缺货",
     "leadTime": "预计 {min}-{max} 天发货",
     "depositRequired": "下单需支付 {amount} 定金",
     "quality": "品质：",

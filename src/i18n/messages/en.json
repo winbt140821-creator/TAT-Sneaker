@@ -122,6 +122,7 @@
     "promo4": "Listed price, no hidden fees",
     "preorder": "Pre-order",
     "inStock": "In stock",
+    "outOfStock": "Out of stock",
     "leadTime": "Ships in {min}-{max} days",
     "depositRequired": "Requires a {amount} deposit at checkout",
     "quality": "Quality:",

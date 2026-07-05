@@ -11,7 +11,7 @@ import { PriceInputWithCurrency } from "@/components/admin/form/PriceInputWithCu
 import { ALL_SIZES } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
-const QUALITY_TIERS = ["Auth", "Best Quality", "Rep 11"];
+const QUALITY_TIERS = ["Auth", "Best Quality", "Like Auth", "Rep 11"];
 
 const LEAD_TIME_DEFAULTS = {
   IN_STOCK: { min: 3, max: 5 },
@@ -44,7 +44,6 @@ export function ProductForm({
     price?: number;
     costPrice?: number | null;
     quality?: string;
-    accent?: string;
     sizeQuantities?: Record<string, number>;
     categoryIds?: string[];
     images?: string[];
@@ -115,6 +114,24 @@ export function ProductForm({
     setAvailability(next);
     setLeadTimeMin(LEAD_TIME_DEFAULTS[next].min);
     setLeadTimeMax(LEAD_TIME_DEFAULTS[next].max);
+
+    // Đặt trước (order): admin thường không biết trước tồn kho chính xác, nên
+    // những size đã tích mà chưa nhập số lượng (vẫn 0) sẽ tự set 100 — coi
+    // như đủ hàng để nhận đơn, khỏi phải tự gõ tay từng size.
+    if (next === "PREORDER") {
+      setQuantities((prev) => {
+        const updated = { ...prev };
+        for (const s of checkedSizes) if (!updated[s]) updated[s] = 100;
+        return updated;
+      });
+    }
+  }
+
+  function handleSizeCheck(s: number, checked: boolean) {
+    setCheckedSizes((prev) => (checked ? [...prev, s] : prev.filter((x) => x !== s)));
+    if (checked) {
+      setQuantities((prev) => (prev[s] ? prev : { ...prev, [s]: availability === "PREORDER" ? 100 : 0 }));
+    }
   }
 
   return (
@@ -163,19 +180,6 @@ export function ProductForm({
             </option>
           ))}
         </SelectField>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="accent" className="font-mono text-xs uppercase tracking-wide text-graphite">
-            Màu minh họa
-          </label>
-          <input
-            id="accent"
-            name="accent"
-            type="color"
-            defaultValue={defaultValues?.accent ?? "#4a4638"}
-            className="h-10 w-16 cursor-pointer border border-graphite bg-paper"
-          />
-        </div>
       </div>
 
       <fieldset>
@@ -329,11 +333,7 @@ export function ProductForm({
                       name="carriedSizes"
                       value={s}
                       checked={carried}
-                      onChange={(e) =>
-                        setCheckedSizes((prev) =>
-                          e.target.checked ? [...prev, s] : prev.filter((x) => x !== s)
-                        )
-                      }
+                      onChange={(e) => handleSizeCheck(s, e.target.checked)}
                       className="sr-only"
                     />
                     {s}
@@ -379,11 +379,7 @@ export function ProductForm({
                       name="carriedSizes"
                       value={s}
                       checked={carried}
-                      onChange={(e) =>
-                        setCheckedSizes((prev) =>
-                          e.target.checked ? [...prev, s] : prev.filter((x) => x !== s)
-                        )
-                      }
+                      onChange={(e) => handleSizeCheck(s, e.target.checked)}
                       className="sr-only"
                     />
                     {s}
