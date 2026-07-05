@@ -7,6 +7,7 @@ import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
+import { PriceInputWithCurrency } from "@/components/admin/form/PriceInputWithCurrency";
 import { ALL_SIZES } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
@@ -30,9 +31,13 @@ export function ProductForm({
   categories,
   defaultValues,
   submitLabel,
+  usdExchangeRate,
+  cnyExchangeRate,
 }: {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
   categories: CategoryOption[];
+  usdExchangeRate?: number | null;
+  cnyExchangeRate?: number | null;
   defaultValues?: {
     name?: string;
     sku?: string;
@@ -104,7 +109,6 @@ export function ProductForm({
     defaultValues?.leadTimeMaxDays ?? LEAD_TIME_DEFAULTS.IN_STOCK.max
   );
   const [depositRequired, setDepositRequired] = useState(defaultValues?.depositRequired ?? false);
-  const [price, setPrice] = useState(defaultValues?.price != null ? String(defaultValues.price) : "");
 
   function handleAvailabilityChange(next: "IN_STOCK" | "PREORDER") {
     setAvailability(next);
@@ -125,25 +129,24 @@ export function ProductForm({
           className="font-mono"
         />
 
-        <TextField
+        <PriceInputWithCurrency
           id="costPrice"
           name="costPrice"
-          label="Giá nhập (đ)"
-          type="number"
-          min={0}
-          defaultValue={defaultValues?.costPrice ?? undefined}
+          label="Giá nhập"
+          defaultValueVnd={defaultValues?.costPrice}
+          usdExchangeRate={usdExchangeRate}
+          cnyExchangeRate={cnyExchangeRate}
           hint="Nội bộ, dùng để tính lợi nhuận — khách không thấy."
         />
 
-        <TextField
+        <PriceInputWithCurrency
           id="price"
           name="price"
-          label="Giá bán (đ)"
-          type="number"
-          min={0}
+          label="Giá bán"
           required
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
+          defaultValueVnd={defaultValues?.price}
+          usdExchangeRate={usdExchangeRate}
+          cnyExchangeRate={cnyExchangeRate}
           hint="Giảm giá theo dịp lễ được quản lý ở trang Sale/Khuyến mãi, không nhập ở đây."
         />
 
