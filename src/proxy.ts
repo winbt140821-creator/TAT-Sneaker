@@ -11,13 +11,19 @@ const intlMiddleware = createIntlMiddleware(routing);
 // header automatically in production; it's absent in local dev, which is
 // fine, detection then just falls through to next-intl's normal
 // Accept-Language/defaultLocale behavior.
-const COUNTRY_TO_LOCALE: Partial<Record<string, (typeof routing.locales)[number]>> = {
-  CN: "zh",
-  TW: "zh",
-  HK: "zh",
-  MO: "zh",
-  SG: "zh",
-};
+//
+// VN -> vi, the Chinese-speaking cluster -> zh, everyone else -> en.
+const ZH_COUNTRIES = new Set(["CN", "TW", "HK", "MO", "SG"]);
+
+function detectLocaleFromCountry(
+  country: string | null
+): (typeof routing.locales)[number] | undefined {
+  if (!country) return undefined;
+  const cc = country.toUpperCase();
+  if (cc === "VN") return "vi";
+  if (ZH_COUNTRIES.has(cc)) return "zh";
+  return "en";
+}
 
 // First line of defense for page navigation only — every admin Server
 // Function must still call requireStaff()/requireAdmin() itself, since a
@@ -53,7 +59,7 @@ export async function proxy(request: NextRequest) {
 
   if (!request.cookies.has("NEXT_LOCALE")) {
     const country = request.headers.get("x-vercel-ip-country");
-    const detected = country ? COUNTRY_TO_LOCALE[country.toUpperCase()] : undefined;
+    const detected = detectLocaleFromCountry(country);
     if (detected && detected !== routing.defaultLocale) {
       const hasLocalePrefix = routing.locales.some(
         (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`)
