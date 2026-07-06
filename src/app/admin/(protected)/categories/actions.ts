@@ -85,3 +85,36 @@ export async function deleteCategoryAction(id: string) {
   revalidatePath("/admin/categories");
   revalidatePath("/");
 }
+
+/** Moves a category up/down among its siblings (same parent) — an
+ *  alternative to typing a raw sortOrder number in the edit form. Every
+ *  sibling's sortOrder gets normalized to its current display index first,
+ *  so this still works even when several categories share the same
+ *  (e.g. default 0) sortOrder value. */
+export async function moveCategoryAction(id: string, direction: "up" | "down") {
+  await requireStaff();
+
+  const category = await prisma.category.findUnique({ where: { id } });
+  if (!category) return;
+
+  const siblings = await prisma.category.findMany({
+    where: { parentId: category.parentId },
+    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+  });
+
+  const index = siblings.findIndex((c) => c.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= siblings.length) return;
+
+  await prisma.$transaction(
+    siblings.map((c, i) =>
+      prisma.category.update({
+        where: { id: c.id },
+        data: { sortOrder: i === index ? swapIndex : i === swapIndex ? index : i },
+      })
+    )
+  );
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/");
+}

@@ -1,11 +1,42 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { deleteCategoryAction } from "./actions";
+import { deleteCategoryAction, moveCategoryAction } from "./actions";
 import { RowActions } from "@/components/admin/RowActions";
+import { ChevronDownIcon } from "@/components/icons";
+
+function MoveButtons({ id, disableUp, disableDown }: { id: string; disableUp: boolean; disableDown: boolean }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <form action={moveCategoryAction.bind(null, id, "up")}>
+        <button
+          type="submit"
+          disabled={disableUp}
+          aria-label="Di chuyển lên"
+          className="flex h-7 w-7 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
+        >
+          <ChevronDownIcon className="h-4 w-4 rotate-180" />
+        </button>
+      </form>
+      <form action={moveCategoryAction.bind(null, id, "down")}>
+        <button
+          type="submit"
+          disabled={disableDown}
+          aria-label="Di chuyển xuống"
+          className="flex h-7 w-7 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
+        >
+          <ChevronDownIcon className="h-4 w-4" />
+        </button>
+      </form>
+    </div>
+  );
+}
 
 export default async function AdminCategoriesPage() {
   const categories = await prisma.category.findMany({
-    include: { children: { orderBy: { sortOrder: "asc" } }, _count: { select: { products: true } } },
+    include: {
+      children: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
+      _count: { select: { products: true } },
+    },
     where: { parentId: null },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
   });
@@ -23,10 +54,15 @@ export default async function AdminCategoriesPage() {
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
-        {categories.map((cat) => (
+        {categories.map((cat, catIndex) => (
           <div key={cat.id} className="die-cut bg-paper p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
+                <MoveButtons
+                  id={cat.id}
+                  disableUp={catIndex === 0}
+                  disableDown={catIndex === categories.length - 1}
+                />
                 <p className="font-body text-base font-medium text-ink">{cat.label}</p>
                 <span className="font-mono text-xs text-graphite">/{cat.slug}</span>
                 {cat.hot && (
@@ -62,12 +98,17 @@ export default async function AdminCategoriesPage() {
 
             {cat.children.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1.5 border-t border-kraft-dark pt-3">
-                {cat.children.map((child) => (
+                {cat.children.map((child, childIndex) => (
                   <li
                     key={child.id}
                     className="flex flex-wrap items-center justify-between gap-2 pl-4"
                   >
                     <div className="flex items-center gap-2">
+                      <MoveButtons
+                        id={child.id}
+                        disableUp={childIndex === 0}
+                        disableDown={childIndex === cat.children.length - 1}
+                      />
                       <span className="font-body text-sm text-ink">— {child.label}</span>
                       <span className="font-mono text-[11px] text-graphite">/{child.slug}</span>
                     </div>
