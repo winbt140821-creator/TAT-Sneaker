@@ -55,6 +55,7 @@ export function ProductGallery({
           fill
           sizes="(min-width: 1024px) 50vw, 100vw"
           className="object-cover"
+          quality={95}
           priority
         />
         {/* Desktop hover magnifier — a second copy of the image, scaled up and
@@ -113,7 +114,7 @@ export function ProductGallery({
                 (active === i ? "border-forest" : "hover:border-graphite")
               }
             >
-              <Image src={src} alt="" width={80} height={80} className="h-full w-full object-cover" />
+              <Image src={src} alt="" width={80} height={80} quality={90} className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -142,6 +143,7 @@ export function ProductGallery({
               fill
               sizes="90vw"
               className="object-contain"
+              quality={95}
             />
           </div>
         </div>

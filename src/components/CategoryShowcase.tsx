@@ -24,6 +24,7 @@ export async function CategoryShowcase({ categories }: { categories: ShowcaseCat
               alt={c.label}
               fill
               sizes="(min-width: 768px) 33vw, 50vw"
+              quality={90}
               className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
             />
             <div

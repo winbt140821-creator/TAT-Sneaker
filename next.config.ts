@@ -83,6 +83,11 @@ const nextConfig: NextConfig = {
     viewTransition: true,
   },
   images: {
+    // Next 16 defaults images.qualities to [75] only — any other `quality`
+    // prop silently gets coerced to 75 (see docs/version-16.md,
+    // "qualities Default"), which is why product photos looked soft on
+    // desktop despite passing quality={90}/{95} on the <Image> components.
+    qualities: [75, 90, 95, 100],
     remotePatterns: [
       // Google account avatar (Đăng nhập bằng Google)
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
