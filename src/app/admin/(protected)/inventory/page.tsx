@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
-import { adjustSizeQuantityAction } from "./actions";
+import { adjustSizeQuantityAction, setSizeQuantityAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
-import { getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
+import { getCarriedSizes, getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
 
 export default async function AdminInventoryPage({
   searchParams,
@@ -33,8 +33,8 @@ export default async function AdminInventoryPage({
     <div>
       <h1 className="font-display text-2xl text-ink">Kho hàng</h1>
       <p className="mt-1 font-mono text-xs text-graphite">
-        Bấm + / − để điều chỉnh số lượng từng size. Muốn đổi size sản phẩm carry, vào Sửa sản phẩm. Chỉ hiển thị
-        size có sẵn hàng thực tế — size chờ đặt trước không tính vào kho.
+        Bấm + / − để tăng giảm nhanh, hoặc gõ thẳng số lượng rồi bấm Lưu. Muốn đổi size sản phẩm carry, vào Sửa sản
+        phẩm. Chỉ hiển thị size có sẵn hàng thực tế — size chờ đặt trước không tính vào kho.
       </p>
 
       <div className="die-cut mt-4 inline-block bg-forest px-5 py-3">
@@ -82,79 +82,130 @@ export default async function AdminInventoryPage({
           const isPreorder = p.availability === "PREORDER";
           const realStockSizes = getRealStockSizes(sizeQuantities, isPreorder);
           const productTotal = getRealStockTotal(sizeQuantities, isPreorder);
+          const hiddenSizes = isPreorder
+            ? getCarriedSizes(sizeQuantities).filter((s) => !realStockSizes.includes(s))
+            : [];
 
           return (
-            <div key={p.id} className="die-cut flex flex-wrap items-center gap-4 bg-paper p-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30">
-                {images[0] ? (
-                  <Image src={images[0]} alt={p.name} width={56} height={56} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="font-mono text-[9px] text-graphite">Ảnh</span>
+            <div key={p.id} className="die-cut flex flex-col gap-3 bg-paper p-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30">
+                  {images[0] ? (
+                    <Image src={images[0]} alt={p.name} width={56} height={56} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="font-mono text-[9px] text-graphite">Ảnh</span>
+                  )}
+                </div>
+
+                <div className="w-48 shrink-0">
+                  <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
+                  <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
+                </div>
+
+                {realStockSizes.length === 0 && (
+                  <p className="font-mono text-xs text-graphite">Chưa có hàng thực tế, chỉ nhận đặt trước.</p>
                 )}
-              </div>
 
-              <div className="w-48 shrink-0">
-                <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
-                <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
-              </div>
+                <ul className="flex flex-wrap gap-1.5" aria-label={`Tồn kho ${p.name}`}>
+                  {realStockSizes.map((s) => {
+                    const key = String(s);
+                    const qty = sizeQuantities[key] ?? 0;
 
-              {realStockSizes.length === 0 && (
-                <p className="font-mono text-xs text-graphite">Chưa có hàng thực tế, chỉ nhận đặt trước.</p>
-              )}
-
-              <ul
-                className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5"
-                aria-label={`Tồn kho ${p.name}`}
-              >
-                {realStockSizes.map((s) => {
-                  const key = String(s);
-                  const qty = sizeQuantities[key] ?? 0;
-
-                  return (
-                    <li key={s}>
-                      <div
-                        className={`flex items-center justify-between gap-1 border p-1.5 sm:w-9 sm:flex-col sm:items-center sm:justify-center sm:gap-0.5 sm:p-1 ${
-                          qty > 0 ? "border-forest bg-forest/5" : "border-stamp bg-stamp/5"
-                        }`}
-                      >
-                        <span className="font-mono text-xs text-graphite sm:text-[10px]">{s}</span>
-                        <div className="flex items-center gap-1 sm:gap-0.5">
+                    return (
+                      <li key={s}>
+                        <div
+                          className={`flex items-center gap-1 border p-1 ${
+                            qty > 0 ? "border-forest bg-forest/5" : "border-stamp bg-stamp/5"
+                          }`}
+                        >
+                          <span className="px-1 font-mono text-[10px] text-graphite">{s}</span>
                           <form action={adjustSizeQuantityAction.bind(null, p.id, s, -1)}>
                             <button
                               type="submit"
                               disabled={qty <= 0}
                               aria-label={`Giảm số lượng size ${s}`}
-                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded font-mono text-base text-graphite hover:text-stamp active:bg-stamp/10 disabled:cursor-not-allowed disabled:opacity-30 sm:h-5 sm:w-3.5 sm:rounded-none sm:text-[10px] sm:active:bg-transparent"
+                              className="flex h-8 w-6 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-stamp disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               −
                             </button>
                           </form>
-                          <span
-                            className={`w-5 text-center font-mono text-sm font-semibold sm:w-4 sm:text-[11px] ${
-                              qty > 0 ? "text-forest" : "text-stamp"
-                            }`}
+                          <form
+                            action={setSizeQuantityAction.bind(null, p.id)}
+                            className="flex items-center gap-1"
                           >
-                            {qty}
-                          </span>
+                            <input type="hidden" name="size" value={s} />
+                            <input
+                              type="number"
+                              name="quantity"
+                              min={0}
+                              defaultValue={qty}
+                              aria-label={`Số lượng size ${s}`}
+                              className={`w-12 border px-1 py-1 text-center font-mono text-xs focus:border-forest ${
+                                qty > 0 ? "border-forest/40 text-forest" : "border-stamp/40 text-stamp"
+                              }`}
+                            />
+                            <button
+                              type="submit"
+                              className="cursor-pointer bg-ink px-1.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
+                            >
+                              Lưu
+                            </button>
+                          </form>
                           <form action={adjustSizeQuantityAction.bind(null, p.id, s, 1)}>
                             <button
                               type="submit"
                               aria-label={`Tăng số lượng size ${s}`}
-                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded font-mono text-base text-graphite hover:text-forest active:bg-forest/10 sm:h-5 sm:w-3.5 sm:rounded-none sm:text-[10px] sm:active:bg-transparent"
+                              className="flex h-8 w-6 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-forest"
                             >
                               +
                             </button>
                           </form>
                         </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              <p className="ml-auto shrink-0 font-mono text-sm font-semibold text-ink">
-                Tổng: <span className="text-forest">{productTotal}</span> đôi
-              </p>
+                <p className="ml-auto shrink-0 font-mono text-sm font-semibold text-ink">
+                  Tổng: <span className="text-forest">{productTotal}</span> đôi
+                </p>
+              </div>
+
+              {hiddenSizes.length > 0 && (
+                <form
+                  action={setSizeQuantityAction.bind(null, p.id)}
+                  className="flex flex-wrap items-center gap-2 border-t border-kraft-dark pt-3"
+                >
+                  <label className="font-mono text-[11px] uppercase tracking-wide text-graphite">
+                    Vừa có hàng size
+                  </label>
+                  <select
+                    name="size"
+                    aria-label="Chọn size vừa có hàng"
+                    className="border border-graphite bg-paper px-2 py-1.5 font-mono text-xs text-ink focus:border-forest"
+                  >
+                    {hiddenSizes.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    name="quantity"
+                    min={1}
+                    defaultValue={1}
+                    aria-label="Số lượng"
+                    className="w-16 border border-graphite bg-paper px-2 py-1.5 text-center font-mono text-xs text-ink focus:border-forest"
+                  />
+                  <button
+                    type="submit"
+                    className="cursor-pointer bg-forest px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-forest-dark"
+                  >
+                    Thêm vào kho
+                  </button>
+                </form>
+              )}
             </div>
           );
         })}
