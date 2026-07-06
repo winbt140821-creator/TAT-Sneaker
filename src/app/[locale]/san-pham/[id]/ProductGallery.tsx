@@ -136,7 +136,38 @@ export function ProductGallery({
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
-          <div className="relative h-full max-h-[90vh] w-full max-w-3xl">
+
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label={t("galleryPrev")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActive((i) => (i - 1 + images.length) % images.length);
+                }}
+                className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                aria-label={t("galleryNext")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActive((i) => (i + 1) % images.length);
+                }}
+                className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          <div
+            className="relative h-full max-h-[90vh] w-full max-w-3xl cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Image
               src={images[active]}
               alt={name}
