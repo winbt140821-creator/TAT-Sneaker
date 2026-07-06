@@ -9,6 +9,7 @@ import { FloatingActions } from "@/components/FloatingActions";
 import { ProductGrid } from "@/components/ProductGrid";
 import { Link } from "@/i18n/navigation";
 import { getProductById, getRelatedProducts } from "@/lib/catalog";
+import { getSiteSettings } from "@/lib/settings";
 import { getDiscountPct } from "@/lib/pricing";
 import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { formatPrice } from "@/lib/products";
@@ -18,6 +19,7 @@ import { getSizeChartForCategory } from "@/lib/size-chart";
 import { absoluteUrl, languageAlternates } from "@/lib/seo";
 import { ShieldCheckIcon, RotateIcon, TruckIcon, TagIcon } from "@/components/icons";
 import { ProductGallery } from "./ProductGallery";
+import { ProductDescription } from "./ProductDescription";
 import { ProductActions } from "./ProductActions";
 import { SizeGuide } from "./SizeGuide";
 import { ProductJsonLd } from "./ProductJsonLd";
@@ -76,13 +78,16 @@ export default async function ProductDetailPage({
 
   const brandCategory = getBrandCategory(product);
 
-  const [related, sizeChartRows, price, originalPrice, depositAmount] = await Promise.all([
+  const [related, sizeChartRows, price, originalPrice, depositAmount, settings] = await Promise.all([
     getRelatedProducts(product.id, product.categories.map((c) => c.id)),
     getSizeChartForCategory(brandCategory?.id),
     formatPriceForCurrentLocale(product.price),
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
     formatPriceForCurrentLocale(product.depositAmount ?? 0),
+    getSiteSettings(),
   ]);
+
+  const description = product.description || settings?.defaultProductDescription;
 
   const PROMO_ITEMS = [
     { icon: ShieldCheckIcon, text: t("promo1") },
@@ -216,6 +221,8 @@ export default async function ProductDetailPage({
             </div>
           </div>
         </div>
+
+        {description && <ProductDescription text={description} />}
 
         {videoEmbedUrl && (
           <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6">

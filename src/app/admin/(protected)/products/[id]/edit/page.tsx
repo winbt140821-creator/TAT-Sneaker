@@ -42,6 +42,7 @@ export default async function EditProductPage({
             categoryIds: product.categories.map((c) => c.id),
             images: JSON.parse(product.images || "[]"),
             videoUrl: product.videoUrl,
+            description: product.description,
             availability: product.availability,
             leadTimeMinDays: product.leadTimeMinDays,
             leadTimeMaxDays: product.leadTimeMaxDays,

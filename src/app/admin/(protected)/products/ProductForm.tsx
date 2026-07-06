@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useState } from "react";
 import { TextField } from "@/components/admin/form/TextField";
+import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
@@ -49,6 +50,7 @@ export function ProductForm({
     categoryIds?: string[];
     images?: string[];
     videoUrl?: string | null;
+    description?: string | null;
     availability?: "IN_STOCK" | "PREORDER";
     leadTimeMinDays?: number;
     leadTimeMaxDays?: number;
@@ -458,6 +460,15 @@ export function ProductForm({
         type="url"
         placeholder="https://www.youtube.com/watch?v=..."
         defaultValue={defaultValues?.videoUrl ?? ""}
+      />
+
+      <TextAreaField
+        id="description"
+        name="description"
+        label="Mô tả riêng cho sản phẩm này (để trống sẽ dùng mô tả chung)"
+        rows={6}
+        defaultValue={defaultValues?.description ?? ""}
+        hint="Chỉnh mô tả chung cho tất cả sản phẩm ở Cài đặt > Mô tả sản phẩm."
       />
 
       <FormError message={state.error} />

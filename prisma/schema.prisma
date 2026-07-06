@@ -106,6 +106,11 @@ model Product {
   sizeQuantities String @default("{}")
   images        String      @default("[]") // JSON-encoded string[] of /uploads/... URLs
   videoUrl      String? // YouTube video link shown on the product detail page
+  // Plain text (line breaks preserved as typed) shown as the "Mô tả" section
+  // on the product page. Empty/unset falls back to SiteSettings.
+  // defaultProductDescription so admin can write one shared description for
+  // every product and only override individual ones that need their own.
+  description   String?
 
   // Deposit: per-product toggle since only some items (e.g. preorders) need
   // one upfront. depositAmount is a flat VND amount, not a percentage, so
@@ -183,6 +188,13 @@ model SiteSettings {
   // more reliable than the browser Pixel alone (survives ad blockers/iOS
   // tracking limits), deduped against the client-side event via event_id.
   metaCapiAccessToken String?
+
+  // Shared "Mô tả" text shown on every product page that doesn't have its
+  // own Product.description override — lets admin write one description
+  // once (e.g. a generic quality/shop-policy pitch) instead of retyping it
+  // per product, while still allowing individual products to say something
+  // different.
+  defaultProductDescription String?
 
   heroEyebrow            String?
   heroEyebrowEnabled     Boolean @default(true)

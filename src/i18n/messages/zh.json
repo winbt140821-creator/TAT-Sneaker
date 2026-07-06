@@ -139,7 +139,10 @@
     "galleryNext": "下一张图片",
     "galleryView": "查看第 {index} 张图片",
     "galleryZoomIn": "放大图片",
-    "galleryZoomClose": "关闭放大图片"
+    "galleryZoomClose": "关闭放大图片",
+    "description": "商品描述",
+    "descriptionExpand": "查看更多",
+    "descriptionCollapse": "收起"
   },
   "news": {
     "title": "新闻资讯",

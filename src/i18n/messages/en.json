@@ -139,7 +139,10 @@
     "galleryNext": "Next image",
     "galleryView": "View image {index}",
     "galleryZoomIn": "Zoom image",
-    "galleryZoomClose": "Close zoomed image"
+    "galleryZoomClose": "Close zoomed image",
+    "description": "Description",
+    "descriptionExpand": "Show more",
+    "descriptionCollapse": "Show less"
   },
   "news": {
     "title": "News",

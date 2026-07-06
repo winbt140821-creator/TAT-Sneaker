@@ -232,3 +232,17 @@ export async function deleteSocialLinkAction(id: string): Promise<void> {
   await prisma.socialLink.delete({ where: { id } });
   revalidateSettings();
 }
+
+export async function updateDefaultProductDescriptionAction(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const defaultProductDescription = String(formData.get("defaultProductDescription") ?? "").trim() || null;
+
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { defaultProductDescription },
+    create: { id: "singleton", defaultProductDescription },
+  });
+
+  revalidateSettings();
+}

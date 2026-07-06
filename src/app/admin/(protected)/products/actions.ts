@@ -52,6 +52,7 @@ function readProductForm(formData: FormData) {
   const categoryIds = formData.getAll("categoryIds").map(String);
   const images = formData.getAll("images").map(String);
   const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
   const leadTimeMinDays = Math.max(0, Math.round(Number(formData.get("leadTimeMinDays") ?? 0)));
   const leadTimeMaxDays = Math.max(
     leadTimeMinDays,
@@ -72,6 +73,7 @@ function readProductForm(formData: FormData) {
     categoryIds,
     images,
     videoUrl,
+    description,
     availability,
     leadTimeMinDays,
     leadTimeMaxDays,
@@ -106,6 +108,7 @@ export async function createProductAction(
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
+        description: data.description,
         availability: data.availability,
         leadTimeMinDays: data.leadTimeMinDays,
         leadTimeMaxDays: data.leadTimeMaxDays,
@@ -151,6 +154,7 @@ export async function updateProductAction(
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
+        description: data.description,
         availability: data.availability,
         leadTimeMinDays: data.leadTimeMinDays,
         leadTimeMaxDays: data.leadTimeMaxDays,

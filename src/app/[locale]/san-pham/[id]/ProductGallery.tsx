@@ -132,7 +132,7 @@ export function ProductGallery({
             type="button"
             aria-label={t("galleryZoomClose")}
             onClick={() => setZoomOpen(false)}
-            className="absolute right-4 top-4 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
+            className="absolute right-4 top-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -146,7 +146,7 @@ export function ProductGallery({
                   e.stopPropagation();
                   setActive((i) => (i - 1 + images.length) % images.length);
                 }}
-                className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
+                className="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
               </button>
@@ -157,17 +157,19 @@ export function ProductGallery({
                   e.stopPropagation();
                   setActive((i) => (i + 1) % images.length);
                 }}
-                className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
+                className="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-paper/90 text-ink hover:bg-paper"
               >
                 <ChevronRightIcon className="h-5 w-5" />
               </button>
             </>
           )}
 
-          <div
-            className="relative h-full max-h-[90vh] w-full max-w-3xl cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
+          {/* No stopPropagation here — on mobile this box fills almost the
+              entire screen (no real "backdrop" left to tap), so tapping the
+              photo itself needs to close the zoom just like tapping outside
+              it does. Desktop users get dedicated prev/next/close buttons
+              above instead of needing to click the photo to navigate. */}
+          <div className="relative z-0 h-full max-h-[90vh] w-full max-w-3xl">
             <Image
               src={images[active]}
               alt={name}

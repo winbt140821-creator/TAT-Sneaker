@@ -139,7 +139,10 @@
     "galleryNext": "Ảnh sau",
     "galleryView": "Xem ảnh {index}",
     "galleryZoomIn": "Phóng to ảnh",
-    "galleryZoomClose": "Đóng ảnh phóng to"
+    "galleryZoomClose": "Đóng ảnh phóng to",
+    "description": "Mô tả",
+    "descriptionExpand": "Xem thêm",
+    "descriptionCollapse": "Thu gọn"
   },
   "news": {
     "title": "Tin tức",
