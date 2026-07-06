@@ -113,7 +113,9 @@
     "buyNow": "Mua ngay",
     "addToCart": "Thêm vào giỏ hàng",
     "wishlistAdd": "Thêm vào yêu thích",
-    "wishlistRemove": "Bỏ khỏi yêu thích"
+    "wishlistRemove": "Bỏ khỏi yêu thích",
+    "share": "Chia sẻ sản phẩm",
+    "shareCopied": "Đã sao chép link sản phẩm."
   },
   "productDetail": {
     "promo1": "Đã qua kiểm định 3 bước trước khi lên kệ",

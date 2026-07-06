@@ -282,6 +282,22 @@ export function LinkIcon({ className }: IconProps) {
   );
 }
 
+export function ShareIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">
+      <circle cx="18" cy="5" r="2.3" stroke="currentColor" strokeWidth={1.7} />
+      <circle cx="6" cy="12" r="2.3" stroke="currentColor" strokeWidth={1.7} />
+      <circle cx="18" cy="19" r="2.3" stroke="currentColor" strokeWidth={1.7} />
+      <path
+        d="M8 10.8l8-4.3M8 13.2l8 4.3"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function FacebookIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={`${base} ${className ?? ""}`} aria-hidden="true">

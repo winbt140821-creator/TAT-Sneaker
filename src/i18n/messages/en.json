@@ -113,7 +113,9 @@
     "buyNow": "Buy now",
     "addToCart": "Add to cart",
     "wishlistAdd": "Add to wishlist",
-    "wishlistRemove": "Remove from wishlist"
+    "wishlistRemove": "Remove from wishlist",
+    "share": "Share product",
+    "shareCopied": "Product link copied."
   },
   "productDetail": {
     "promo1": "3-step inspection before listing",

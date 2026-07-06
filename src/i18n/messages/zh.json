@@ -113,7 +113,9 @@
     "buyNow": "立即购买",
     "addToCart": "加入购物车",
     "wishlistAdd": "加入收藏",
-    "wishlistRemove": "取消收藏"
+    "wishlistRemove": "取消收藏",
+    "share": "分享商品",
+    "shareCopied": "已复制商品链接。"
   },
   "productDetail": {
     "promo1": "上架前经过 3 道验货工序",

@@ -14,6 +14,7 @@ import { trackAddToCart } from "@/lib/meta-pixel";
 import { BagIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { WishlistButton } from "./WishlistButton";
+import { ShareButton } from "./ShareButton";
 
 export function ProductActions({
   productId,
@@ -159,6 +160,7 @@ export function ProductActions({
           {t("addToCart")}
         </button>
         <WishlistButton productId={productId} />
+        <ShareButton productName={productName} />
       </div>
     </div>
   );
