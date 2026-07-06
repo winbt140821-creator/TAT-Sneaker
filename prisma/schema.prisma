@@ -321,6 +321,17 @@ model Order {
   shippingStatus   String?
   shippingSyncedAt DateTime?
 
+  // Ad attribution — captured from the landing page URL's utm_source/
+  // utm_medium/utm_campaign and Meta's fbclid click ID (see src/proxy.ts,
+  // which writes them into an "attribution" cookie on first sight of any of
+  // these params, last-touch overwrites), then snapshotted onto the order at
+  // checkout (src/app/[locale]/thanh-toan/actions.ts) so admin can see which
+  // campaign drove a given sale without leaving the site.
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  fbclid      String?
+
   payments Payment[]
 
   createdAt DateTime @default(now())

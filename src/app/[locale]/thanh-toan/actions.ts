@@ -98,6 +98,17 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // (0 if none), with the rest due on delivery.
   const amountDue = input.payInFull ? orderTotal : productDeposit;
 
+  // Snapshot which ad/campaign (if any) brought this customer in, captured
+  // into a cookie by src/proxy.ts on whichever landing page they first
+  // clicked through from — read once here and reused below for the CAPI fbc.
+  const cookieStore = await cookies();
+  let attribution: { utmSource?: string; utmMedium?: string; utmCampaign?: string; fbclid?: string } = {};
+  try {
+    attribution = JSON.parse(cookieStore.get("attribution")?.value ?? "{}");
+  } catch {
+    attribution = {};
+  }
+
   let order;
   try {
     order = await prisma.$transaction(async (tx) => {
@@ -137,6 +148,10 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           customerId: customer.id,
           paymentMethod: input.paymentMethod,
           depositAmount: amountDue,
+          utmSource: attribution.utmSource,
+          utmMedium: attribution.utmMedium,
+          utmCampaign: attribution.utmCampaign,
+          fbclid: attribution.fbclid,
           items: {
             create: input.items.map((item) => {
               const product = byId.get(item.productId)!;
@@ -164,7 +179,6 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   revalidatePath("/admin/products");
 
   const headersList = await headers();
-  const cookieStore = await cookies();
   await sendCapiPurchase({
     orderCode: code,
     value: orderTotal,

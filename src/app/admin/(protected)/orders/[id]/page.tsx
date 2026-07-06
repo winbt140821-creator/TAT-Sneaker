@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { OrderStatus } from "@/generated/prisma/client";
 import { ORDER_STATUS_LABEL as STATUS_LABEL } from "@/lib/order-status";
+import { attributionLabel } from "@/lib/order-attribution";
 import {
   updateOrderStatusAction,
   setOrderDepositPaidAction,
@@ -181,6 +182,9 @@ export default async function AdminOrderDetailPage({
             <p>Địa chỉ: <span className="text-ink">{fullAddress}</span></p>
             <p>Hình thức thanh toán: <span className="text-ink">{paymentMethodLabel}</span></p>
             {order.note && <p>Ghi chú: <span className="text-ink">{order.note}</span></p>}
+            {attributionLabel(order) && (
+              <p>Nguồn đơn hàng: <span className="text-forest">{attributionLabel(order)}</span></p>
+            )}
           </div>
         </div>
 

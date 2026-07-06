@@ -25,6 +25,34 @@ function detectLocaleFromCountry(
   return "en";
 }
 
+// Last-touch ad attribution: whenever a landing page URL carries any of
+// these params (a Facebook/Google ad click, a UTM-tagged link...), snapshot
+// them into a cookie that createOrderAction (src/app/[locale]/thanh-toan/
+// actions.ts) reads at checkout — so admin can see which campaign drove a
+// sale directly on the order, not just in Ads Manager. A later visit with
+// new params overwrites the cookie (last touch wins); a visit with none
+// leaves whatever's already stored alone.
+function captureAttribution(request: NextRequest, res: NextResponse) {
+  const params = request.nextUrl.searchParams;
+  const utmSource = params.get("utm_source");
+  const utmMedium = params.get("utm_medium");
+  const utmCampaign = params.get("utm_campaign");
+  const fbclid = params.get("fbclid");
+  if (!utmSource && !fbclid) return;
+
+  const trim = (v: string | null) => v?.slice(0, 200);
+  res.cookies.set(
+    "attribution",
+    JSON.stringify({
+      utmSource: trim(utmSource),
+      utmMedium: trim(utmMedium),
+      utmCampaign: trim(utmCampaign),
+      fbclid: trim(fbclid),
+    }),
+    { maxAge: 60 * 60 * 24 * 30 }
+  );
+}
+
 // First line of defense for page navigation only — every admin Server
 // Function must still call requireStaff()/requireAdmin() itself, since a
 // proxy matcher change could silently stop covering a route (see Next.js
@@ -69,12 +97,15 @@ export async function proxy(request: NextRequest) {
         url.search = request.nextUrl.search;
         const res = NextResponse.redirect(url);
         res.cookies.set("NEXT_LOCALE", detected, { maxAge: 60 * 60 * 24 * 365 });
+        captureAttribution(request, res);
         return res;
       }
     }
   }
 
-  return intlMiddleware(request);
+  const res = intlMiddleware(request);
+  captureAttribution(request, res);
+  return res;
 }
 
 export const config = {

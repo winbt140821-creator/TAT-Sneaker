@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { autoCancelStaleOrders } from "@/lib/order-cleanup";
 import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
+import { attributionLabel } from "@/lib/order-attribution";
 import { OrderStatus } from "@/generated/prisma/client";
 import { deleteOrderAction } from "./actions";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
@@ -160,6 +161,11 @@ export default async function AdminOrdersPage({
               >
                 {order.customerName} · {order.customerPhone}
               </Link>
+              {attributionLabel(order) && (
+                <p className="font-mono text-[11px] text-graphite">
+                  Nguồn: <span className="text-forest">{attributionLabel(order)}</span>
+                </p>
+              )}
             </div>
           );
         })}
