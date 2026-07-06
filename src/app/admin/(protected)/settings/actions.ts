@@ -123,6 +123,7 @@ export async function updateMarketingSettingsAction(formData: FormData): Promise
 
   const data = {
     metaPixelId: String(formData.get("metaPixelId") ?? "").trim() || null,
+    metaCapiAccessToken: String(formData.get("metaCapiAccessToken") ?? "").trim() || null,
   };
 
   await prisma.siteSettings.upsert({

@@ -7,9 +7,12 @@ declare global {
   }
 }
 
-function track(event: string, params?: Record<string, unknown>) {
+function track(event: string, params?: Record<string, unknown>, eventId?: string) {
   if (typeof window === "undefined" || !window.fbq) return;
-  window.fbq("track", event, params);
+  // eventID lets Meta dedupe this browser-side event against the matching
+  // server-side Conversions API event (src/lib/meta-capi.ts) sent for the
+  // same order, instead of counting the purchase twice.
+  window.fbq("track", event, params, eventId ? { eventID: eventId } : undefined);
 }
 
 export function trackViewContent(params: { id: string; name: string; price: number }) {
@@ -41,9 +44,13 @@ export function trackInitiateCheckout(params: { value: number; numItems: number 
 }
 
 export function trackPurchase(params: { orderCode: string; value: number }) {
-  track("Purchase", {
-    content_ids: [params.orderCode],
-    value: params.value,
-    currency: "VND",
-  });
+  track(
+    "Purchase",
+    {
+      content_ids: [params.orderCode],
+      value: params.value,
+      currency: "VND",
+    },
+    params.orderCode
+  );
 }

@@ -2,13 +2,14 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getActiveCampaigns, salePriceFor } from "@/lib/sale";
 import { auth } from "@/auth";
 import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
 import { createOrder as createPaypalOrder } from "@/lib/payments/paypal";
+import { sendCapiPurchase } from "@/lib/meta-capi";
 
 // Thrown from inside the $transaction below to abort it and surface a normal
 // { error } result — the outer catch converts it, since Prisma's interactive
@@ -161,6 +162,20 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   revalidatePath("/");
   revalidatePath("/admin/orders");
   revalidatePath("/admin/products");
+
+  const headersList = await headers();
+  const cookieStore = await cookies();
+  await sendCapiPurchase({
+    orderCode: code,
+    value: orderTotal,
+    email: session.user.email,
+    phone: customerPhone,
+    clientIp: headersList.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    userAgent: headersList.get("user-agent") ?? undefined,
+    fbp: cookieStore.get("_fbp")?.value,
+    fbc: cookieStore.get("_fbc")?.value,
+    eventSourceUrl: absoluteUrl(`/don-hang/${code}`),
+  });
 
   return { id: order.id, code, amountDue };
 }

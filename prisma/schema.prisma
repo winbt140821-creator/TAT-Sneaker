@@ -177,6 +177,12 @@ model SiteSettings {
   // When set, fires PageView/ViewContent/AddToCart/InitiateCheckout/Purchase
   // events so conversion ad campaigns can optimize and be measured.
   metaPixelId String?
+  // Conversions API access token (Events Manager > Cài đặt > API Chuyển đổi
+  // > Tạo mã thông báo truy cập) for the same Pixel above. When set, Purchase
+  // is also sent server-side (src/lib/meta-capi.ts) from createOrderAction —
+  // more reliable than the browser Pixel alone (survives ad blockers/iOS
+  // tracking limits), deduped against the client-side event via event_id.
+  metaCapiAccessToken String?
 
   heroEyebrow            String?
   heroEyebrowEnabled     Boolean @default(true)
