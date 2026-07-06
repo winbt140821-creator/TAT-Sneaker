@@ -43,6 +43,7 @@ export function ProductForm({
     sku?: string;
     price?: number;
     costPrice?: number | null;
+    shippingFee?: number;
     quality?: string;
     sizeQuantities?: Record<string, number>;
     categoryIds?: string[];
@@ -72,6 +73,10 @@ export function ProductForm({
   );
   const [bulkQty, setBulkQty] = useState("");
   const [imagesUploading, setImagesUploading] = useState(false);
+
+  const shippingFeeDefault = defaultValues?.shippingFee ?? 0;
+  const baseCostDefault =
+    defaultValues?.costPrice != null ? defaultValues.costPrice - shippingFeeDefault : undefined;
 
   function handleApplyBulkQty() {
     const n = Math.floor(Number(bulkQty));
@@ -148,13 +153,23 @@ export function ProductForm({
         />
 
         <PriceInputWithCurrency
-          id="costPrice"
-          name="costPrice"
-          label="Giá nhập"
-          defaultValueVnd={defaultValues?.costPrice}
+          id="baseCostPrice"
+          name="baseCostPrice"
+          label="Giá gốc"
+          defaultValueVnd={baseCostDefault}
           usdExchangeRate={usdExchangeRate}
           cnyExchangeRate={cnyExchangeRate}
           hint="Nội bộ, dùng để tính lợi nhuận — khách không thấy."
+        />
+
+        <TextField
+          id="shippingFee"
+          name="shippingFee"
+          label="Phí ship (đ)"
+          type="number"
+          min={0}
+          defaultValue={shippingFeeDefault}
+          hint="Giá nhập = Giá gốc + Phí ship."
         />
 
         <PriceInputWithCurrency

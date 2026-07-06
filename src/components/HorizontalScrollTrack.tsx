@@ -60,7 +60,7 @@ export function HorizontalScrollTrack({ children }: { children: ReactNode }) {
       </div>
 
       {canScrollLeft && (
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex w-14 items-center bg-gradient-to-r from-paper to-transparent pb-1">
+        <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-14 items-center bg-gradient-to-r from-paper to-transparent pb-1 sm:flex">
           <button
             type="button"
             onClick={() => scrollByPage(-1)}
@@ -73,7 +73,7 @@ export function HorizontalScrollTrack({ children }: { children: ReactNode }) {
       )}
 
       {canScrollRight && (
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex w-14 items-center justify-end bg-gradient-to-l from-paper to-transparent pb-1">
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-14 items-center justify-end bg-gradient-to-l from-paper to-transparent pb-1 sm:flex">
           <button
             type="button"
             onClick={() => scrollByPage(1)}

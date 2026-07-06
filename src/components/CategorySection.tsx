@@ -36,12 +36,12 @@ export function CategorySection({
         </div>
 
         {pills && pills.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
             {pills.map((p) => (
               <Link
                 key={p.slug}
                 href={`/?category=${encodeURIComponent(p.slug)}`}
-                className="die-cut-flat cursor-pointer bg-paper px-3 py-1.5 font-mono text-xs text-ink transition-colors hover:border-forest hover:text-forest"
+                className="die-cut-flat shrink-0 cursor-pointer bg-paper px-3 py-1.5 font-mono text-xs whitespace-nowrap text-ink transition-colors hover:border-forest hover:text-forest"
               >
                 {p.label}
               </Link>

@@ -36,6 +36,7 @@ export default async function EditProductPage({
             sku: product.sku,
             price: product.price,
             costPrice: product.costPrice,
+            shippingFee: product.shippingFee,
             quality: product.quality,
             sizeQuantities: JSON.parse(product.sizeQuantities || "{}"),
             categoryIds: product.categories.map((c) => c.id),

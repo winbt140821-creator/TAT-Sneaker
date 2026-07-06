@@ -117,7 +117,7 @@ model Product {
   leadTimeMinDays Int                 @default(3)
   leadTimeMaxDays Int                 @default(5)
 
-  shippingFee Int @default(0) // VND, added to cart/checkout total for this item — editable per-product or in bulk from Kho hàng
+  shippingFee Int @default(0) // VND cost of importing this item — added to costPrice (giá nhập = giá gốc + phí ship), edited on the product form
 
   categories    Category[]  @relation("ProductCategories")
   saleCampaigns SaleCampaign[] @relation("SaleCampaignProducts")

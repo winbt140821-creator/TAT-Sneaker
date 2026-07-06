@@ -17,8 +17,10 @@ function readProductForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim() || generateSku();
   const price = Math.round(Number(formData.get("price") ?? 0));
-  const costPriceRaw = String(formData.get("costPrice") ?? "").trim();
-  const costPrice = costPriceRaw ? Math.round(Number(costPriceRaw)) : null;
+  const baseCostPriceRaw = String(formData.get("baseCostPrice") ?? "").trim();
+  const shippingFee = Math.max(0, Math.round(Number(formData.get("shippingFee") ?? 0)));
+  // Giá nhập (nội bộ, dùng để tính lợi nhuận) = giá gốc + phí ship.
+  const costPrice = baseCostPriceRaw ? Math.round(Number(baseCostPriceRaw)) + shippingFee : null;
   const quality = String(formData.get("quality") ?? "Auth");
   const carriedSizes = formData.getAll("carriedSizes").map(Number).filter((n) => !Number.isNaN(n));
 
@@ -64,6 +66,7 @@ function readProductForm(formData: FormData) {
     sku,
     price,
     costPrice,
+    shippingFee,
     quality,
     sizeQuantities,
     categoryIds,
@@ -98,6 +101,7 @@ export async function createProductAction(
         sku: data.sku,
         price: data.price,
         costPrice: data.costPrice,
+        shippingFee: data.shippingFee,
         quality: data.quality,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
@@ -142,6 +146,7 @@ export async function updateProductAction(
         sku: data.sku,
         price: data.price,
         costPrice: data.costPrice,
+        shippingFee: data.shippingFee,
         quality: data.quality,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),

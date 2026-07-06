@@ -54,3 +54,19 @@ export const IN_STOCK_LEAD_TIME = { min: 3, max: 5 } as const;
 export function hasRealStockAnywhere(sq: SizeQuantities): boolean {
   return Object.values(sq).some(hasRealStockForSize);
 }
+
+/** Sizes to show on the admin inventory page. For PREORDER products, sizes
+ *  still sitting at the sentinel default aren't physical stock and would
+ *  otherwise make the warehouse view look like there are hundreds of pairs
+ *  on hand — those are excluded. A size that WAS given a real quantity but
+ *  has since sold down to 0 stays visible (still tracked, just out of stock)
+ *  so admin can restock it with the +/- steppers. IN_STOCK products don't
+ *  use the sentinel at all, so every carried size is real. */
+export function getRealStockSizes(sq: SizeQuantities, isPreorder: boolean): number[] {
+  const sizes = getCarriedSizes(sq);
+  return isPreorder ? sizes.filter((s) => (sq[String(s)] ?? 0) !== PREORDER_DEFAULT_QTY) : sizes;
+}
+
+export function getRealStockTotal(sq: SizeQuantities, isPreorder: boolean): number {
+  return getRealStockSizes(sq, isPreorder).reduce((sum, s) => sum + (sq[String(s)] ?? 0), 0);
+}

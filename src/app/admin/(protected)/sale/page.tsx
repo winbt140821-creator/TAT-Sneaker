@@ -10,10 +10,24 @@ export default async function AdminSalePage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.product.findMany({
-      select: { id: true, sku: true, name: true },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        images: true,
+        categories: { select: { id: true, label: true } },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
+
+  const productOptions = products.map((p) => ({
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    image: (JSON.parse(p.images || "[]") as string[])[0] ?? null,
+    categories: p.categories,
+  }));
 
   return (
     <div>
@@ -66,7 +80,7 @@ export default async function AdminSalePage() {
       </div>
 
       <div className="mt-8">
-        <SaleCampaignForm products={products} />
+        <SaleCampaignForm products={productOptions} />
       </div>
     </div>
   );

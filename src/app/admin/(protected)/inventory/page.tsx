@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
-import { adjustSizeQuantityAction, updateShippingFeeAction, bulkUpdateShippingFeeAction } from "./actions";
+import { adjustSizeQuantityAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
-import { getCarriedSizes, getTotalQuantity } from "@/lib/inventory";
+import { getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
 
 export default async function AdminInventoryPage({
   searchParams,
@@ -24,13 +24,17 @@ export default async function AdminInventoryPage({
     sizeQuantities: JSON.parse(p.sizeQuantities || "{}") as Record<string, number>,
   }));
 
-  const grandTotal = parsed.reduce((sum, p) => sum + getTotalQuantity(p.sizeQuantities), 0);
+  const grandTotal = parsed.reduce(
+    (sum, p) => sum + getRealStockTotal(p.sizeQuantities, p.product.availability === "PREORDER"),
+    0
+  );
 
   return (
     <div>
       <h1 className="font-display text-2xl text-ink">Kho hàng</h1>
       <p className="mt-1 font-mono text-xs text-graphite">
-        Bấm + / − để điều chỉnh số lượng từng size. Muốn đổi size sản phẩm carry, vào Sửa sản phẩm.
+        Bấm + / − để điều chỉnh số lượng từng size. Muốn đổi size sản phẩm carry, vào Sửa sản phẩm. Chỉ hiển thị
+        size có sẵn hàng thực tế — size chờ đặt trước không tính vào kho.
       </p>
 
       <div className="die-cut mt-4 inline-block bg-forest px-5 py-3">
@@ -39,32 +43,6 @@ export default async function AdminInventoryPage({
           Tổng số đôi toàn kho
         </p>
       </div>
-
-      <form
-        action={bulkUpdateShippingFeeAction}
-        className="die-cut-flat mt-4 flex flex-wrap items-end gap-3 bg-paper p-3"
-      >
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="bulkShippingFee" className="font-mono text-xs uppercase tracking-wide text-graphite">
-            Phí ship áp dụng cho tất cả sản phẩm (đ)
-          </label>
-          <input
-            id="bulkShippingFee"
-            name="bulkShippingFee"
-            type="number"
-            min={0}
-            step={1}
-            placeholder="VD: 30000"
-            className="w-40 border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
-          />
-        </div>
-        <button
-          type="submit"
-          className="cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
-        >
-          Áp dụng cho tất cả sản phẩm
-        </button>
-      </form>
 
       <form role="search" action="/admin/inventory" className="relative mt-4 max-w-sm">
         <label htmlFor="inventory-search" className="sr-only">
@@ -101,7 +79,9 @@ export default async function AdminInventoryPage({
           <p className="font-mono text-xs text-graphite">Không tìm thấy sản phẩm nào.</p>
         )}
         {parsed.map(({ product: p, images, sizeQuantities }) => {
-          const productTotal = getTotalQuantity(sizeQuantities);
+          const isPreorder = p.availability === "PREORDER";
+          const realStockSizes = getRealStockSizes(sizeQuantities, isPreorder);
+          const productTotal = getRealStockTotal(sizeQuantities, isPreorder);
 
           return (
             <div key={p.id} className="die-cut flex flex-wrap items-center gap-4 bg-paper p-3">
@@ -118,11 +98,15 @@ export default async function AdminInventoryPage({
                 <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
               </div>
 
+              {realStockSizes.length === 0 && (
+                <p className="font-mono text-xs text-graphite">Chưa có hàng thực tế, chỉ nhận đặt trước.</p>
+              )}
+
               <ul
                 className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5"
                 aria-label={`Tồn kho ${p.name}`}
               >
-                {getCarriedSizes(sizeQuantities).map((s) => {
+                {realStockSizes.map((s) => {
                   const key = String(s);
                   const qty = sizeQuantities[key] ?? 0;
 
@@ -168,33 +152,9 @@ export default async function AdminInventoryPage({
                 })}
               </ul>
 
-              <p className="shrink-0 font-mono text-sm font-semibold text-ink">
+              <p className="ml-auto shrink-0 font-mono text-sm font-semibold text-ink">
                 Tổng: <span className="text-forest">{productTotal}</span> đôi
               </p>
-
-              <form
-                action={updateShippingFeeAction.bind(null, p.id)}
-                className="ml-auto flex shrink-0 items-center gap-1.5"
-              >
-                <label htmlFor={`shippingFee-${p.id}`} className="font-mono text-[10px] uppercase tracking-wide text-graphite">
-                  Phí ship
-                </label>
-                <input
-                  id={`shippingFee-${p.id}`}
-                  name="shippingFee"
-                  type="number"
-                  min={0}
-                  step={1}
-                  defaultValue={p.shippingFee}
-                  className="w-24 border border-graphite bg-paper px-2 py-1 text-right font-mono text-xs text-ink focus:border-forest"
-                />
-                <button
-                  type="submit"
-                  className="cursor-pointer bg-ink px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
-                >
-                  Lưu
-                </button>
-              </form>
             </div>
           );
         })}
