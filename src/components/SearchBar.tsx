@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { formatPriceForLocale } from "@/lib/currency";
 import { SearchIcon } from "./icons";
-import { searchSuggestionsAction, type SearchSuggestion } from "./search-actions";
+import { defaultSuggestionsAction, searchSuggestionsAction, type SearchSuggestion } from "./search-actions";
 
 // Debounced type-ahead: shows up to 5 matching products (thumbnail + name +
 // price) while the customer types, so they don't have to submit the form and
@@ -27,6 +27,7 @@ export function SearchBar({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchSuggestion[] | null>(null);
+  const [showingDefaults, setShowingDefaults] = useState(false);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const formatPrice = (vnd: number) =>
@@ -34,17 +35,34 @@ export function SearchBar({
 
   useEffect(() => {
     const trimmed = query.trim();
-    // Nothing to fetch for an empty query — the dropdown is hidden in this
-    // case anyway (see showDropdown below), so stale results left in state
-    // are harmless and just get overwritten once typing resumes.
-    if (!trimmed) return;
+    if (!trimmed) {
+      // Cleared back to empty while still focused — fall back to the same
+      // default suggestions shown on focus, instead of leaving stale
+      // search-match results in place.
+      if (open) {
+        defaultSuggestionsAction().then((found) => {
+          setResults(found);
+          setShowingDefaults(true);
+        });
+      }
+      return;
+    }
 
     const timer = setTimeout(async () => {
       const found = await searchSuggestionsAction(trimmed);
       setResults(found);
+      setShowingDefaults(false);
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, open]);
+
+  // Suggestions appear the instant the box is focused, before typing
+  // anything — the effect above fetches default suggestions whenever `open`
+  // flips true with an empty query, live matches take over once typing
+  // starts.
+  function handleFocus() {
+    setOpen(true);
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -61,7 +79,7 @@ export function SearchBar({
     router.push(`/san-pham/${productId}`);
   }
 
-  const showDropdown = open && query.trim().length > 0;
+  const showDropdown = open;
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -76,7 +94,7 @@ export function SearchBar({
           autoComplete="off"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setOpen(true)}
+          onFocus={handleFocus}
           placeholder={t("searchPlaceholder")}
           className="w-full rounded-full border border-kraft-dark bg-kraft py-2 pl-4 pr-11 font-body text-sm text-ink placeholder:text-graphite focus:border-forest focus:bg-paper"
         />
@@ -96,6 +114,11 @@ export function SearchBar({
           )}
           {results !== null && results.length === 0 && (
             <p className="px-4 py-3 font-mono text-xs text-graphite">{t("searchNoResults")}</p>
+          )}
+          {results !== null && results.length > 0 && showingDefaults && (
+            <p className="px-4 pb-1.5 pt-1 font-mono text-[10px] uppercase tracking-wide text-graphite">
+              {t("searchSuggestedHeading")}
+            </p>
           )}
           {results?.map((r) => (
             <button

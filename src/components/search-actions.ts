@@ -26,3 +26,21 @@ export async function searchSuggestionsAction(q: string): Promise<SearchSuggesti
     price: p.price,
   }));
 }
+
+/** Shown the moment the search box is focused, before the customer has typed
+ *  anything — a handful of newest arrivals so the dropdown isn't empty on
+ *  first click (per the "show suggestions when clicked" feedback). */
+export async function defaultSuggestionsAction(): Promise<SearchSuggestion[]> {
+  const products = await prisma.product.findMany({
+    select: { id: true, name: true, images: true, price: true },
+    take: 5,
+    orderBy: { createdAt: "desc" },
+  });
+
+  return products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    image: (JSON.parse(p.images || "[]") as string[])[0] ?? null,
+    price: p.price,
+  }));
+}
