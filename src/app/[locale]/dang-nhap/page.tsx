@@ -10,6 +10,12 @@ import { LoginButtons } from "./LoginButtons";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
 
+// Facebook Login setup (App Review / Business Verification) isn't finished
+// yet — flip this back to true once it's ready for real customers. The
+// backend route stays wired up either way; this only hides the button so
+// no one stumbles onto a login flow that isn't fully working yet.
+const FACEBOOK_LOGIN_ENABLED = false;
+
 export default async function CustomerLoginPage({
   searchParams,
 }: {
@@ -38,7 +44,7 @@ export default async function CustomerLoginPage({
 
             <LoginButtons
               callbackUrl={callbackUrl}
-              showFacebook={Boolean(process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET)}
+              showFacebook={FACEBOOK_LOGIN_ENABLED && Boolean(process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET)}
               withGoogleLabel={t("withGoogle")}
               withFacebookLabel={t("withFacebook")}
             />
