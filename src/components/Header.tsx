@@ -5,36 +5,12 @@ import { getNavCategories } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
 import { getCurrentStaff } from "@/lib/auth";
 import { auth } from "@/auth";
-import { BagIcon, DashboardIcon, SearchIcon } from "./icons";
+import { BagIcon, DashboardIcon } from "./icons";
 import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
 import { CartBadge } from "./CartBadge";
 import { AccountMenu } from "./AccountMenu";
 import { Logo } from "./Logo";
-
-async function SearchBar({ id }: { id: string }) {
-  const t = await getTranslations("header");
-  return (
-    <form role="search" action="/" className="relative w-full">
-      <label htmlFor={id} className="sr-only">
-        {t("searchLabel")}
-      </label>
-      <input
-        id={id}
-        name="q"
-        type="search"
-        placeholder={t("searchPlaceholder")}
-        className="w-full rounded-full border border-kraft-dark bg-kraft py-2 pl-4 pr-11 font-body text-sm text-ink placeholder:text-graphite focus:border-forest focus:bg-paper"
-      />
-      <button
-        type="submit"
-        aria-label={t("searchAria")}
-        className="absolute right-1 top-1 flex h-[calc(100%-0.5rem)] w-9 cursor-pointer items-center justify-center rounded-full bg-ink text-paper transition-colors hover:bg-ink-soft"
-      >
-        <SearchIcon className="h-4 w-4" />
-      </button>
-    </form>
-  );
-}
+import { SearchBar } from "./SearchBar";
 
 export async function Header() {
   const [categories, session, staff, t, settings] = await Promise.all([
@@ -60,7 +36,11 @@ export async function Header() {
         </Link>
 
         <div className="hidden max-w-md sm:block">
-          <SearchBar id="search-desktop" />
+          <SearchBar
+            id="search-desktop"
+            usdExchangeRate={settings?.usdExchangeRate}
+            cnyExchangeRate={settings?.cnyExchangeRate}
+          />
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-1">
@@ -95,7 +75,11 @@ export async function Header() {
       </div>
 
       <div className="border-t border-kraft-dark px-4 py-2 sm:hidden">
-        <SearchBar id="search-mobile" />
+        <SearchBar
+          id="search-mobile"
+          usdExchangeRate={settings?.usdExchangeRate}
+          cnyExchangeRate={settings?.cnyExchangeRate}
+        />
       </div>
     </header>
   );

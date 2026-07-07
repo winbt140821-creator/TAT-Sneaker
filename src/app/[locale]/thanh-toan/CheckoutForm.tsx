@@ -14,7 +14,7 @@ import {
   updateCartQuantity,
 } from "@/lib/cart-storage";
 import { formatPriceForLocale } from "@/lib/currency";
-import { TrashIcon, ChevronDownIcon } from "@/components/icons";
+import { TrashIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
@@ -29,52 +29,6 @@ type CartProduct = Awaited<ReturnType<typeof getCartProductsAction>>[number];
 // credentials are set up (see src/lib/payments/*.ts) — the admin QR
 // management for them is left in place in Settings in case they come back
 // later.
-
-function TableOfContents({ t }: { t: ReturnType<typeof useTranslations<"checkout">> }) {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <div className="die-cut-flat w-full max-w-xs bg-paper p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-body text-sm font-semibold text-ink">{t("tocTitle")}</p>
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-label={t("tocToggleAria")}
-          className="cursor-pointer text-graphite transition-colors hover:text-ink"
-        >
-          <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? "" : "-rotate-90"}`} />
-        </button>
-      </div>
-      {open && (
-        <ol className="mt-3 flex flex-col gap-1.5 font-mono text-xs text-graphite">
-          <li>
-            <a href="#checkout-top" className="hover:text-forest hover:underline">
-              {t("tocSection1")}
-            </a>
-            <ol className="ml-4 mt-1.5 flex flex-col gap-1.5">
-              <li>
-                <a href="#shipping-info" className="hover:text-forest hover:underline">
-                  {t("tocShippingInfo")}
-                </a>
-              </li>
-              <li>
-                <a href="#your-order" className="hover:text-forest hover:underline">
-                  {t("tocYourOrder")}
-                </a>
-              </li>
-              <li>
-                <a href="#payment-info" className="hover:text-forest hover:underline">
-                  {t("tocPaymentInfo")}
-                </a>
-              </li>
-            </ol>
-          </li>
-        </ol>
-      )}
-    </div>
-  );
-}
 
 export function CheckoutForm({
   bankName,
@@ -213,10 +167,10 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} id="checkout-top" className="flex flex-col gap-8">
-      <TableOfContents t={t} />
-
       <h1 className="text-center font-display text-3xl italic text-ink">{t("pageTitle")}</h1>
 
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
+      <div className="flex flex-col gap-8">
       <div id="shipping-info">
         <h2 className="font-display text-lg uppercase tracking-wide text-ink">
           {t("title")}
@@ -318,7 +272,82 @@ export function CheckoutForm({
         </div>
       </div>
 
-      <div id="your-order">
+      <div id="payment-info">
+        <h2 className="font-display text-lg uppercase tracking-wide text-ink">{t("paymentInfoTitle")}</h2>
+
+        <div className="mt-4">
+          <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("paymentTierTitle")}</p>
+          <div className="mt-2 flex flex-col gap-2">
+            <label className="flex cursor-pointer flex-col gap-1 border border-graphite bg-paper px-3 py-2.5 has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <span className="flex items-center gap-2.5 text-sm text-ink">
+                <input
+                  type="radio"
+                  name="payInFullChoice"
+                  checked={!payInFull}
+                  onChange={() => setPayInFull(false)}
+                />
+                {t("payCod")}
+              </span>
+              {summary.deposit > 0 && (
+                <p className="ml-6 font-mono text-[11px] text-graphite">
+                  {t("depositNoteInline", { amount: formatPrice(summary.deposit) })}
+                </p>
+              )}
+            </label>
+            <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <input
+                type="radio"
+                name="payInFullChoice"
+                checked={payInFull}
+                onChange={() => setPayInFull(true)}
+              />
+              {t("payInFullOption")}
+            </label>
+          </div>
+
+          {needsOnlinePayment && (
+            <div className="die-cut-flat mt-4 bg-kraft p-3">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">
+                {payInFull
+                  ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
+                  : t("paymentMethod")}
+              </p>
+              <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
+                {bankName && (
+                  <p>
+                    {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
+                  </p>
+                )}
+                {bankAccountHolder && (
+                  <p>
+                    {t("bankAccountHolderLabel")}: <span className="font-semibold">{bankAccountHolder}</span>
+                  </p>
+                )}
+                <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
+              </div>
+
+              <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
+                {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
+              </p>
+            </div>
+          )}
+
+          {!needsOnlinePayment && (
+            <p className="mt-4 font-mono text-xs text-graphite">{t("noteCod")}</p>
+          )}
+        </div>
+      </div>
+
+      <p className="font-mono text-xs text-graphite">
+        {t("privacyNotePrefix")}{" "}
+        <Link href="/trang/bao-mat-thong-tin" className="cursor-pointer text-forest underline hover:text-forest-dark">
+          {t("privacyNoteLinkLabel")}
+        </Link>{" "}
+        {t("privacyNoteSuffix")}
+      </p>
+      </div>
+
+      <div id="your-order" className="lg:sticky lg:top-20">
         <h2 className="font-display text-lg italic text-ink">{t("yourOrder")}</h2>
 
         <Link
@@ -409,95 +438,22 @@ export function CheckoutForm({
             <span className="font-display text-xl text-forest">{formatPrice(summary.total)}</span>
           </div>
         </div>
+
+        {error && (
+          <p role="alert" className="mt-4 font-mono text-xs text-stamp">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-4 w-full cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending ? t("submitting") : t("submit")}
+        </button>
       </div>
-
-      <div id="payment-info">
-        <h2 className="font-display text-lg uppercase tracking-wide text-ink">{t("paymentInfoTitle")}</h2>
-
-        <div className="mt-4">
-          <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("paymentTierTitle")}</p>
-          <div className="mt-2 flex flex-col gap-2">
-            <label className="flex cursor-pointer flex-col gap-1 border border-graphite bg-paper px-3 py-2.5 has-[:checked]:border-forest has-[:checked]:bg-forest/10">
-              <span className="flex items-center gap-2.5 text-sm text-ink">
-                <input
-                  type="radio"
-                  name="payInFullChoice"
-                  checked={!payInFull}
-                  onChange={() => setPayInFull(false)}
-                />
-                {t("payCod")}
-              </span>
-              {summary.deposit > 0 && (
-                <p className="ml-6 font-mono text-[11px] text-graphite">
-                  {t("depositNoteInline", { amount: formatPrice(summary.deposit) })}
-                </p>
-              )}
-            </label>
-            <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
-              <input
-                type="radio"
-                name="payInFullChoice"
-                checked={payInFull}
-                onChange={() => setPayInFull(true)}
-              />
-              {t("payInFullOption")}
-            </label>
-          </div>
-
-          {needsOnlinePayment && (
-            <div className="die-cut-flat mt-4 bg-kraft p-3">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">
-                {payInFull
-                  ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
-                  : t("paymentMethod")}
-              </p>
-              <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
-                {bankName && (
-                  <p>
-                    {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
-                  </p>
-                )}
-                {bankAccountHolder && (
-                  <p>
-                    {t("bankAccountHolderLabel")}: <span className="font-semibold">{bankAccountHolder}</span>
-                  </p>
-                )}
-                <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
-              </div>
-
-              <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
-                {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
-              </p>
-            </div>
-          )}
-
-          {!needsOnlinePayment && (
-            <p className="mt-4 font-mono text-xs text-graphite">{t("noteCod")}</p>
-          )}
-        </div>
       </div>
-
-      <p className="font-mono text-xs text-graphite">
-        {t("privacyNotePrefix")}{" "}
-        <Link href="/trang/bao-mat-thong-tin" className="cursor-pointer text-forest underline hover:text-forest-dark">
-          {t("privacyNoteLinkLabel")}
-        </Link>{" "}
-        {t("privacyNoteSuffix")}
-      </p>
-
-      {error && (
-        <p role="alert" className="font-mono text-xs text-stamp">
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? t("submitting") : t("submit")}
-      </button>
     </form>
   );
 }

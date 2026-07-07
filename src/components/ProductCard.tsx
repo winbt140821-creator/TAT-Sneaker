@@ -85,7 +85,11 @@ export async function ProductCard({
             </>
           )}
         </div>
-        <p className="font-mono text-[11px] text-graphite">
+        <p
+          className={`font-mono text-[11px] ${
+            inStock || product.availability === "PREORDER" ? "text-green-600" : "text-graphite"
+          }`}
+        >
           {inStock
             ? tDetail("inStock")
             : product.availability === "PREORDER"

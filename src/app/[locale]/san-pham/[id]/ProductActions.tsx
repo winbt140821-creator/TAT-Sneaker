@@ -67,7 +67,8 @@ export function ProductActions({
     if (!requireSize() || selectedSize == null) return;
     addToCart(productId, selectedSize, quantity);
     trackAddToCart({ id: productId, name: productName, price, quantity });
-    setFeedback({ type: "success", text: t("addedToCart", { size: selectedSize }) });
+    const suffix = quantity > 1 ? ` (+${quantity})` : "";
+    setFeedback({ type: "success", text: t("addedToCart", { size: selectedSize }) + suffix });
   }
 
   function handleBuyNow() {
@@ -137,7 +138,7 @@ export function ProductActions({
       {feedback && (
         <p
           role={feedback.type === "error" ? "alert" : "status"}
-          className={`font-mono text-xs ${feedback.type === "error" ? "text-stamp" : "text-forest"}`}
+          className={`font-mono text-xs ${feedback.type === "error" ? "text-stamp" : "text-green-600"}`}
         >
           {feedback.text}
         </p>

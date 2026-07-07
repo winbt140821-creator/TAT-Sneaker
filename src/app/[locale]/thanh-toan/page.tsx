@@ -24,7 +24,7 @@ export default async function CheckoutPage() {
       <Header />
       <main className="flex-1">
         <Breadcrumb trail={[t("breadcrumbCheckout")]} />
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <CheckoutForm
             bankName={settings?.bankName}
             bankAccountHolder={settings?.bankAccountHolder}
