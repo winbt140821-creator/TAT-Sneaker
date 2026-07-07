@@ -50,9 +50,13 @@ function parseProduct<T extends { sizeQuantities: string; images: string }>(
 
 export type ProductSort = "popularity" | "newest" | "price-asc" | "price-desc";
 
-const SORT_ORDER_BY: Record<ProductSort, { createdAt?: "asc" | "desc"; price?: "asc" | "desc" }> = {
-  // No real popularity metric yet — falls back to newest, same as the default.
-  popularity: { createdAt: "desc" },
+const SORT_ORDER_BY: Record<
+  ProductSort,
+  { sortOrder?: "asc" | "desc"; createdAt?: "asc" | "desc"; price?: "asc" | "desc" }
+> = {
+  // The default/"no sort picked" view — admin's manually-set display order
+  // (src/app/admin/(protected)/products/page.tsx up/down buttons).
+  popularity: { sortOrder: "asc" },
   newest: { createdAt: "desc" },
   "price-asc": { price: "asc" },
   "price-desc": { price: "desc" },
@@ -91,6 +95,7 @@ export async function getProducts({
 
   const products = await prisma.product.findMany({
     where: {
+      hidden: false,
       ...(categorySlug === "SALE"
         ? saleIds === "ALL"
           ? {}
@@ -125,7 +130,7 @@ export const getProductById = cache(async (id: string) => {
     prisma.product.findUnique({ where: { id }, include: { categories: true } }),
     getActiveCampaigns(),
   ]);
-  if (!product) return null;
+  if (!product || product.hidden) return null;
   const parsed = parseProduct(product);
   return { ...parsed, ...salePriceFor(parsed.id, parsed.price, campaigns) };
 });
@@ -151,6 +156,7 @@ export async function getRelatedProducts(
     prisma.product.findMany({
       where: {
         id: { not: productId },
+        hidden: false,
         categories: { some: { id: { in: categoryIds } } },
       },
       orderBy: { createdAt: "desc" },
@@ -172,14 +178,14 @@ export async function getHomeSections() {
   const saleIds = saleProductIds(campaigns);
 
   const [latest, categories, sale, bestSellingGroups] = await Promise.all([
-    prisma.product.findMany({ orderBy: { createdAt: "desc" }, take: HOME_SECTION_SIZE }),
+    prisma.product.findMany({ where: { hidden: false }, orderBy: { createdAt: "desc" }, take: HOME_SECTION_SIZE }),
     prisma.category.findMany({
       where: { parentId: null, sale: false },
       include: { children: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
     }),
     prisma.product.findMany({
-      where: saleIds === "ALL" ? {} : { id: { in: saleIds } },
+      where: { hidden: false, ...(saleIds === "ALL" ? {} : { id: { in: saleIds } }) },
       orderBy: { createdAt: "desc" },
       take: HOME_SECTION_SIZE,
     }),

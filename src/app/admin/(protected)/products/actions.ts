@@ -97,6 +97,11 @@ export async function createProductAction(
   }
 
   try {
+    // New products default to the end of the manual display order (not 0)
+    // so they don't jump ahead of everything the admin has already arranged.
+    const { _max } = await prisma.product.aggregate({ _max: { sortOrder: true } });
+    const sortOrder = (_max.sortOrder ?? -1) + 1;
+
     await prisma.product.create({
       data: {
         name: data.name,
@@ -114,6 +119,7 @@ export async function createProductAction(
         leadTimeMaxDays: data.leadTimeMaxDays,
         depositRequired: data.depositRequired,
         depositAmount: data.depositAmount,
+        sortOrder,
         categories: { connect: data.categoryIds.map((id) => ({ id })) },
       },
     });
@@ -181,6 +187,57 @@ export async function deleteProductAction(id: string) {
       "Không thể xóa sản phẩm này vì đã có trong đơn hàng. Hãy chỉnh sửa thay vì xóa."
     );
   }
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+}
+
+/** Hides/shows a product on the customer-facing site without deleting it —
+ *  it stays fully editable in admin either way (see hidden checks in
+ *  src/lib/catalog.ts). */
+export async function toggleProductHiddenAction(id: string) {
+  await requireStaff();
+  const product = await prisma.product.findUnique({ where: { id }, select: { hidden: true } });
+  if (!product) return;
+  await prisma.product.update({ where: { id }, data: { hidden: !product.hidden } });
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+}
+
+/** Moves a product up/down in the customer-facing display order (the
+ *  "popularity"/default sort in src/lib/catalog.ts). Swaps sortOrder with
+ *  the single adjacent sibling, queried across the whole table rather than
+ *  just the current page — the products list is paginated and can hold
+ *  hundreds of rows, so renormalizing every row's sortOrder per move (like
+ *  moveCategoryAction does for the small, unpaginated category list) would
+ *  mean O(n) writes per click. This is O(1), and still lets an item cross a
+ *  pagination boundary since the adjacency lookup isn't scoped to one page. */
+export async function moveProductAction(id: string, direction: "up" | "down") {
+  await requireStaff();
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, sortOrder: true },
+  });
+  if (!product) return;
+
+  const sibling = await prisma.product.findFirst({
+    where:
+      direction === "up"
+        ? { sortOrder: { lt: product.sortOrder } }
+        : { sortOrder: { gt: product.sortOrder } },
+    orderBy:
+      direction === "up"
+        ? [{ sortOrder: "desc" }, { id: "desc" }]
+        : [{ sortOrder: "asc" }, { id: "asc" }],
+    select: { id: true, sortOrder: true },
+  });
+  if (!sibling) return;
+
+  await prisma.$transaction([
+    prisma.product.update({ where: { id: product.id }, data: { sortOrder: sibling.sortOrder } }),
+    prisma.product.update({ where: { id: sibling.id }, data: { sortOrder: product.sortOrder } }),
+  ]);
+
   revalidatePath("/admin/products");
   revalidatePath("/");
 }

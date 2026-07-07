@@ -122,6 +122,16 @@ model Product {
   leadTimeMinDays Int                 @default(3)
   leadTimeMaxDays Int                 @default(5)
 
+  // Hidden products stay fully manageable in admin but drop out of every
+  // customer-facing query (catalog listing, product detail, related/home
+  // sections) — an alternative to deleting when a product just shouldn't be
+  // orderable right now.
+  hidden Boolean @default(false)
+  // Manual display order for the customer-facing catalog's default sort
+  // (see ProductSort "popularity" in src/lib/catalog.ts) — admin drags/moves
+  // products via up/down buttons on the admin list; ascending, lower first.
+  sortOrder Int @default(0)
+
   shippingFee Int @default(0) // VND cost of importing this item — added to costPrice (giá nhập = giá gốc + phí ship), edited on the product form
 
   categories    Category[]  @relation("ProductCategories")
@@ -132,6 +142,8 @@ model Product {
 
   @@index([availability])
   @@index([createdAt])
+  @@index([hidden])
+  @@index([sortOrder])
 }
 
 // Holiday/seasonal discount campaigns — replaces the old per-product
