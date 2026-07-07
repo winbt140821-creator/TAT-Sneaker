@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
@@ -54,10 +55,14 @@ export async function invalidateStaffSessions(staffId: string) {
   await prisma.session.deleteMany({ where: { staffId } });
 }
 
-export async function getCurrentStaff() {
+// Wrapped in React's cache() so the several places that independently need
+// the current staff on one request (protected layout, Header's "QUẢN LÝ"
+// link check, any page/action that also calls requireStaff()) share a
+// single session lookup instead of each hitting the database on their own.
+export const getCurrentStaff = cache(async () => {
   const store = await cookies();
   return getStaffByToken(store.get(SESSION_COOKIE_NAME)?.value);
-}
+});
 
 export async function requireStaff() {
   const staff = await getCurrentStaff();

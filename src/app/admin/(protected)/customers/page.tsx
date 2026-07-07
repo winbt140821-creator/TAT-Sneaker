@@ -6,13 +6,16 @@ const PROVIDER_LABEL: Record<string, string> = {
   facebook: "Facebook",
 };
 
+const PAGE_SIZE = 20;
+
 export default async function AdminCustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, page: pageParam } = await searchParams;
   const query = q?.trim();
+  const page = Math.max(1, Number(pageParam) || 1);
 
   const searchWhere = query
     ? {
@@ -24,11 +27,23 @@ export default async function AdminCustomersPage({
       }
     : {};
 
-  const customers = await prisma.customer.findMany({
-    where: searchWhere,
-    include: { _count: { select: { orders: true, addresses: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [customers, totalCount] = await Promise.all([
+    prisma.customer.findMany({
+      where: searchWhere,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        provider: true,
+        _count: { select: { orders: true, addresses: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.customer.count({ where: searchWhere }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div>
@@ -82,6 +97,24 @@ export default async function AdminCustomersPage({
           </Link>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <nav aria-label="Phân trang" className="mt-6 flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Link
+              key={p}
+              href={`/admin/customers?${new URLSearchParams({ ...(query ? { q: query } : {}), page: String(p) })}`}
+              aria-current={p === page ? "page" : undefined}
+              className={
+                "die-cut-flat flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm " +
+                (p === page ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/40")
+              }
+            >
+              {p}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

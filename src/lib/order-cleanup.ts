@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getSiteSettings } from "@/lib/settings";
 import type { Prisma } from "@/generated/prisma/client";
 
 // checkout (createOrderAction) decrements Product.sizeQuantities the moment
@@ -40,7 +41,10 @@ export async function restoreOrderStock(
 // hand in that case. Cheap to call on every admin order-list/dashboard
 // render since the WHERE clause only ever matches genuinely stale rows.
 export async function autoCancelStaleOrders(): Promise<void> {
-  const settings = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+  // getSiteSettings() is wrapped in React's cache() — reusing it here means
+  // a page that also reads site settings elsewhere in the same request only
+  // pays for one query instead of two.
+  const settings = await getSiteSettings();
   const hours = settings?.autoCancelUnpaidDepositHours;
   if (!hours || hours <= 0) return;
 

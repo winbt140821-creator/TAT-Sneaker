@@ -15,18 +15,21 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   BANK_TRANSFER: "Chuyển khoản",
 };
 
+const PAGE_SIZE = 20;
+
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   await autoCancelStaleOrders();
 
-  const { status, q } = await searchParams;
+  const { status, q, page: pageParam } = await searchParams;
   const activeStatus = Object.values(OrderStatus).includes(status as OrderStatus)
     ? (status as OrderStatus)
     : undefined;
   const query = q?.trim();
+  const page = Math.max(1, Number(pageParam) || 1);
 
   // Lets staff match a bank transfer (identified by order code or the
   // customer's name/phone in the transfer note) back to the actual order.
@@ -39,18 +42,36 @@ export default async function AdminOrdersPage({
         ],
       }
     : {};
+  const where = { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere };
 
-  const [orders, counts] = await Promise.all([
+  const [orders, totalCount, counts] = await Promise.all([
     prisma.order.findMany({
-      where: { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere },
-      include: { items: true },
+      where,
+      select: {
+        id: true,
+        code: true,
+        customerName: true,
+        customerPhone: true,
+        status: true,
+        paymentMethod: true,
+        depositAmount: true,
+        depositPaid: true,
+        utmSource: true,
+        utmCampaign: true,
+        fbclid: true,
+        items: { select: { price: true, quantity: true } },
+      },
       orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
     }),
+    prisma.order.count({ where }),
     prisma.order.groupBy({ by: ["status"], _count: true }),
   ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const countByStatus = Object.fromEntries(counts.map((c) => [c.status, c._count]));
-  const totalCount = counts.reduce((sum, c) => sum + c._count, 0);
+  const allOrdersCount = counts.reduce((sum, c) => sum + c._count, 0);
 
   return (
     <div>
@@ -81,7 +102,7 @@ export default async function AdminOrdersPage({
             (!activeStatus ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/30")
           }
         >
-          Tất cả ({totalCount})
+          Tất cả ({allOrdersCount})
         </Link>
         {Object.values(OrderStatus).map((s) => (
           <Link
@@ -170,6 +191,28 @@ export default async function AdminOrdersPage({
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <nav aria-label="Phân trang" className="mt-6 flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Link
+              key={p}
+              href={`/admin/orders?${new URLSearchParams({
+                ...(activeStatus ? { status: activeStatus } : {}),
+                ...(query ? { q: query } : {}),
+                page: String(p),
+              })}`}
+              aria-current={p === page ? "page" : undefined}
+              className={
+                "die-cut-flat flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm " +
+                (p === page ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/40")
+              }
+            >
+              {p}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

@@ -5,18 +5,35 @@ import { adjustSizeQuantityAction, setSizeQuantityAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
 import { getCarriedSizes, getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
 
+// Rendering every product's size grid is a lot of DOM (a handful of forms
+// per size, times every carried size, times every product) — capping the
+// page keeps that bounded instead of growing without limit as the catalog
+// does. The grand total below still covers the whole catalog (a single
+// cheap query), only the per-product breakdown is paginated.
+const PAGE_SIZE = 20;
+
 export default async function AdminInventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, page: pageParam } = await searchParams;
   const query = q?.trim();
+  const page = Math.max(1, Number(pageParam) || 1);
+  const where = query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {};
 
-  const products = await prisma.product.findMany({
-    where: query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {},
-    orderBy: { name: "asc" },
-  });
+  const [products, totalCount, allForGrandTotal] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      select: { id: true, sku: true, name: true, images: true, sizeQuantities: true, availability: true },
+      orderBy: { name: "asc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.product.count({ where }),
+    prisma.product.findMany({ select: { sizeQuantities: true, availability: true } }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const parsed = products.map((p) => ({
     product: p,
@@ -24,8 +41,13 @@ export default async function AdminInventoryPage({
     sizeQuantities: JSON.parse(p.sizeQuantities || "{}") as Record<string, number>,
   }));
 
-  const grandTotal = parsed.reduce(
-    (sum, p) => sum + getRealStockTotal(p.sizeQuantities, p.product.availability === "PREORDER"),
+  const grandTotal = allForGrandTotal.reduce(
+    (sum, p) =>
+      sum +
+      getRealStockTotal(
+        JSON.parse(p.sizeQuantities || "{}") as Record<string, number>,
+        p.availability === "PREORDER"
+      ),
     0
   );
 
@@ -67,7 +89,7 @@ export default async function AdminInventoryPage({
 
       {query && (
         <p className="mt-2 font-mono text-xs text-graphite">
-          {products.length} kết quả cho &quot;{query}&quot;.{" "}
+          {totalCount} kết quả cho &quot;{query}&quot;.{" "}
           <Link href="/admin/inventory" className="text-forest hover:underline">
             Xóa tìm kiếm
           </Link>
@@ -210,6 +232,24 @@ export default async function AdminInventoryPage({
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <nav aria-label="Phân trang" className="mt-6 flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Link
+              key={p}
+              href={`/admin/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), page: String(p) })}`}
+              aria-current={p === page ? "page" : undefined}
+              className={
+                "die-cut-flat flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm " +
+                (p === page ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/40")
+              }
+            >
+              {p}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

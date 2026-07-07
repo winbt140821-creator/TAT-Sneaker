@@ -129,6 +129,9 @@ model Product {
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  @@index([availability])
+  @@index([createdAt])
 }
 
 // Holiday/seasonal discount campaigns — replaces the old per-product
@@ -350,6 +353,8 @@ model Order {
   updatedAt DateTime @updatedAt
 
   @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 enum PaymentProvider {
