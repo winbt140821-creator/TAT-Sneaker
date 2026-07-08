@@ -44,8 +44,12 @@ const CSP_PROD = [
   // connect-src"), which looks identical to a network failure/CORS error in
   // the console.
   "connect-src 'self' https://www.facebook.com https://*.r2.cloudflarestorage.com",
-  // Product videos (ProductDetail videoUrl) embed via youtube.com/embed.
-  "frame-src https://www.youtube.com",
+  // Product videos (ProductDetail videoUrl) embed via youtube.com/embed;
+  // the Facebook Page Plugin (Footer.tsx's "fb-page" widget) renders as an
+  // iframe from facebook.com under the hood despite loading via the JS SDK,
+  // so without this origin here the iframe is silently blocked and the
+  // widget just never appears — no console error, it just shows nothing.
+  "frame-src https://www.youtube.com https://www.facebook.com",
   // Sign-in redirects to Google/Facebook's own hosted auth pages.
   "form-action 'self' https://accounts.google.com https://www.facebook.com",
   "frame-ancestors 'self'",
