@@ -196,9 +196,10 @@ export async function deleteProductAction(id: string) {
  *  src/lib/catalog.ts). */
 export async function toggleProductHiddenAction(id: string) {
   await requireStaff();
-  const product = await prisma.product.findUnique({ where: { id }, select: { hidden: true } });
-  if (!product) return;
-  await prisma.product.update({ where: { id }, data: { hidden: !product.hidden } });
+  // One raw UPDATE instead of a read-then-write — SQLite stores Boolean as
+  // 0/1, so NOT negates it directly, cutting a round trip against the
+  // remote (Turso) database out of every single toggle click.
+  await prisma.$executeRaw`UPDATE "Product" SET "hidden" = NOT "hidden" WHERE "id" = ${id}`;
   revalidatePath("/admin/products");
   revalidatePath("/");
 }

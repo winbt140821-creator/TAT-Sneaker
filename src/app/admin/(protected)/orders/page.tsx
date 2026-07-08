@@ -22,7 +22,11 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
-  await autoCancelStaleOrders();
+  // Kicked off without awaiting yet so this background hygiene sweep
+  // overlaps with the searchParams/where-building work and the main queries
+  // below instead of adding its own round trip in front of them — see the
+  // same tradeoff note in src/app/admin/(protected)/page.tsx.
+  const cleanupPromise = autoCancelStaleOrders();
 
   const { status, q, page: pageParam } = await searchParams;
   const activeStatus = Object.values(OrderStatus).includes(status as OrderStatus)
@@ -44,7 +48,8 @@ export default async function AdminOrdersPage({
     : {};
   const where = { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere };
 
-  const [orders, totalCount, counts] = await Promise.all([
+  const [, orders, totalCount, counts] = await Promise.all([
+    cleanupPromise,
     prisma.order.findMany({
       where,
       select: {

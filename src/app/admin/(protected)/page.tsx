@@ -8,13 +8,17 @@ import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE 
 import { OrderStatus } from "@/generated/prisma/client";
 
 export default async function AdminDashboardPage() {
-  await autoCancelStaleOrders();
-
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Run alongside the page's own reads instead of awaiting it first — this
+  // is a background hygiene sweep, not data the page depends on, and every
+  // extra round trip before the real queries even start is pure added
+  // latency against a remote (Turso) database. A stale order that gets
+  // cancelled mid-render just shows its old status until the next reload.
   const [
+    ,
     productCount,
     categoryCount,
     totalOrders,
@@ -24,6 +28,7 @@ export default async function AdminDashboardPage() {
     recentOrders,
     { outOfStockCount },
   ] = await Promise.all([
+    autoCancelStaleOrders(),
     prisma.product.count(),
     prisma.category.count({ where: { parentId: null } }),
     prisma.order.count(),

@@ -46,9 +46,8 @@ export async function createSaleCampaignAction(
 
 export async function toggleSaleCampaignAction(id: string): Promise<void> {
   await requireStaff();
-  const campaign = await prisma.saleCampaign.findUnique({ where: { id }, select: { active: true } });
-  if (!campaign) return;
-  await prisma.saleCampaign.update({ where: { id }, data: { active: !campaign.active } });
+  // One raw UPDATE instead of a read-then-write — see toggleProductHiddenAction.
+  await prisma.$executeRaw`UPDATE "SaleCampaign" SET "active" = NOT "active" WHERE "id" = ${id}`;
   revalidatePath("/admin/sale");
   revalidatePath("/");
 }
