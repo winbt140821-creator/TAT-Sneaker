@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { getRevenueTotals } from "@/lib/revenue";

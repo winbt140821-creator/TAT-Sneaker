@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { usePathname } from "next/navigation";
 import { MenuIcon, XMarkIcon } from "@/components/icons";
 import { Logo } from "@/components/Logo";

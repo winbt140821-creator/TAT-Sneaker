@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink as Link } from "./AdminLink";
 import { ConfirmSubmitButton } from "./ConfirmSubmitButton";
 
 // Sửa/Xóa pair used at the end of every admin list row. Padded to a ~44px

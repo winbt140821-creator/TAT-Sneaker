@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 
 const PROVIDER_LABEL: Record<string, string> = {

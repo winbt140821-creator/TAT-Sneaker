@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";

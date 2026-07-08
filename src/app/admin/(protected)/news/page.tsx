@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
 import { deleteNewsAction } from "./actions";

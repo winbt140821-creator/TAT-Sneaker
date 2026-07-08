@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import {
