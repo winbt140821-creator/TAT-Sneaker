@@ -84,7 +84,7 @@
     "bestSelling": "Sản phẩm bán chạy",
     "onSale": "Đang giảm giá",
     "searchResultsFor": "Kết quả tìm kiếm cho \"{query}\"",
-    "brandShoes": "Giày {brand}",
+    "brandShoes": "{brand}",
     "featuredCategories": "Danh mục nổi bật"
   },
   "product": {

@@ -225,9 +225,14 @@ export async function getRelatedProducts(
 }
 
 const HOME_SECTION_SIZE = 8;
+// Only "Sản phẩm mới nhất" and "Sản phẩm bán chạy" are fixed — beyond those,
+// the homepage shows at most this many brand/category sections, in whatever
+// order admin has set for top-level categories (Admin → Danh mục).
+const HOME_CATEGORY_SECTION_COUNT = 5;
 
 /** Latest products overall, one section per top-level category (skipping empty
- *  ones and the computed "SALE" tag), and a separate sale section. */
+ *  ones and the computed "SALE" tag, capped to HOME_CATEGORY_SECTION_COUNT),
+ *  and a separate sale section. */
 export async function getHomeSections() {
   const campaigns = await getActiveCampaigns();
   const saleIds = saleProductIds(campaigns);
@@ -243,6 +248,7 @@ export async function getHomeSections() {
       where: { parentId: null, sale: false },
       include: { children: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+      take: HOME_CATEGORY_SECTION_COUNT,
     }),
     prisma.product.findMany({
       where: { hidden: false, ...(saleIds === "ALL" ? {} : { id: { in: saleIds } }) },

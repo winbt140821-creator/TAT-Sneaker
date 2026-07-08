@@ -84,7 +84,7 @@
     "bestSelling": "热销商品",
     "onSale": "特价促销",
     "searchResultsFor": "\"{query}\" 的搜索结果",
-    "brandShoes": "{brand} 鞋款",
+    "brandShoes": "{brand}",
     "featuredCategories": "热门分类"
   },
   "product": {
