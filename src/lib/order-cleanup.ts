@@ -19,18 +19,30 @@ export async function restoreOrderStock(
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
+  // Accumulate in memory first so an order with two line items for the same
+  // product (different sizes) gets one update, not two, and so distinct
+  // products can be written concurrently instead of one at a time.
+  const pendingQuantities = new Map<string, Record<string, number>>();
   for (const item of items) {
     const product = byId.get(item.productId);
     if (!product) continue; // product row is gone somehow — nothing to restore onto
 
-    const sizeQuantities = JSON.parse(product.sizeQuantities) as Record<string, number>;
+    const sizeQuantities =
+      pendingQuantities.get(item.productId) ??
+      (JSON.parse(product.sizeQuantities) as Record<string, number>);
     const key = String(item.size);
     sizeQuantities[key] = (sizeQuantities[key] ?? 0) + item.quantity;
-    await db.product.update({
-      where: { id: item.productId },
-      data: { sizeQuantities: JSON.stringify(sizeQuantities) },
-    });
+    pendingQuantities.set(item.productId, sizeQuantities);
   }
+
+  await Promise.all(
+    [...pendingQuantities.entries()].map(([productId, sizeQuantities]) =>
+      db.product.update({
+        where: { id: productId },
+        data: { sizeQuantities: JSON.stringify(sizeQuantities) },
+      })
+    )
+  );
 }
 
 // Orders that require a deposit (per-product rule or "pay in full" choice)
@@ -62,9 +74,13 @@ export async function autoCancelStaleOrders(): Promise<void> {
   if (stale.length === 0) return;
 
   await prisma.$transaction(async (tx) => {
-    for (const { id } of stale) {
-      await restoreOrderStock(tx, id);
-      await tx.order.update({ where: { id }, data: { status: "CANCELLED" } });
-    }
+    // Restoring stock for each stale order still runs its own queries, but
+    // concurrently instead of sequentially, and the status flip is one
+    // updateMany for every stale order instead of one update per order.
+    await Promise.all(stale.map(({ id }) => restoreOrderStock(tx, id)));
+    await tx.order.updateMany({
+      where: { id: { in: stale.map((o) => o.id) } },
+      data: { status: "CANCELLED" },
+    });
   });
 }

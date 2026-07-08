@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers, cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getActiveCampaigns, salePriceFor } from "@/lib/sale";
+import { getSiteSettings } from "@/lib/settings";
 import { auth } from "@/auth";
 import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
@@ -115,12 +116,21 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       // Re-read and decrement stock inside the transaction (not from the
       // `byId` snapshot fetched above) — two checkouts for the last pair
       // arriving at nearly the same time must not both succeed just because
-      // they both saw "1 in stock" before either wrote anything.
+      // they both saw "1 in stock" before either wrote anything. Batched
+      // into one findMany instead of a per-item findUnique, and one update
+      // per distinct product (accumulating in-memory when the cart has two
+      // sizes of the same product) instead of one per cart line.
+      const freshProducts = await tx.product.findMany({ where: { id: { in: productIds } } });
+      const freshById = new Map(freshProducts.map((p) => [p.id, p]));
+      const pendingQuantities = new Map<string, Record<string, number>>();
+
       for (const item of input.items) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        const product = freshById.get(item.productId);
         if (!product) throw new InsufficientStockError("Một sản phẩm trong giỏ không còn tồn tại.");
 
-        const sizeQuantities = JSON.parse(product.sizeQuantities) as Record<string, number>;
+        const sizeQuantities =
+          pendingQuantities.get(item.productId) ??
+          (JSON.parse(product.sizeQuantities) as Record<string, number>);
         const key = String(item.size);
         const availableQty = sizeQuantities[key] ?? 0;
         if (availableQty < item.quantity) {
@@ -128,13 +138,18 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
             `${product.name} size ${item.size} chỉ còn ${availableQty} đôi.`
           );
         }
-
         sizeQuantities[key] = availableQty - item.quantity;
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { sizeQuantities: JSON.stringify(sizeQuantities) },
-        });
+        pendingQuantities.set(item.productId, sizeQuantities);
       }
+
+      await Promise.all(
+        [...pendingQuantities.entries()].map(([productId, sizeQuantities]) =>
+          tx.product.update({
+            where: { id: productId },
+            data: { sizeQuantities: JSON.stringify(sizeQuantities) },
+          })
+        )
+      );
 
       return tx.order.create({
         data: {
@@ -272,7 +287,7 @@ export async function initiatePaymentAction(
   }
 
   // PAYPAL (also used for the Visa/Mastercard card-only checkout option)
-  const settings = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+  const settings = await getSiteSettings();
   const rate = settings?.usdExchangeRate;
   if (!rate) {
     return { error: "Chưa cấu hình tỷ giá USD trong Cài đặt. Vui lòng liên hệ quản trị viên." };

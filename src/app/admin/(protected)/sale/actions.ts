@@ -46,7 +46,7 @@ export async function createSaleCampaignAction(
 
 export async function toggleSaleCampaignAction(id: string): Promise<void> {
   await requireStaff();
-  const campaign = await prisma.saleCampaign.findUnique({ where: { id } });
+  const campaign = await prisma.saleCampaign.findUnique({ where: { id }, select: { active: true } });
   if (!campaign) return;
   await prisma.saleCampaign.update({ where: { id }, data: { active: !campaign.active } });
   revalidatePath("/admin/sale");

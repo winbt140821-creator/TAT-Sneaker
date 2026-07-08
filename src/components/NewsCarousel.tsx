@@ -31,7 +31,13 @@ export function NewsCarousel({ items }: { items: NewsItem[] }) {
           <article key={item.id} className="die-cut w-64 shrink-0 bg-paper sm:w-72">
             <div className="relative aspect-[4/3] bg-kraft-dark/30">
               {item.imageUrl ? (
-                <Image src={item.imageUrl} alt={item.title} fill className="object-cover" />
+                <Image
+                  src={item.imageUrl}
+                  alt={item.title}
+                  fill
+                  sizes="(min-width: 640px) 288px, 256px"
+                  className="object-cover"
+                />
               ) : (
                 <div className="flex h-full items-center justify-center font-mono text-[10px] uppercase tracking-wide text-graphite">
                   {t("noImage")}

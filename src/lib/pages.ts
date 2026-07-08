@@ -6,7 +6,3 @@ import { prisma } from "./db";
 export const getStaticPage = cache((slug: string) => {
   return prisma.staticPage.findUnique({ where: { slug } });
 });
-
-export function getAllStaticPages() {
-  return prisma.staticPage.findMany({ orderBy: { title: "asc" } });
-}

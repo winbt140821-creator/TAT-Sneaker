@@ -56,7 +56,7 @@ export default async function AdminOrderDetailPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: { include: { product: true } },
+      items: { include: { product: { select: { name: true, sku: true } } } },
       payments: { orderBy: { createdAt: "desc" } },
     },
   });

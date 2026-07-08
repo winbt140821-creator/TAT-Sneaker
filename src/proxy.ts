@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
-import { getStaffByToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getStaffRoleByToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -70,7 +70,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const staff = await getStaffByToken(
+    const staff = await getStaffRoleByToken(
       request.cookies.get(SESSION_COOKIE_NAME)?.value
     );
 

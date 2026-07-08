@@ -17,6 +17,7 @@ import { Pagination } from "@/components/Pagination";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import {
+  CATALOG_PAGE_SIZE,
   getCategoryBySlug,
   getHomeSections,
   getNavCategories,
@@ -35,6 +36,7 @@ type ListingSearchParams = {
   maxPrice?: string;
   size?: string;
   availability?: string;
+  page?: string;
 };
 
 export async function generateMetadata({
@@ -71,7 +73,7 @@ export default async function Home({
 }: {
   searchParams: Promise<ListingSearchParams>;
 }) {
-  const { category, q, sort, minPrice, maxPrice, size, availability } = await searchParams;
+  const { category, q, sort, minPrice, maxPrice, size, availability, page } = await searchParams;
   const isFiltered = Boolean(
     category || q || sort || minPrice || maxPrice || size || availability
   );
@@ -86,7 +88,8 @@ export default async function Home({
   ]);
 
   if (isFiltered) {
-    const products = await getProducts({
+    const currentPage = Math.max(1, Number(page) || 1);
+    const { products, totalCount, totalPages } = await getProducts({
       categorySlug: activeCategory?.slug,
       q,
       sort: sort as ProductSort | undefined,
@@ -94,6 +97,7 @@ export default async function Home({
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       size: size ? Number(size) : undefined,
       availability: availability as "IN_STOCK" | "PREORDER" | undefined,
+      page: currentPage,
     });
     const trail = [
       tCommon("sneakers"),
@@ -156,12 +160,16 @@ export default async function Home({
           )}
 
           <Toolbar
-            from={products.length ? 1 : 0}
-            to={products.length}
-            total={products.length}
+            from={products.length ? (currentPage - 1) * CATALOG_PAGE_SIZE + 1 : 0}
+            to={(currentPage - 1) * CATALOG_PAGE_SIZE + products.length}
+            total={totalCount}
           />
           <ProductGrid products={products} />
-          <Pagination current={1} total={50} />
+          <Pagination
+            current={currentPage}
+            totalPages={totalPages}
+            searchParams={{ category, q, sort, minPrice, maxPrice, size, availability }}
+          />
         </main>
         <Footer />
         <FloatingActions />

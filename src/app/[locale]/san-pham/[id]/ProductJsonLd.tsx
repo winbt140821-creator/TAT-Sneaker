@@ -1,13 +1,13 @@
 import { absoluteUrl } from "@/lib/seo";
 import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { jsonLdScript } from "@/lib/json-ld";
-import type { CatalogProduct } from "@/lib/catalog";
+import type { ProductDetail } from "@/lib/catalog";
 
 export function ProductJsonLd({
   product,
   brandLabel,
 }: {
-  product: CatalogProduct;
+  product: ProductDetail;
   brandLabel?: string;
 }) {
   const url = absoluteUrl(`/san-pham/${product.id}`);

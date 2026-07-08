@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { getRevenueTotals } from "@/lib/revenue";
-import { hasAnyStock } from "@/lib/inventory";
+import { getStockSummary } from "@/lib/stock-summary";
 import { autoCancelStaleOrders } from "@/lib/order-cleanup";
 import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { OrderStatus } from "@/generated/prisma/client";
@@ -22,7 +22,7 @@ export default async function AdminDashboardPage() {
     revenueToday,
     revenueMonth,
     recentOrders,
-    products,
+    { outOfStockCount },
   ] = await Promise.all([
     prisma.product.count(),
     prisma.category.count({ where: { parentId: null } }),
@@ -35,17 +35,12 @@ export default async function AdminDashboardPage() {
       take: 5,
       include: { items: true },
     }),
-    prisma.product.findMany({ select: { sizeQuantities: true } }),
+    getStockSummary(),
   ]);
 
   const countByStatus = Object.fromEntries(
     statusCounts.map((c) => [c.status, c._count])
   ) as Partial<Record<OrderStatus, number>>;
-
-  const outOfStockCount = products.filter((p) => {
-    const sizeQuantities = JSON.parse(p.sizeQuantities) as Record<string, number>;
-    return Object.keys(sizeQuantities).length > 0 && !hasAnyStock(sizeQuantities);
-  }).length;
 
   const cards = [
     { label: "Sản phẩm", value: productCount, href: "/admin/products" },

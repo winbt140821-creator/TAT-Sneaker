@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { adjustSizeQuantityAction, setSizeQuantityAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
 import { getCarriedSizes, getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
+import { getStockSummary } from "@/lib/stock-summary";
 
 // Rendering every product's size grid is a lot of DOM (a handful of forms
 // per size, times every carried size, times every product) — capping the
@@ -22,7 +23,7 @@ export default async function AdminInventoryPage({
   const page = Math.max(1, Number(pageParam) || 1);
   const where = query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {};
 
-  const [products, totalCount, allForGrandTotal] = await Promise.all([
+  const [products, totalCount, { grandTotal }] = await Promise.all([
     prisma.product.findMany({
       where,
       select: { id: true, sku: true, name: true, images: true, sizeQuantities: true, availability: true },
@@ -31,7 +32,7 @@ export default async function AdminInventoryPage({
       take: PAGE_SIZE,
     }),
     prisma.product.count({ where }),
-    prisma.product.findMany({ select: { sizeQuantities: true, availability: true } }),
+    getStockSummary(),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -40,16 +41,6 @@ export default async function AdminInventoryPage({
     images: JSON.parse(p.images || "[]") as string[],
     sizeQuantities: JSON.parse(p.sizeQuantities || "{}") as Record<string, number>,
   }));
-
-  const grandTotal = allForGrandTotal.reduce(
-    (sum, p) =>
-      sum +
-      getRealStockTotal(
-        JSON.parse(p.sizeQuantities || "{}") as Record<string, number>,
-        p.availability === "PREORDER"
-      ),
-    0
-  );
 
   return (
     <div>

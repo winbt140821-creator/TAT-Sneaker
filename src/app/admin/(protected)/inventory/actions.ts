@@ -11,7 +11,10 @@ import { requireStaff } from "@/lib/auth";
 export async function adjustSizeQuantityAction(productId: string, size: number, delta: number) {
   await requireStaff();
 
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { sizeQuantities: true },
+  });
   if (!product) throw new Error("Không tìm thấy sản phẩm.");
 
   const sizeQuantities: Record<string, number> = JSON.parse(product.sizeQuantities);
@@ -45,7 +48,10 @@ export async function setSizeQuantityAction(productId: string, formData: FormDat
   const quantity = Number.isFinite(raw) ? Math.max(0, raw) : 0;
   if (!Number.isFinite(size)) return;
 
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { sizeQuantities: true },
+  });
   if (!product) throw new Error("Không tìm thấy sản phẩm.");
 
   const sizeQuantities: Record<string, number> = JSON.parse(product.sizeQuantities);

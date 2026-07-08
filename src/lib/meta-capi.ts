@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { prisma } from "./db";
+import { getSiteSettings } from "./settings";
 
 function sha256(value: string): string {
   return createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
@@ -36,7 +36,7 @@ type PurchaseEventInput = {
  *  checkout. */
 export async function sendCapiPurchase(input: PurchaseEventInput): Promise<void> {
   try {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+    const settings = await getSiteSettings();
     if (!settings?.metaPixelId || !settings?.metaCapiAccessToken) return;
 
     const userData: Record<string, unknown> = {};

@@ -221,7 +221,7 @@ export async function createSocialLinkAction(formData: FormData): Promise<void> 
 
 export async function toggleSocialLinkAction(id: string): Promise<void> {
   await requireStaff();
-  const link = await prisma.socialLink.findUnique({ where: { id } });
+  const link = await prisma.socialLink.findUnique({ where: { id }, select: { enabled: true } });
   if (!link) return;
   await prisma.socialLink.update({ where: { id }, data: { enabled: !link.enabled } });
   revalidateSettings();

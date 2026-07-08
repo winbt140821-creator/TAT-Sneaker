@@ -9,6 +9,11 @@ const PROVIDER_LABEL: Record<string, string> = {
   facebook: "Facebook",
 };
 
+// The full order list can grow unbounded for a long-time customer, and this
+// page only shows recent activity (not a paginated ledger) — cap it and note
+// the true total via _count instead of fetching every order + every item.
+const RECENT_ORDERS_LIMIT = 50;
+
 export default async function AdminCustomerDetailPage({
   params,
 }: {
@@ -17,9 +22,25 @@ export default async function AdminCustomerDetailPage({
   const { id } = await params;
   const customer = await prisma.customer.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      provider: true,
+      createdAt: true,
       addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
-      orders: { include: { items: true }, orderBy: { createdAt: "desc" } },
+      orders: {
+        select: {
+          id: true,
+          code: true,
+          createdAt: true,
+          status: true,
+          items: { select: { price: true, quantity: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: RECENT_ORDERS_LIMIT,
+      },
+      _count: { select: { orders: true } },
     },
   });
 
@@ -85,6 +106,11 @@ export default async function AdminCustomerDetailPage({
 
         <div>
           <h2 className="font-display text-lg text-ink">Lịch sử đơn hàng</h2>
+          {customer._count.orders > customer.orders.length && (
+            <p className="mt-1 font-mono text-[10px] text-graphite">
+              Hiển thị {customer.orders.length} đơn gần nhất trên tổng {customer._count.orders} đơn.
+            </p>
+          )}
 
           {customer.orders.length === 0 ? (
             <p className="die-cut-flat mt-4 bg-kraft p-6 text-center font-mono text-sm text-graphite">

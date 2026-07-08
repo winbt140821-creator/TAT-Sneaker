@@ -85,14 +85,20 @@ export function HorizontalScrollTrack({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {thumb.widthPct < 100 && (
-        <div className="relative mt-3 h-1 w-full overflow-hidden rounded-full bg-kraft-dark/40">
-          <div
-            className="absolute inset-y-0 rounded-full bg-forest"
-            style={{ width: `${thumb.widthPct}%`, left: `${thumb.leftPct}%` }}
-          />
-        </div>
-      )}
+      {/* Always mounted (space reserved via mt-3 h-1) and toggled with
+          opacity instead of conditional rendering — thumb.widthPct isn't
+          known until the post-mount effect below runs, so unmounting this
+          until then would pop the row's height in after first paint. */}
+      <div
+        className={`relative mt-3 h-1 w-full overflow-hidden rounded-full bg-kraft-dark/40 transition-opacity ${
+          thumb.widthPct < 100 ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div
+          className="absolute inset-y-0 rounded-full bg-forest"
+          style={{ width: `${thumb.widthPct}%`, left: `${thumb.leftPct}%` }}
+        />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { AccountShell } from "@/components/account/AccountShell";
+import { Pagination } from "@/components/Pagination";
 import { Link, redirectGuard } from "@/i18n/navigation";
 import { getCurrentCustomer } from "@/lib/account";
 import { prisma } from "@/lib/db";
@@ -10,21 +11,47 @@ import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 export const metadata: Metadata = { robots: { index: false, follow: true } };
 
 const DATE_LOCALE: Record<string, string> = { vi: "vi-VN", en: "en-US", zh: "zh-CN" };
+const ORDERS_PAGE_SIZE = 20;
 
-export default async function AccountOrdersPage() {
-  const [customer, locale] = await Promise.all([getCurrentCustomer(), getLocale()]);
+export default async function AccountOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const [customer, locale, { page: pageParam }] = await Promise.all([
+    getCurrentCustomer(),
+    getLocale(),
+    searchParams,
+  ]);
   if (!customer) redirectGuard({ href: "/dang-nhap?callbackUrl=/tai-khoan", locale });
 
-  const [t, tCommon, addressCount, orders] = await Promise.all([
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const [t, tCommon, addressCount, orders, totalCount] = await Promise.all([
     getTranslations("account"),
     getTranslations("common"),
     prisma.address.count({ where: { customerId: customer.id } }),
     prisma.order.findMany({
       where: { customerId: customer.id },
+      select: {
+        id: true,
+        code: true,
+        createdAt: true,
+        province: true,
+        ward: true,
+        address: true,
+        paymentMethod: true,
+        depositAmount: true,
+        depositPaid: true,
+        items: { select: { price: true, quantity: true } },
+      },
       orderBy: { createdAt: "desc" },
-      include: { items: true },
+      skip: (page - 1) * ORDERS_PAGE_SIZE,
+      take: ORDERS_PAGE_SIZE,
     }),
+    prisma.order.count({ where: { customerId: customer.id } }),
   ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / ORDERS_PAGE_SIZE));
 
   const orderRows = await Promise.all(
     orders.map(async (order) => {
@@ -100,6 +127,8 @@ export default async function AccountOrdersPage() {
             </table>
           </div>
         )}
+
+        <Pagination current={page} totalPages={totalPages} searchParams={{}} />
       </AccountShell>
     </>
   );

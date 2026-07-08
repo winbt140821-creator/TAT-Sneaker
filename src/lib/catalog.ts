@@ -62,6 +62,25 @@ const SORT_ORDER_BY: Record<
   "price-desc": { price: "desc" },
 };
 
+// Fields every card (ProductCard, JSON-LD, wishlist) actually renders — every
+// listing query below selects only this, instead of also pulling costPrice,
+// description, videoUrl, depositAmount, shippingFee, etc. into a card-only
+// render path.
+const CATALOG_SELECT = {
+  id: true,
+  name: true,
+  price: true,
+  quality: true,
+  accent: true,
+  sizeQuantities: true,
+  images: true,
+  availability: true,
+  leadTimeMinDays: true,
+  leadTimeMaxDays: true,
+} as const;
+
+export const CATALOG_PAGE_SIZE = 24;
+
 export async function getProducts({
   categorySlug,
   q,
@@ -70,6 +89,7 @@ export async function getProducts({
   size,
   availability,
   sort = "popularity",
+  page = 1,
 }: {
   categorySlug?: string;
   q?: string;
@@ -78,8 +98,9 @@ export async function getProducts({
   size?: number;
   availability?: "IN_STOCK" | "PREORDER";
   sort?: ProductSort;
+  page?: number;
 } = {}) {
-  // These four values usually come straight from URL search params, which a
+  // These values usually come straight from URL search params, which a
   // visitor can edit by hand into anything — guard against NaN/garbage
   // reaching Prisma (SQLite errors on a NaN bind param; an unrecognized
   // enum value throws a validation error).
@@ -89,39 +110,68 @@ export async function getProducts({
   const safeAvailability =
     availability === "IN_STOCK" || availability === "PREORDER" ? availability : undefined;
   const safeSort = sort in SORT_ORDER_BY ? sort : "popularity";
+  const safePage = Number.isFinite(page) && page! > 0 ? Math.floor(page!) : 1;
 
   const campaigns = await getActiveCampaigns();
   const saleIds = categorySlug === "SALE" ? saleProductIds(campaigns) : null;
 
-  const products = await prisma.product.findMany({
-    where: {
-      hidden: false,
-      ...(categorySlug === "SALE"
-        ? saleIds === "ALL"
-          ? {}
-          : { id: { in: saleIds ?? [] } }
-        : categorySlug
-          ? { categories: { some: { slug: categorySlug } } }
-          : {}),
-      ...(q ? { OR: [{ name: { contains: q } }, { sku: { contains: q } }] } : {}),
-      ...(safeMinPrice != null ? { price: { gte: safeMinPrice } } : {}),
-      ...(safeMaxPrice != null ? { price: { lte: safeMaxPrice } } : {}),
-      ...(safeAvailability ? { availability: safeAvailability } : {}),
-    },
-    orderBy: SORT_ORDER_BY[safeSort],
-  });
+  const where = {
+    hidden: false,
+    ...(categorySlug === "SALE"
+      ? saleIds === "ALL"
+        ? {}
+        : { id: { in: saleIds ?? [] } }
+      : categorySlug
+        ? { categories: { some: { slug: categorySlug } } }
+        : {}),
+    ...(q ? { OR: [{ name: { contains: q } }, { sku: { contains: q } }] } : {}),
+    ...(safeMinPrice != null ? { price: { gte: safeMinPrice } } : {}),
+    ...(safeMaxPrice != null ? { price: { lte: safeMaxPrice } } : {}),
+    ...(safeAvailability ? { availability: safeAvailability } : {}),
+  };
 
+  // sizeQuantities is JSON-encoded in the DB (SQLite has no queryable JSON
+  // path here), so a size filter can't be expressed in SQL — every matching
+  // row has to be fetched and filtered in JS first, and only then can this
+  // page's slice be taken. Every other filter combo paginates in SQL below.
+  if (safeSize != null) {
+    const allMatching = await prisma.product.findMany({
+      where,
+      select: CATALOG_SELECT,
+      orderBy: SORT_ORDER_BY[safeSort],
+    });
+    const filtered = allMatching
+      .map(parseProduct)
+      .filter((p) => (p.sizeQuantities[String(safeSize)] ?? 0) > 0)
+      .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+    const totalCount = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / CATALOG_PAGE_SIZE));
+    const products = filtered.slice(
+      (safePage - 1) * CATALOG_PAGE_SIZE,
+      safePage * CATALOG_PAGE_SIZE
+    );
+    return { products, totalCount, totalPages };
+  }
+
+  const [products, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      select: CATALOG_SELECT,
+      orderBy: SORT_ORDER_BY[safeSort],
+      skip: (safePage - 1) * CATALOG_PAGE_SIZE,
+      take: CATALOG_PAGE_SIZE,
+    }),
+    prisma.product.count({ where }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / CATALOG_PAGE_SIZE));
   const parsed = products
     .map(parseProduct)
     .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
 
-  // sizeQuantities is JSON-encoded in the DB (SQLite has no queryable JSON
-  // path here), so the size filter is applied in JS after fetching.
-  if (safeSize == null) return parsed;
-  return parsed.filter((p) => (p.sizeQuantities[String(safeSize)] ?? 0) > 0);
+  return { products: parsed, totalCount, totalPages };
 }
 
-export type CatalogProduct = Awaited<ReturnType<typeof getProducts>>[number];
+export type CatalogProduct = Awaited<ReturnType<typeof getProducts>>["products"][number];
 
 // Cached per-request so generateMetadata() and the page component (both call
 // this with the same id) only hit the database once.
@@ -135,10 +185,14 @@ export const getProductById = cache(async (id: string) => {
   return { ...parsed, ...salePriceFor(parsed.id, parsed.price, campaigns) };
 });
 
+// The full row (all columns, e.g. sku) — distinct from CatalogProduct, which
+// is narrowed to only what a catalog-listing card renders.
+export type ProductDetail = NonNullable<Awaited<ReturnType<typeof getProductById>>>;
+
 export async function getProductsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   const [products, campaigns] = await Promise.all([
-    prisma.product.findMany({ where: { id: { in: ids } } }),
+    prisma.product.findMany({ where: { id: { in: ids }, hidden: false }, select: CATALOG_SELECT }),
     getActiveCampaigns(),
   ]);
   return products
@@ -159,6 +213,7 @@ export async function getRelatedProducts(
         hidden: false,
         categories: { some: { id: { in: categoryIds } } },
       },
+      select: CATALOG_SELECT,
       orderBy: { createdAt: "desc" },
       take: limit,
     }),
@@ -178,7 +233,12 @@ export async function getHomeSections() {
   const saleIds = saleProductIds(campaigns);
 
   const [latest, categories, sale, bestSellingGroups] = await Promise.all([
-    prisma.product.findMany({ where: { hidden: false }, orderBy: { createdAt: "desc" }, take: HOME_SECTION_SIZE }),
+    prisma.product.findMany({
+      where: { hidden: false },
+      select: CATALOG_SELECT,
+      orderBy: { createdAt: "desc" },
+      take: HOME_SECTION_SIZE,
+    }),
     prisma.category.findMany({
       where: { parentId: null, sale: false },
       include: { children: { orderBy: { sortOrder: "asc" } } },
@@ -186,6 +246,7 @@ export async function getHomeSections() {
     }),
     prisma.product.findMany({
       where: { hidden: false, ...(saleIds === "ALL" ? {} : { id: { in: saleIds } }) },
+      select: CATALOG_SELECT,
       orderBy: { createdAt: "desc" },
       take: HOME_SECTION_SIZE,
     }),
@@ -211,8 +272,8 @@ export async function getHomeSections() {
   const allSectionProducts =
     categoryIds.length > 0
       ? await prisma.product.findMany({
-          where: { categories: { some: { id: { in: categoryIds } } } },
-          include: { categories: { select: { id: true } } },
+          where: { hidden: false, categories: { some: { id: { in: categoryIds } } } },
+          select: { ...CATALOG_SELECT, categories: { select: { id: true } } },
           orderBy: { createdAt: "desc" },
         })
       : [];
@@ -225,7 +286,10 @@ export async function getHomeSections() {
   });
 
   const bestSellingProducts = bestSellingGroups.length
-    ? await prisma.product.findMany({ where: { id: { in: bestSellingGroups.map((g) => g.productId) } } })
+    ? await prisma.product.findMany({
+        where: { id: { in: bestSellingGroups.map((g) => g.productId) }, hidden: false },
+        select: CATALOG_SELECT,
+      })
     : [];
   const bestSellingById = new Map(bestSellingProducts.map((p) => [p.id, p]));
   // groupBy's own order (by total units sold) has to be reapplied — findMany
