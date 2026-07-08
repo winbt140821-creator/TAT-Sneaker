@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
-import { getStaffRoleByToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { SESSION_COOKIE_NAME } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -59,6 +59,14 @@ function captureAttribution(request: NextRequest, res: NextResponse) {
 // proxy.js docs: "Always verify authentication ... inside each Server
 // Function rather than relying on Proxy alone").
 //
+// Only checks that the session cookie is present, not that it's actually
+// valid — that would mean a DB round trip on every single admin request.
+// The real (DB-backed) check already happens once more in the protected
+// layout (getCurrentStaff(), which redirects to login itself if the cookie
+// turns out to be missing/expired/tampered), so this only needs to catch
+// the common case — no cookie at all — cheaply. The ADMIN-only gate for
+// /admin/staff lives in that section's own pages now, for the same reason.
+//
 // Admin is Vietnamese-only staff tooling, so it's checked first and never
 // touches next-intl's locale routing below — only customer-facing routes
 // get locale detection/redirects.
@@ -70,16 +78,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const staff = await getStaffRoleByToken(
-      request.cookies.get(SESSION_COOKIE_NAME)?.value
-    );
-
-    if (!staff) {
+    if (!request.cookies.has(SESSION_COOKIE_NAME)) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
-    }
-
-    if (pathname.startsWith("/admin/staff") && staff.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/admin", request.url));
     }
 
     return NextResponse.next();

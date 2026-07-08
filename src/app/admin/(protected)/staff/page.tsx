@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
@@ -6,6 +7,10 @@ import { RowActions } from "@/components/admin/RowActions";
 
 export default async function AdminStaffPage() {
   const current = await requireStaff();
+  // Used to be enforced by src/proxy.ts's redirect for this path — now that
+  // proxy only checks for a session cookie (not its DB-backed role), this
+  // section's own pages are the actual ADMIN-only gate.
+  if (current.role !== "ADMIN") redirect("/admin");
   const staff = await prisma.staff.findMany({ orderBy: { createdAt: "asc" } });
 
   return (

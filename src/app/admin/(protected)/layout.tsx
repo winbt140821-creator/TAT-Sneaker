@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { requireStaff } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentStaff } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { AdminSidebar } from "./AdminSidebar";
 
@@ -51,9 +52,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Defense in depth — src/proxy.ts already redirects unauthenticated
-  // requests, but Server Functions must never rely on that alone.
-  const [staff, settings] = await Promise.all([requireStaff(), getSiteSettings()]);
+  // The real (DB-backed) auth check — src/proxy.ts only rejects requests
+  // with no session cookie at all, cheaply and without a DB call; a
+  // present-but-invalid/expired cookie reaches here, where it's actually
+  // validated and sent to login if it doesn't check out.
+  const [staff, settings] = await Promise.all([getCurrentStaff(), getSiteSettings()]);
+  if (!staff) redirect("/admin/login");
 
   const navGroups = NAV_GROUPS.map((group) => ({
     ...group,

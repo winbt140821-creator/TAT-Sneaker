@@ -26,21 +26,6 @@ export async function getStaffByToken(token: string | undefined) {
   return session.staff;
 }
 
-/** Runs on every /admin request in proxy.ts — only needs enough to decide
- *  "logged in?" and "is this the /admin/staff-only area?", so it selects just
- *  role instead of pulling the full Staff row (name, password hash, etc.)
- *  that only the actual page render needs via the cache()-wrapped
- *  getCurrentStaff() above. */
-export async function getStaffRoleByToken(token: string | undefined) {
-  if (!token) return null;
-  const session = await prisma.session.findUnique({
-    where: { token },
-    select: { expiresAt: true, staff: { select: { role: true } } },
-  });
-  if (!session || session.expiresAt < new Date()) return null;
-  return session.staff;
-}
-
 export async function createSession(staffId: string) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);

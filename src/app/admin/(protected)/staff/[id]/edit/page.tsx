@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { requireStaff } from "@/lib/auth";
 import { updateStaffAction } from "../../actions";
 import { StaffForm } from "../../StaffForm";
 
@@ -8,6 +9,12 @@ export default async function EditStaffPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // See the same check/comment in ../../page.tsx — this page had no auth
+  // check of its own at all before, relying entirely on proxy.ts's
+  // now-removed DB-backed role check.
+  const current = await requireStaff();
+  if (current.role !== "ADMIN") redirect("/admin");
+
   const { id } = await params;
   const staff = await prisma.staff.findUnique({ where: { id } });
   if (!staff) notFound();
