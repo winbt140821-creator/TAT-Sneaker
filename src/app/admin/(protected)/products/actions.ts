@@ -211,8 +211,14 @@ export async function toggleProductHiddenAction(id: string) {
  *  hundreds of rows, so renormalizing every row's sortOrder per move (like
  *  moveCategoryAction does for the small, unpaginated category list) would
  *  mean O(n) writes per click. This is O(1), and still lets an item cross a
- *  pagination boundary since the adjacency lookup isn't scoped to one page. */
-export async function moveProductAction(id: string, direction: "up" | "down") {
+ *  pagination boundary since the adjacency lookup isn't scoped to one page.
+ *
+ *  When called from the admin's "Theo danh mục" (by-folder) view, categoryId
+ *  scopes the sibling lookup to products tagged with that same category, so
+ *  "up"/"down" there reorders within the folder instead of jumping to
+ *  whatever product is globally next in sortOrder (which could belong to an
+ *  unrelated category interleaved in the same numeric range). */
+export async function moveProductAction(id: string, direction: "up" | "down", categoryId?: string) {
   await requireStaff();
 
   const product = await prisma.product.findUnique({
@@ -222,10 +228,12 @@ export async function moveProductAction(id: string, direction: "up" | "down") {
   if (!product) return;
 
   const sibling = await prisma.product.findFirst({
-    where:
-      direction === "up"
+    where: {
+      ...(direction === "up"
         ? { sortOrder: { lt: product.sortOrder } }
-        : { sortOrder: { gt: product.sortOrder } },
+        : { sortOrder: { gt: product.sortOrder } }),
+      ...(categoryId ? { categories: { some: { id: categoryId } } } : {}),
+    },
     orderBy:
       direction === "up"
         ? [{ sortOrder: "desc" }, { id: "desc" }]
