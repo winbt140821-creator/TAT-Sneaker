@@ -122,8 +122,13 @@ export async function Footer() {
             {facebookLink && (
               <div className="mt-3 max-w-[340px] overflow-hidden">
                 <div id="fb-root" />
+                {/* Graph API versions expire ~2 years after release (v19.0
+                    expired 2026-05-21) — the widget fails silently on every
+                    device once the pinned version lapses, not just in
+                    certain browsers, so this needs bumping again well before
+                    v23.0's own expiry. */}
                 <Script
-                  src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v19.0"
+                  src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v23.0"
                   strategy="lazyOnload"
                 />
                 <div
