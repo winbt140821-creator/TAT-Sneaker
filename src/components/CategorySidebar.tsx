@@ -1,7 +1,14 @@
 import { Link } from "@/i18n/navigation";
 import { FlameIcon, XMarkIcon } from "./icons";
 
-type Child = { id: string; slug: string; label: string; hot: boolean; sale: boolean };
+type Child = {
+  id: string;
+  slug: string;
+  label: string;
+  hot: boolean;
+  sale: boolean;
+  _count: { products: number };
+};
 type Cat = {
   id: string;
   slug: string;
@@ -42,7 +49,6 @@ export function CategorySidebar({
                 <span className="flex-1">{c.label}</span>
                 {c.hot && <FlameIcon className="h-3.5 w-3.5 shrink-0" />}
                 {c.sale && <XMarkIcon className="h-3.5 w-3.5 shrink-0" />}
-                <span className="font-mono text-xs text-paper/70">({c._count.products})</span>
               </Link>
 
               {c.children.length > 0 && (
@@ -56,12 +62,13 @@ export function CategorySidebar({
                           href={`/?category=${encodeURIComponent(child.slug)}`}
                           className="flex items-center gap-2 px-4 py-2 font-body text-sm text-ink transition-colors hover:bg-kraft-dark/20"
                         >
-                          {child.label}
+                          <span className="flex-1">{child.label}</span>
                           {child.hot && (
                             <span className="bg-forest px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-paper">
                               Hot
                             </span>
                           )}
+                          <span className="font-mono text-xs text-graphite">({child._count.products})</span>
                         </Link>
                       </li>
                     ))}

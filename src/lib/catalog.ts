@@ -8,7 +8,10 @@ export const getNavCategories = cache(() => {
   return prisma.category.findMany({
     where: { parentId: null },
     include: {
-      children: { orderBy: { sortOrder: "asc" } },
+      children: {
+        orderBy: { sortOrder: "asc" },
+        include: { _count: { select: { products: true } } },
+      },
       _count: { select: { products: true } },
     },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
