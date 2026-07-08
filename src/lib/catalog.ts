@@ -275,15 +275,19 @@ export async function getHomeSections() {
 
   // One query for every section's products instead of one query per
   // category (was N+1 — each of the ~10 brand rows ran its own findMany).
-  // createdAt-desc order is preserved per category since it's already
-  // globally sorted before the per-category split below.
+  // sortOrder-asc order is preserved per category since it's already
+  // globally sorted before the per-category split below — this is what
+  // makes admin's per-category reordering (Admin → Sản phẩm → Theo danh
+  // mục) actually control which products show first/last in these
+  // homepage sections, instead of always showing newest-first regardless
+  // of how admin arranged them.
   const categoryIds = categories.map((c) => c.id);
   const allSectionProducts =
     categoryIds.length > 0
       ? await prisma.product.findMany({
           where: { hidden: false, categories: { some: { id: { in: categoryIds } } } },
           select: { ...CATALOG_SELECT, categories: { select: { id: true } } },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
         })
       : [];
 
