@@ -50,6 +50,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: DEFAULT_DESCRIPTION,
     robots: { index: true, follow: true },
+    verification: {
+      other: { "facebook-domain-verification": "04pcggc6wyxa7rew8kc14cpxpb2rhu" },
+    },
     openGraph: {
       type: "website",
       locale: "vi_VN",
