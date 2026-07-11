@@ -36,6 +36,7 @@ const NAV_GROUPS = [
       { href: "/admin/news", label: "Tin tức" },
       { href: "/admin/testimonials", label: "Đánh giá" },
       { href: "/admin/pages", label: "Trang nội dung" },
+      { href: "/admin/social", label: "Mạng xã hội" },
     ],
   },
   {

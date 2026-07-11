@@ -20,6 +20,7 @@ export function ImageUploadFieldMulti({
   label,
   initialImages = [],
   onUploadingChange,
+  onImagesChange,
 }: {
   name: string;
   label: string;
@@ -28,6 +29,11 @@ export function ImageUploadFieldMulti({
   // flight — otherwise submitting mid-upload saves the form with that image
   // missing since its URL hasn't landed in the images array yet.
   onUploadingChange?: (uploading: boolean) => void;
+  // Only needed when this field is rendered outside the <form> it belongs
+  // to (e.g. a shared compose area feeding two different submit forms) —
+  // lets the parent mirror the uploaded URLs into its own hidden inputs
+  // instead of relying on this component's own (then-unreachable) ones.
+  onImagesChange?: (images: string[]) => void;
 }) {
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploading, setUploading] = useState(false);
@@ -36,6 +42,11 @@ export function ImageUploadFieldMulti({
   function updateUploading(next: boolean) {
     setUploading(next);
     onUploadingChange?.(next);
+  }
+
+  function updateImages(next: string[]) {
+    setImages(next);
+    onImagesChange?.(next);
   }
 
   async function handleFiles(fileList: FileList | null) {
@@ -73,7 +84,7 @@ export function ImageUploadFieldMulti({
         })
       );
 
-      setImages((prev) => [...prev, ...uploadedUrls]);
+      updateImages([...images, ...uploadedUrls]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload thất bại");
     } finally {
@@ -99,7 +110,7 @@ export function ImageUploadFieldMulti({
                 <input type="hidden" name={name} value={url} />
                 <button
                   type="button"
-                  onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
+                  onClick={() => updateImages(images.filter((u) => u !== url))}
                   aria-label="Xoá ảnh"
                   className="absolute -right-1.5 -top-1.5 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-stamp text-[10px] font-bold text-paper"
                 >

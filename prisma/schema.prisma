@@ -409,6 +409,55 @@ model Payment {
   @@index([provider, providerRef])
 }
 
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+}
+
+// A connected Facebook Page or its linked Instagram Business account. The
+// Instagram row (when present) reuses the same Page access token as its
+// parent Facebook row — Meta's Graph API authorizes IG publishing through
+// the linked Page, not a separate IG-only credential.
+model SocialAccount {
+  id          String         @id @default(cuid())
+  platform    SocialPlatform
+  pageId      String // Facebook Page id — set for both the FACEBOOK row and its linked INSTAGRAM row
+  igUserId    String? // Instagram Business Account id — set only on the INSTAGRAM row
+  name        String
+  accessToken String // Page access token from the OAuth connect flow (~60 day lifetime)
+  avatarUrl   String?
+  connectedAt DateTime       @default(now())
+
+  @@unique([platform, pageId])
+  @@index([platform])
+}
+
+enum SocialPostStatus {
+  SCHEDULED
+  PUBLISHED
+  PARTIAL // some targets succeeded, some failed — see `results`
+  FAILED
+}
+
+// One row per compose/schedule action, fanning out to every target account
+// at publish time. `targetIds` and `results` are JSON-encoded rather than a
+// relation table — same convention as Product.images/sizeQuantities — since
+// a post's targets are fixed at creation and never queried relationally.
+model SocialPost {
+  id          String            @id @default(cuid())
+  message     String?
+  images      String            @default("[]") // JSON string[] of public image URLs
+  targetIds   String            @default("[]") // JSON string[] of SocialAccount.id
+  status      SocialPostStatus  @default(SCHEDULED)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  results     String? // JSON: {targetId, ok, link?, error?}[] — filled in once published
+  createdAt   DateTime          @default(now())
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
 model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
