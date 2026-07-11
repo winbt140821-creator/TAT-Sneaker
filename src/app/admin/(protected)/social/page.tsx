@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
-import { isMetaConfigured, getFacebookLoginUrl } from "@/lib/meta";
+import { isMetaConfigured, isCatalogConfigured, getFacebookLoginUrl } from "@/lib/meta";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import { ComposeForm } from "./ComposeForm";
 import { deleteSocialPostAction, disconnectSocialAccountAction } from "./actions";
@@ -106,7 +106,7 @@ export default async function AdminSocialPage({
 
       {/* Soạn & đăng bài */}
       <div className="mt-6">
-        <ComposeForm accounts={accounts} products={productOptions} />
+        <ComposeForm accounts={accounts} products={productOptions} catalogConfigured={isCatalogConfigured()} />
       </div>
 
       {/* Lịch sử */}

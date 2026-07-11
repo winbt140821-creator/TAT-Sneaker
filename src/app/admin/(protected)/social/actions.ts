@@ -11,7 +11,8 @@ function readCompose(formData: FormData) {
   const message = String(formData.get("message") ?? "").trim();
   const images = formData.getAll("images").map(String).filter(Boolean);
   const targetIds = formData.getAll("targetIds").map(String).filter(Boolean);
-  return { message, images, targetIds };
+  const productId = String(formData.get("productId") ?? "").trim() || null;
+  return { message, images, targetIds, productId };
 }
 
 async function loadTargets(targetIds: string[]): Promise<PublishTarget[]> {
@@ -30,7 +31,7 @@ export async function publishNowAction(
   formData: FormData
 ): Promise<ComposeFormState> {
   await requireStaff();
-  const { message, images, targetIds } = readCompose(formData);
+  const { message, images, targetIds, productId } = readCompose(formData);
   if (targetIds.length === 0) return { error: "Hãy chọn ít nhất 1 trang để đăng." };
 
   const targets = await loadTargets(targetIds);
@@ -38,7 +39,7 @@ export async function publishNowAction(
   const results = await Promise.all(
     targets.map(async (t, i) => {
       try {
-        const r = await publishToTarget(t, { message, images });
+        const r = await publishToTarget(t, { message, images, productId });
         return { targetId: idByTarget.get(i)!, name: t.name, ok: true, link: r.url };
       } catch (err) {
         return {
@@ -76,7 +77,7 @@ export async function schedulePostAction(
   formData: FormData
 ): Promise<ComposeFormState> {
   await requireStaff();
-  const { message, images, targetIds } = readCompose(formData);
+  const { message, images, targetIds, productId } = readCompose(formData);
   const scheduledAt = String(formData.get("scheduledAt") ?? "");
   if (targetIds.length === 0) return { error: "Hãy chọn ít nhất 1 trang để đăng." };
   if (!scheduledAt) return { error: "Hãy chọn thời gian hẹn giờ." };
@@ -86,6 +87,7 @@ export async function schedulePostAction(
       message,
       images: JSON.stringify(images),
       targetIds: JSON.stringify(targetIds),
+      productId,
       status: "SCHEDULED",
       scheduledAt: new Date(scheduledAt),
     },

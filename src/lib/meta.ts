@@ -28,9 +28,19 @@ function appId() {
 function appSecret() {
   return process.env.META_APP_SECRET;
 }
+// Meta Commerce catalog id backing /api/facebook-feed (see that route) — its
+// <g:id> per item is the Product's own cuid, so a catalog-scoped product
+// reference is always "{catalogId}_{product.id}", matching how Meta re-keys
+// retailer_id once the feed is ingested.
+function catalogId() {
+  return process.env.META_CATALOG_ID;
+}
 
 export function isMetaConfigured() {
   return Boolean(appId() && appSecret());
+}
+export function isCatalogConfigured() {
+  return Boolean(catalogId());
 }
 
 export function facebookCallbackUrl() {
@@ -129,10 +139,23 @@ export type PublishTarget = {
 
 export type PublishResult = { id: string; url: string };
 
+// Tags every photo in the post with the same product, centered — the compose
+// form only ever auto-fills images from one picked product at a time, so a
+// single centered tag per photo (rather than per-item x/y) is the correct
+// default. Returns "" (no param) when no product was picked or no catalog is
+// configured, so callers can splice it into a URLSearchParams unconditionally.
+function productTagsParam(productId?: string | null): string | undefined {
+  const catalog = catalogId();
+  if (!productId || !catalog) return undefined;
+  return JSON.stringify([{ product_id: `${catalog}_${productId}`, x: 0.5, y: 0.5 }]);
+}
+
 async function postToFacebook(
   target: PublishTarget,
-  { message, images }: { message: string; images: string[] }
+  { message, images, productId }: { message: string; images: string[]; productId?: string | null }
 ): Promise<PublishResult> {
+  const tags = productTagsParam(productId);
+
   if (images.length === 0) {
     const params = new URLSearchParams({ message, access_token: target.accessToken });
     const data = await graph(`${target.pageId}/feed?${params}`, { method: "POST" });
@@ -144,6 +167,7 @@ async function postToFacebook(
       caption: message,
       access_token: target.accessToken,
     });
+    if (tags) params.set("product_tags", tags);
     const data = await graph(`${target.pageId}/photos?${params}`, { method: "POST" });
     const id = data.post_id ?? data.id;
     return { id, url: `https://facebook.com/${id}` };
@@ -156,6 +180,7 @@ async function postToFacebook(
       published: "false",
       access_token: target.accessToken,
     });
+    if (tags) params.set("product_tags", tags);
     const data = await graph(`${target.pageId}/photos?${params}`, { method: "POST" });
     mediaIds.push(data.id);
   }
@@ -198,7 +223,7 @@ async function postToInstagram(
 
 export async function publishToTarget(
   target: PublishTarget,
-  content: { message: string; images: string[] }
+  content: { message: string; images: string[]; productId?: string | null }
 ): Promise<PublishResult> {
   if (target.platform === "FACEBOOK") return postToFacebook(target, content);
   return postToInstagram(target, content);

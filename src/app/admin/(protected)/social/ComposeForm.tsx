@@ -13,7 +13,15 @@ type Product = { id: string; sku: string; name: string; priceLabel: string; imag
 
 const initialState: ComposeFormState = {};
 
-export function ComposeForm({ accounts, products }: { accounts: Account[]; products: Product[] }) {
+export function ComposeForm({
+  accounts,
+  products,
+  catalogConfigured,
+}: {
+  accounts: Account[];
+  products: Product[];
+  catalogConfigured: boolean;
+}) {
   const [publishState, publishAction] = useActionState(publishNowAction, initialState);
   const [scheduleState, scheduleAction] = useActionState(schedulePostAction, initialState);
 
@@ -54,15 +62,21 @@ export function ComposeForm({ accounts, products }: { accounts: Account[]; produ
     });
   }
 
+  // Removing an image the picked product came with means the post no longer
+  // shows that product's own photos, so the auto-tag would misidentify what's
+  // in the picture — clear the pick rather than keep tagging a photo the
+  // product picker no longer fully owns.
   function removeImage(url: string) {
     setSelectedImages((prev) => prev.filter((u) => u !== url));
     setUploadedImages((prev) => prev.filter((u) => u !== url));
+    setActiveProductId(null);
   }
 
   const hasTargets = selectedTargets.size > 0;
   const commonFields = (
     <>
       <input type="hidden" name="message" value={message} />
+      {activeProductId && <input type="hidden" name="productId" value={activeProductId} />}
       {[...selectedTargets].map((id) => (
         <input key={id} type="hidden" name="targetIds" value={id} />
       ))}
@@ -148,6 +162,15 @@ export function ComposeForm({ accounts, products }: { accounts: Account[]; produ
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">
           Chọn 1 sản phẩm để đăng (tự lấy hết ảnh + soạn sẵn nội dung)
         </legend>
+        {catalogConfigured ? (
+          <p className="mt-1 font-mono text-[11px] text-graphite">
+            Ảnh của sản phẩm được chọn sẽ tự động gắn thẻ sản phẩm khi đăng lên Facebook.
+          </p>
+        ) : (
+          <p className="mt-1 font-mono text-[11px] text-stamp">
+            Chưa cấu hình META_CATALOG_ID trên server — bài đăng vẫn lên bình thường nhưng sẽ không tự gắn thẻ sản phẩm.
+          </p>
+        )}
         <div className="relative mt-2">
           <input
             type="search"

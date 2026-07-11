@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
           name: a.name,
         };
         try {
-          const r = await publishToTarget(target, { message: post.message ?? "", images });
+          const r = await publishToTarget(target, {
+            message: post.message ?? "",
+            images,
+            productId: post.productId,
+          });
           return { targetId: a.id, name: a.name, ok: true, link: r.url };
         } catch (err) {
           return {

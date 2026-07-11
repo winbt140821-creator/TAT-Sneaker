@@ -448,6 +448,7 @@ model SocialPost {
   message     String?
   images      String            @default("[]") // JSON string[] of public image URLs
   targetIds   String            @default("[]") // JSON string[] of SocialAccount.id
+  productId   String? // set when composed via "Chọn 1 sản phẩm để đăng" — used to attach a Facebook product tag at publish time
   status      SocialPostStatus  @default(SCHEDULED)
   scheduledAt DateTime?
   publishedAt DateTime?
