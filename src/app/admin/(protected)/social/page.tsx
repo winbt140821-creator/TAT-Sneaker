@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { formatPrice } from "@/lib/products";
 import { isMetaConfigured, getFacebookLoginUrl } from "@/lib/meta";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import { ComposeForm } from "./ComposeForm";
@@ -12,11 +13,20 @@ export default async function AdminSocialPage({
   const { error } = await searchParams;
 
   const [accounts, posts, products] = await Promise.all([
-    prisma.socialAccount.findMany({ orderBy: { connectedAt: "desc" } }),
+    // Never select accessToken here — this result (via `accounts` below)
+    // gets passed straight into <ComposeForm>, a Client Component, which
+    // would serialize the raw Facebook Page token into the page's HTML/RSC
+    // payload for anyone to read. Server Actions re-fetch the token
+    // themselves server-side (see actions.ts loadTargets) using only the
+    // account id the client sends back.
+    prisma.socialAccount.findMany({
+      select: { id: true, platform: true, name: true, avatarUrl: true },
+      orderBy: { connectedAt: "desc" },
+    }),
     prisma.socialPost.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
     prisma.product.findMany({
       where: { hidden: false },
-      select: { id: true, sku: true, name: true, images: true },
+      select: { id: true, sku: true, name: true, images: true, price: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -25,6 +35,7 @@ export default async function AdminSocialPage({
     id: p.id,
     sku: p.sku,
     name: p.name,
+    priceLabel: formatPrice(p.price),
     images: JSON.parse(p.images || "[]") as string[],
   }));
 

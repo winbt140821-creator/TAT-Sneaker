@@ -9,7 +9,7 @@ import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldM
 import { publishNowAction, schedulePostAction, type ComposeFormState } from "./actions";
 
 type Account = { id: string; platform: "FACEBOOK" | "INSTAGRAM"; name: string };
-type Product = { id: string; sku: string; name: string; images: string[] };
+type Product = { id: string; sku: string; name: string; priceLabel: string; images: string[] };
 
 const initialState: ComposeFormState = {};
 
@@ -24,13 +24,21 @@ export function ComposeForm({ accounts, products }: { accounts: Account[]; produ
   const [uploading, setUploading] = useState(false);
 
   const [productSearch, setProductSearch] = useState("");
-  const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
-    if (!q) return [];
-    return products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)).slice(0, 12);
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
   }, [products, productSearch]);
+
+  // Chọn 1 sản phẩm -> lấy TOÀN BỘ ảnh của nó + soạn sẵn nội dung (tên + giá)
+  // để người dùng chỉ cần bổ sung thêm mô tả, không phải gõ lại từ đầu.
+  function pickProduct(p: Product) {
+    setActiveProductId(p.id);
+    setSelectedImages(p.images);
+    setMessage(`${p.name}\nGiá: ${p.priceLabel}`);
+  }
 
   const allImages = useMemo(
     () => [...new Set([...selectedImages, ...uploadedImages])],
@@ -44,10 +52,6 @@ export function ComposeForm({ accounts, products }: { accounts: Account[]; produ
       else next.add(id);
       return next;
     });
-  }
-
-  function toggleImage(url: string) {
-    setSelectedImages((prev) => (prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]));
   }
 
   function removeImage(url: string) {
@@ -139,72 +143,61 @@ export function ComposeForm({ accounts, products }: { accounts: Account[]; produ
         </div>
       )}
 
-      {/* Chọn ảnh theo sản phẩm */}
+      {/* Chọn sản phẩm để đăng nguyên (tự lấy hết ảnh + soạn sẵn nội dung) */}
       <fieldset className="mt-4">
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">
-          Lấy ảnh từ 1 sản phẩm trong kho
+          Chọn 1 sản phẩm để đăng (tự lấy hết ảnh + soạn sẵn nội dung)
         </legend>
         <div className="relative mt-2">
           <input
             type="search"
             value={productSearch}
-            onChange={(e) => {
-              setProductSearch(e.target.value);
-              setActiveProduct(null);
-            }}
+            onChange={(e) => setProductSearch(e.target.value)}
             placeholder="Tìm theo tên hoặc mã SKU sản phẩm..."
             className="w-full border border-graphite bg-paper px-3 py-2 pr-9 text-sm text-ink focus:border-forest"
           />
           <SearchIcon className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
         </div>
 
-        {filteredProducts.length > 0 && !activeProduct && (
-          <div className="mt-2 flex flex-col gap-1 die-cut-flat bg-kraft p-2">
-            {filteredProducts.map((p) => (
+        <div className="mt-2 grid max-h-96 grid-cols-2 gap-2 overflow-y-auto die-cut-flat bg-kraft p-2 sm:grid-cols-3 md:grid-cols-4">
+          {filteredProducts.map((p) => {
+            const active = activeProductId === p.id;
+            return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setActiveProduct(p)}
-                className="cursor-pointer px-2 py-1.5 text-left font-mono text-xs text-ink hover:bg-paper"
+                onClick={() => pickProduct(p)}
+                className={
+                  "die-cut-flat flex cursor-pointer flex-col gap-1.5 bg-paper p-2 text-left transition-colors " +
+                  (active ? "border-forest bg-forest/5" : "hover:border-forest")
+                }
               >
-                {p.name} <span className="text-graphite">({p.sku})</span> — {p.images.length} ảnh
+                <div className="relative aspect-square overflow-hidden bg-kraft-dark/30">
+                  {p.images[0] ? (
+                    <Image src={p.images[0]} alt="" fill sizes="150px" className="object-cover" />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-graphite">
+                      Không ảnh
+                    </span>
+                  )}
+                  {active && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-forest/20">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-forest text-paper">✓</div>
+                    </div>
+                  )}
+                </div>
+                <p className="font-mono text-[10px] text-graphite">
+                  {p.sku} · {p.images.length} ảnh
+                </p>
+                <p className="line-clamp-2 font-body text-xs text-ink">{p.name}</p>
+                <p className="font-mono text-[11px] text-ink">{p.priceLabel}</p>
               </button>
-            ))}
-          </div>
-        )}
-
-        {activeProduct && (
-          <div className="mt-2 die-cut-flat bg-kraft p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="font-body text-sm text-ink">{activeProduct.name}</p>
-              <button
-                type="button"
-                onClick={() => setActiveProduct(null)}
-                className="cursor-pointer font-mono text-[11px] uppercase text-graphite hover:underline"
-              >
-                Đổi sản phẩm
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {activeProduct.images.map((url) => {
-                const checked = selectedImages.includes(url);
-                return (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => toggleImage(url)}
-                    className={
-                      "relative aspect-square overflow-hidden border-2 " +
-                      (checked ? "border-forest" : "border-transparent")
-                    }
-                  >
-                    <Image src={url} alt="" fill sizes="120px" className="object-cover" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+            );
+          })}
+          {filteredProducts.length === 0 && (
+            <p className="col-span-full font-mono text-xs text-graphite">Không tìm thấy sản phẩm nào.</p>
+          )}
+        </div>
       </fieldset>
 
       {/* Upload từ máy */}

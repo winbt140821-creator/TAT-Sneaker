@@ -55,3 +55,6 @@ prisma/*.db-shm
 
 # Claude Code local tooling state (per-machine, not part of the app)
 /.claude/
+
+.vercel
+.env*
