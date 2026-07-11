@@ -196,6 +196,24 @@ async function igCreateContainer(target: PublishTarget, fields: Record<string, s
   return data.id as string;
 }
 
+// IG downloads the image and encodes the container asynchronously — status
+// starts IN_PROGRESS even after the create call returns. Publishing (or
+// referencing as a carousel child) before it reaches FINISHED fails with
+// "Media ID is not available", so every container gets polled here first.
+// ~20s budget: real-world IG image processing is usually done in 2-5s.
+async function waitUntilContainerReady(target: PublishTarget, containerId: string): Promise<void> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const params = new URLSearchParams({ fields: "status_code", access_token: target.accessToken });
+    const data = await graph(`${containerId}?${params}`);
+    if (data.status_code === "FINISHED") return;
+    if (data.status_code === "ERROR" || data.status_code === "EXPIRED") {
+      throw new GraphError(`Xử lý ảnh Instagram thất bại (${data.status_code}).`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new GraphError("Instagram xử lý ảnh quá lâu, hãy thử đăng lại.");
+}
+
 async function postToInstagram(
   target: PublishTarget,
   { message, images }: { message: string; images: string[] }
@@ -205,16 +223,20 @@ async function postToInstagram(
   let creationId: string;
   if (images.length === 1) {
     creationId = await igCreateContainer(target, { image_url: images[0], caption: message });
+    await waitUntilContainerReady(target, creationId);
   } else {
     const children: string[] = [];
     for (const img of images.slice(0, 10)) {
-      children.push(await igCreateContainer(target, { image_url: img, is_carousel_item: "true" }));
+      const childId = await igCreateContainer(target, { image_url: img, is_carousel_item: "true" });
+      await waitUntilContainerReady(target, childId);
+      children.push(childId);
     }
     creationId = await igCreateContainer(target, {
       media_type: "CAROUSEL",
       caption: message,
       children: children.join(","),
     });
+    await waitUntilContainerReady(target, creationId);
   }
   const pubParams = new URLSearchParams({ creation_id: creationId, access_token: target.accessToken });
   const published = await graph(`${target.igUserId}/media_publish?${pubParams}`, { method: "POST" });
