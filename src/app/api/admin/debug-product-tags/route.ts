@@ -15,23 +15,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const permalink = request.nextUrl.searchParams.get("permalink");
-  if (!permalink) return NextResponse.json({ error: "Missing ?permalink=" }, { status: 400 });
+  // pfbid permalinks don't reliably resolve via the classic ?id= lookup
+  // trick anymore, so instead list the Page's own recent posts (always
+  // returns numeric ids the API accepts everywhere) and match by substring.
+  const permalinkFragment = request.nextUrl.searchParams.get("permalink");
+  if (!permalinkFragment) return NextResponse.json({ error: "Missing ?permalink=" }, { status: 400 });
 
   const account = await prisma.socialAccount.findFirst({ where: { platform: "FACEBOOK" } });
   if (!account) return NextResponse.json({ error: "No Facebook account connected" }, { status: 404 });
 
   const token = account.accessToken;
-  const resolveRes = await fetch(
-    `https://graph.facebook.com/v21.0/?id=${encodeURIComponent(permalink)}&access_token=${token}`
+  const listRes = await fetch(
+    `https://graph.facebook.com/v21.0/${account.pageId}/posts?fields=id,permalink_url,attachments{media,target,type}&limit=10&access_token=${token}`
   );
-  const resolved = await resolveRes.json();
-  if (!resolved.id) return NextResponse.json({ error: "Could not resolve post", resolved }, { status: 400 });
+  const list = await listRes.json();
+  if (!list.data) return NextResponse.json({ error: "Could not list posts", list }, { status: 400 });
 
-  const postRes = await fetch(
-    `https://graph.facebook.com/v21.0/${resolved.id}?fields=attachments{media,target,type}&access_token=${token}`
+  const post = list.data.find((p: { permalink_url?: string }) =>
+    p.permalink_url?.includes(permalinkFragment)
   );
-  const post = await postRes.json();
+  if (!post) {
+    return NextResponse.json({
+      error: "Post not found in the 10 most recent",
+      recent: list.data.map((p: { id: string; permalink_url?: string }) => ({ id: p.id, permalink_url: p.permalink_url })),
+    });
+  }
 
   const photoIds: string[] = [];
   for (const a of post.attachments?.data ?? []) {
@@ -51,5 +59,5 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  return NextResponse.json({ postId: resolved.id, photoCount: photoIds.length, tags });
+  return NextResponse.json({ postId: post.id, permalink_url: post.permalink_url, photoCount: photoIds.length, tags });
 }
