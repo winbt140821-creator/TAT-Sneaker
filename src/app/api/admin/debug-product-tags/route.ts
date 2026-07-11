@@ -26,8 +26,11 @@ export async function GET(request: NextRequest) {
   if (!account) return NextResponse.json({ error: "No Facebook account connected" }, { status: 404 });
 
   const token = account.accessToken;
+  // Nested attachments{subattachments{...}} expansion inside /posts errors
+  // with a deprecation notice on this API version — fetch attachments as
+  // its own edge on the matched post instead, once we have its id.
   const listParams = new URLSearchParams({
-    fields: "id,created_time,permalink_url,object_id,attachments{subattachments{target}}",
+    fields: "id,created_time,permalink_url,object_id",
     limit: "10",
     access_token: token,
   });
@@ -45,8 +48,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const attachParams = new URLSearchParams({ fields: "subattachments{target}", access_token: token });
+  const attachRes = await fetch(`https://graph.facebook.com/v21.0/${post.id}/attachments?${attachParams}`);
+  const attachData = await attachRes.json();
+
   const photoIds: string[] = [];
-  const subs = post.attachments?.data?.[0]?.subattachments?.data ?? [];
+  const subs = attachData.data?.[0]?.subattachments?.data ?? [];
   for (const sub of subs) {
     if (sub.target?.id) photoIds.push(sub.target.id);
   }
