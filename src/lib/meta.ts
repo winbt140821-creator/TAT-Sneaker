@@ -1,12 +1,16 @@
 import { absoluteUrl } from "@/lib/seo";
 
 // Meta Graph API (Facebook Page + linked Instagram Business account) —
-// connect flow, page listing, and post publishing. Reuses the same Meta App
-// already registered for "Đăng nhập bằng Facebook" (see src/auth.ts /
-// AUTH_FACEBOOK_ID) — Meta Apps aren't limited to one permission set, so
-// this flow just requests a broader scope under its own callback route
-// instead of needing a second app.
-
+// connect flow, page listing, and post publishing.
+//
+// Deliberately a SEPARATE Meta App from AUTH_FACEBOOK_ID/SECRET (used for
+// customer "Đăng nhập bằng Facebook" via next-auth, see src/auth.ts). Meta
+// App "types" are fixed at creation and can't be changed afterward — the
+// existing app is a Consumer-type app (Authentication use case only), which
+// per Meta's own docs can never add the Pages API/Instagram Graph API use
+// case regardless of Business Portfolio/verification status. Posting to
+// Pages/Instagram requires a Business-type app, hence META_APP_ID/SECRET
+// pointing at a dedicated app instead.
 const API_VERSION = "v21.0";
 const BASE = `https://graph.facebook.com/${API_VERSION}`;
 
@@ -16,14 +20,13 @@ const SCOPES = [
   "pages_read_engagement",
   "instagram_basic",
   "instagram_content_publish",
-  "business_management",
 ].join(",");
 
 function appId() {
-  return process.env.AUTH_FACEBOOK_ID;
+  return process.env.META_APP_ID;
 }
 function appSecret() {
-  return process.env.AUTH_FACEBOOK_SECRET;
+  return process.env.META_APP_SECRET;
 }
 
 export function isMetaConfigured() {

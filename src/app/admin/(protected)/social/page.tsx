@@ -58,7 +58,7 @@ export default async function AdminSocialPage({
 
         {!isMetaConfigured() && (
           <p className="mt-2 die-cut-flat bg-stamp/10 p-3 font-mono text-xs text-stamp">
-            Chưa cấu hình AUTH_FACEBOOK_ID / AUTH_FACEBOOK_SECRET trên server.
+            Chưa cấu hình META_APP_ID / META_APP_SECRET trên server.
           </p>
         )}
 
