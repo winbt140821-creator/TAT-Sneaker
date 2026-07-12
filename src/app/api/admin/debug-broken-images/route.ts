@@ -15,12 +15,15 @@ export async function GET() {
 
   const products = await prisma.product.findMany({
     select: { id: true, sku: true, name: true, images: true },
+    take: 10,
   });
 
-  const broken = products
-    .map((p) => ({ ...p, images: JSON.parse(p.images || "[]") as string[] }))
-    .filter((p) => p.images.length === 0 || p.images.some((url) => url.startsWith("/uploads/")))
-    .map((p) => ({ id: p.id, sku: p.sku, name: p.name, images: p.images }));
+  const sample = products.map((p) => ({
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    images: JSON.parse(p.images || "[]") as string[],
+  }));
 
-  return NextResponse.json({ totalProducts: products.length, brokenCount: broken.length, broken });
+  return NextResponse.json({ totalProducts: products.length, sample });
 }
