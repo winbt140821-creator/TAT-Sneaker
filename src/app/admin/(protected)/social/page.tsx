@@ -116,6 +116,9 @@ export default async function AdminSocialPage({
           {posts.length === 0 && <p className="font-mono text-xs text-graphite">Chưa có bài nào.</p>}
           {posts.map((p) => {
             const images = JSON.parse(p.images || "[]") as string[];
+            const results = p.results
+              ? (JSON.parse(p.results) as { name: string; ok: boolean; link?: string; error?: string }[])
+              : [];
             const statusLabel: Record<string, string> = {
               SCHEDULED: "Đã lên lịch",
               PUBLISHED: "Đã đăng",
@@ -150,6 +153,28 @@ export default async function AdminSocialPage({
                         ? `Đăng: ${p.publishedAt.toLocaleString("vi-VN")}`
                         : ""}
                   </p>
+                  {results.length > 0 && (
+                    <div className="mt-1.5 flex flex-col gap-0.5">
+                      {results.map((r, i) => (
+                        <p key={i} className="font-mono text-[10px]">
+                          {r.ok ? (
+                            <>
+                              <span className="text-forest">✓ {r.name}</span>{" "}
+                              {r.link && (
+                                <a href={r.link} target="_blank" rel="noreferrer" className="text-ink underline">
+                                  Xem bài
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-stamp">
+                              ✗ {r.name}: {r.error}
+                            </span>
+                          )}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <form action={deleteSocialPostAction.bind(null, p.id)}>
                   <ConfirmSubmitButton
