@@ -29,7 +29,7 @@ const permanentMarker = Permanent_Marker({
   weight: "400",
 });
 
-const DEFAULT_TITLE = `${site.name} — Giày Sneaker Chính Hãng`;
+const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
 const DEFAULT_DESCRIPTION = site.tagline;
 
 // Async so we can fall back to the admin-uploaded hero/logo image as the
