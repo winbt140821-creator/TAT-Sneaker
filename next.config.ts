@@ -87,6 +87,15 @@ const nextConfig: NextConfig = {
     viewTransition: true,
   },
   images: {
+    // Vercel's Hobby plan caps Image Optimization at 5,000 transformations/
+    // month — this catalog alone (100+ products x several photos, each
+    // requested at multiple responsive widths) blew past that within days,
+    // after which every new size/crop next/image hadn't already cached
+    // started 402ing (broken-image icon on product pages and admin). Product
+    // photos already come pre-sized/compressed off R2, so skip Vercel's
+    // resize-on-demand entirely rather than pay for Pro — <Image> just
+    // serves the original URL directly, same as a plain <img>.
+    unoptimized: true,
     // Next 16 defaults images.qualities to [75] only — any other `quality`
     // prop silently gets coerced to 75 (see docs/version-16.md,
     // "qualities Default"), which is why product photos looked soft on
