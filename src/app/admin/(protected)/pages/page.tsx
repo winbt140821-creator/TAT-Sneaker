@@ -1,3 +1,4 @@
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { RowActions } from "@/components/admin/RowActions";
 
@@ -6,7 +7,15 @@ export default async function AdminStaticPagesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl text-ink">Trang nội dung</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-display text-2xl text-ink">Trang nội dung</h1>
+        <Link
+          href="/admin/pages/new"
+          className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
+        >
+          + Thêm trang
+        </Link>
+      </div>
       <p className="mt-1 font-mono text-xs text-graphite">
         Nội dung các liên kết chính sách / hỗ trợ / giới thiệu hiển thị ở chân trang.
       </p>

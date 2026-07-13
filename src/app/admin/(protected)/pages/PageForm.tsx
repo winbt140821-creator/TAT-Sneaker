@@ -12,18 +12,33 @@ const initialState: StaticPageFormState = {};
 export function PageForm({
   action,
   defaultValues,
+  slugEditable = false,
+  submitLabel = "Lưu thay đổi",
 }: {
   action: (state: StaticPageFormState, formData: FormData) => Promise<StaticPageFormState>;
   defaultValues: { title: string; content: string; slug: string };
+  slugEditable?: boolean;
+  submitLabel?: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <p className="font-mono text-xs uppercase tracking-wide text-graphite">Đường dẫn</p>
-        <p className="font-mono text-sm text-ink">/trang/{defaultValues.slug}</p>
-      </div>
+      {slugEditable ? (
+        <TextField
+          id="slug"
+          name="slug"
+          label="Đường dẫn (/trang/...)"
+          required
+          defaultValue={defaultValues.slug}
+          hint="Chỉ chữ thường, số và dấu gạch ngang, ví dụ: chinh-sach-bao-mat"
+        />
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <p className="font-mono text-xs uppercase tracking-wide text-graphite">Đường dẫn</p>
+          <p className="font-mono text-sm text-ink">/trang/{defaultValues.slug}</p>
+        </div>
+      )}
 
       <TextField id="title" name="title" label="Tiêu đề" required defaultValue={defaultValues.title} />
 
@@ -41,7 +56,7 @@ export function PageForm({
 
       <FormError message={state.error} />
 
-      <SubmitButton>Lưu thay đổi</SubmitButton>
+      <SubmitButton>{submitLabel}</SubmitButton>
     </form>
   );
 }
