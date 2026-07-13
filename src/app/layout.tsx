@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
-import { getLocale } from "next-intl/server";
 import { site } from "@/lib/site-config";
 import { SITE_URL } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
@@ -76,11 +75,20 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [locale, settings] = await Promise.all([getLocale(), getSiteSettings()]);
+  const settings = await getSiteSettings();
 
   return (
+    // Deliberately hardcoded rather than getLocale() — that call falls back
+    // to reading headers() when invoked before the child [locale]/layout.tsx
+    // has run setRequestLocale(), which is always true here since parents
+    // render before children. That forced every single customer page to
+    // skip static rendering/caching entirely just for this attribute — a
+    // real perf cost (verified: product pages served Cache-Control: no-store
+    // on every request) for a value that isn't even locale-aware anywhere
+    // else in this file (title/description/og:locale below are already
+    // hardcoded Vietnamese regardless of visitor locale).
     <html
-      lang={locale}
+      lang="vi"
       className={`${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">

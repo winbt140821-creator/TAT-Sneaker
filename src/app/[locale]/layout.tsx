@@ -3,6 +3,7 @@ import { ViewTransition } from "react";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { SessionProvider } from "next-auth/react";
+import { HtmlLangSync } from "@/components/HtmlLangSync";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -29,6 +30,7 @@ export default async function LocaleLayout({
           static rendering/caching just to know the logged-in state. See
           Header.tsx / AccountMenu.tsx, which read it via useSession(). */}
       <SessionProvider>
+        <HtmlLangSync />
         {/* Crossfade between pages on navigation (native View Transitions API,
             enabled via experimental.viewTransition in next.config.ts) — the
             sticky Header opts out via its own viewTransitionName so it doesn't
