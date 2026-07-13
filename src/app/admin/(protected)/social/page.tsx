@@ -84,7 +84,7 @@ export default async function AdminSocialPage({
                 <ConfirmSubmitButton
                   label="Ngắt"
                   confirmMessage={`Ngắt kết nối "${a.name}"?`}
-                  className="cursor-pointer font-mono text-[11px] uppercase text-graphite hover:text-stamp hover:underline"
+                  className="-m-2 cursor-pointer p-2 font-mono text-[11px] uppercase text-graphite hover:text-stamp hover:underline"
                 />
               </form>
             </div>
@@ -180,7 +180,7 @@ export default async function AdminSocialPage({
                   <ConfirmSubmitButton
                     label="Xoá"
                     confirmMessage="Xoá bài này khỏi lịch sử?"
-                    className="cursor-pointer font-mono text-[11px] uppercase text-graphite hover:text-stamp hover:underline"
+                    className="-m-2 cursor-pointer p-2 font-mono text-[11px] uppercase text-graphite hover:text-stamp hover:underline"
                   />
                 </form>
               </div>

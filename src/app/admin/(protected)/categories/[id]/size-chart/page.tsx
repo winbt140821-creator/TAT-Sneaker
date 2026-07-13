@@ -67,7 +67,7 @@ export default async function CategorySizeChartPage({
                       <form action={deleteSizeChartRowAction.bind(null, category.id, row.id)}>
                         <button
                           type="submit"
-                          className="cursor-pointer text-xs uppercase tracking-wide text-stamp hover:underline"
+                          className="cursor-pointer p-2 text-xs uppercase tracking-wide text-stamp hover:underline"
                         >
                           Xóa
                         </button>

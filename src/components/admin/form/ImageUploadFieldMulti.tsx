@@ -112,7 +112,7 @@ export function ImageUploadFieldMulti({
                   type="button"
                   onClick={() => updateImages(images.filter((u) => u !== url))}
                   aria-label="Xoá ảnh"
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-stamp text-[10px] font-bold text-paper"
+                  className="absolute -right-2 -top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-stamp text-xs font-bold text-paper"
                 >
                   ×
                 </button>

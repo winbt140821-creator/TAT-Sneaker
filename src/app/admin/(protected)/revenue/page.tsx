@@ -180,6 +180,7 @@ export default async function AdminRevenuePage({
         {buckets.length === 0 ? (
           <p className="font-mono text-sm text-graphite">Không có dữ liệu trong khoảng thời gian này.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full font-mono text-sm">
             <thead>
               <tr className="border-b border-kraft-dark text-left text-xs uppercase tracking-wide text-graphite">
@@ -198,6 +199,7 @@ export default async function AdminRevenuePage({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -206,6 +208,7 @@ export default async function AdminRevenuePage({
         {topProducts.length === 0 ? (
           <p className="font-mono text-sm text-graphite">Không có dữ liệu trong khoảng thời gian này.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full font-mono text-sm">
             <thead>
               <tr className="border-b border-kraft-dark text-left text-xs uppercase tracking-wide text-graphite">
@@ -227,6 +230,7 @@ export default async function AdminRevenuePage({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

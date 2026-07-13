@@ -90,7 +90,7 @@ export async function Footer() {
     <>
       <footer className="mt-auto border-t-4 border-forest bg-ink text-kraft">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-3 lg:grid-cols-5">
-          <div className="order-1 sm:order-5">
+          <div className="order-1 col-span-2 sm:order-5 sm:col-span-1">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-paper">
               {t("socialTitle")}
             </p>

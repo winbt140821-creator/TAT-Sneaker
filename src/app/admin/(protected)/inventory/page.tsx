@@ -137,7 +137,7 @@ export default async function AdminInventoryPage({
                               type="submit"
                               disabled={qty <= 0}
                               aria-label={`Giảm số lượng size ${s}`}
-                              className="flex h-8 w-6 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-stamp disabled:cursor-not-allowed disabled:opacity-30"
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-stamp disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               −
                             </button>
@@ -159,7 +159,7 @@ export default async function AdminInventoryPage({
                             />
                             <button
                               type="submit"
-                              className="cursor-pointer bg-ink px-1.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
+                              className="flex h-9 min-w-9 cursor-pointer items-center justify-center bg-ink px-2 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper transition-colors hover:bg-ink-soft"
                             >
                               Lưu
                             </button>
@@ -168,7 +168,7 @@ export default async function AdminInventoryPage({
                             <button
                               type="submit"
                               aria-label={`Tăng số lượng size ${s}`}
-                              className="flex h-8 w-6 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-forest"
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm text-graphite hover:text-forest"
                             >
                               +
                             </button>

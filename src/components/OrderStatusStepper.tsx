@@ -34,7 +34,7 @@ export function OrderStatusStepper({
               {i + 1}
             </div>
             <span
-              className={`text-center font-mono text-[9px] leading-tight uppercase tracking-wide sm:text-[10px] ${
+              className={`text-center font-mono text-[10px] leading-tight uppercase tracking-wide sm:text-xs ${
                 i <= currentIndex ? "text-ink" : "text-graphite"
               }`}
             >

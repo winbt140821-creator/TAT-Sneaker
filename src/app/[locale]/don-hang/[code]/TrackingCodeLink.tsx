@@ -24,7 +24,7 @@ export function TrackingCodeLink({ code }: { code: string }) {
             setCopied(false);
           }
         }}
-        className="font-mono text-[10px] font-semibold uppercase tracking-wide text-forest underline decoration-dotted hover:text-forest-dark"
+        className="-m-1.5 p-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-forest underline decoration-dotted hover:text-forest-dark"
       >
         {copied ? "Đã sao chép!" : "Sao chép"}
       </button>
@@ -32,7 +32,7 @@ export function TrackingCodeLink({ code }: { code: string }) {
         href={TRACKING_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-mono text-[10px] font-semibold uppercase tracking-wide text-graphite underline decoration-dotted hover:text-ink"
+        className="-m-1.5 p-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-graphite underline decoration-dotted hover:text-ink"
       >
         Mở trang tra cứu →
       </a>

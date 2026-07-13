@@ -13,6 +13,31 @@ type Product = { id: string; sku: string; name: string; priceLabel: string; imag
 
 const initialState: ComposeFormState = {};
 
+// A failed/expired image URL with empty alt text renders as nothing at all
+// on mobile Safari — no broken-icon, no text, just blank space where the
+// thumbnail should be. Track load failures so we can fall back to the same
+// "Không ảnh" placeholder used when there's no image at all.
+function ProductThumb({ src, alt }: { src: string | undefined; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <span className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-graphite">
+        Không ảnh
+      </span>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes="150px"
+      className="object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function ComposeForm({
   accounts,
   products,
@@ -148,7 +173,7 @@ export function ComposeForm({
                 type="button"
                 onClick={() => removeImage(url)}
                 aria-label="Bỏ ảnh"
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-stamp text-[10px] font-bold text-paper"
+                className="absolute -right-2 -top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-stamp text-xs font-bold text-paper"
               >
                 ×
               </button>
@@ -195,14 +220,8 @@ export function ComposeForm({
                   (active ? "border-forest bg-forest/5" : "hover:border-forest")
                 }
               >
-                <div className="relative aspect-square overflow-hidden bg-kraft-dark/30">
-                  {p.images[0] ? (
-                    <Image src={p.images[0]} alt="" fill sizes="150px" className="object-cover" />
-                  ) : (
-                    <span className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-graphite">
-                      Không ảnh
-                    </span>
-                  )}
+                <div className="relative aspect-square w-full overflow-hidden bg-kraft-dark/30">
+                  <ProductThumb src={p.images[0]} alt={p.name} />
                   {active && (
                     <div className="absolute inset-0 flex items-center justify-center bg-forest/20">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-forest text-paper">✓</div>

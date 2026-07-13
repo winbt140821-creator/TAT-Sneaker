@@ -379,7 +379,7 @@ export function ProductForm({
                     type="button"
                     onClick={() => handleRemoveCustomSize(s)}
                     aria-label={`Xóa size ${s}`}
-                    className="absolute -right-1 -top-1 flex h-4 w-4 cursor-pointer items-center justify-center rounded-full bg-stamp text-[9px] leading-none text-paper"
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-stamp text-[10px] leading-none text-paper"
                   >
                     ×
                   </button>

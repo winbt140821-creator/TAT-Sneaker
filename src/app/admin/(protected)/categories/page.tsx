@@ -12,7 +12,7 @@ function MoveButtons({ id, disableUp, disableDown }: { id: string; disableUp: bo
           type="submit"
           disabled={disableUp}
           aria-label="Di chuyển lên"
-          className="flex h-7 w-7 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
         >
           <ChevronDownIcon className="h-4 w-4 rotate-180" />
         </button>
@@ -22,7 +22,7 @@ function MoveButtons({ id, disableUp, disableDown }: { id: string; disableUp: bo
           type="submit"
           disabled={disableDown}
           aria-label="Di chuyển xuống"
-          className="flex h-7 w-7 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center text-graphite hover:text-ink disabled:cursor-not-allowed disabled:opacity-20"
         >
           <ChevronDownIcon className="h-4 w-4" />
         </button>
