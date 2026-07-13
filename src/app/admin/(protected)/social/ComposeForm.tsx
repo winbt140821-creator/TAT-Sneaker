@@ -153,11 +153,19 @@ export function ComposeForm({
               <label
                 key={a.id}
                 className={
-                  "die-cut-flat flex cursor-pointer items-center gap-2 bg-kraft px-3 py-2 transition-colors " +
-                  (checked ? "border-forest bg-forest/10" : "hover:border-forest")
+                  "die-cut-flat flex cursor-pointer items-center gap-2 px-3 py-2 transition-colors " +
+                  (checked ? "border-forest bg-forest text-paper" : "bg-kraft text-ink hover:border-forest")
                 }
               >
                 <input type="checkbox" checked={checked} onChange={() => toggleTarget(a.id)} className="sr-only" />
+                <span
+                  className={
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold " +
+                    (checked ? "bg-paper text-forest" : "border border-graphite/40")
+                  }
+                >
+                  {checked && "✓"}
+                </span>
                 <span
                   className={
                     "px-1.5 py-0.5 font-mono text-[10px] uppercase text-paper " +
@@ -166,7 +174,7 @@ export function ComposeForm({
                 >
                   {a.platform === "FACEBOOK" ? "FB" : "IG"}
                 </span>
-                <span className="font-body text-sm text-ink">{a.name}</span>
+                <span className="font-body text-sm">{a.name}</span>
               </label>
             );
           })}
