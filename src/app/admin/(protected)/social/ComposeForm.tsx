@@ -117,6 +117,15 @@ export function ComposeForm({
   }
 
   const hasTargets = selectedTargets.size > 0;
+  // Instagram (unlike Facebook) rejects a text-only post outright — if the
+  // admin picks Instagram alongside Facebook pages but no image, the FB
+  // posts succeed while Instagram silently fails, which just reads as "đăng
+  // không được" since 2 of 3 targets actually went through. Catch it before
+  // submitting instead of after a confusing partial failure.
+  const missingImageForInstagram =
+    allImages.length === 0 &&
+    accounts.some((a) => a.platform === "INSTAGRAM" && selectedTargets.has(a.id));
+  const canSubmit = hasTargets && !uploading && !missingImageForInstagram;
   const commonFields = (
     <>
       <input type="hidden" name="message" value={message} />
@@ -299,11 +308,18 @@ export function ComposeForm({
         />
       </div>
 
+      {missingImageForInstagram && (
+        <p className="mt-4 die-cut-flat bg-stamp/10 p-3 font-mono text-xs text-stamp">
+          Instagram bắt buộc phải có ảnh — chọn 1 sản phẩm hoặc tải ảnh lên ở trên, hoặc bỏ chọn
+          trang Instagram nếu chỉ muốn đăng chữ.
+        </p>
+      )}
+
       {/* 2 form riêng: đăng ngay / hẹn giờ — cùng field ẩn, khác action */}
       <div className="mt-5 flex flex-wrap items-end gap-4 border-t border-graphite/30 pt-4">
         <form action={publishAction} className="contents">
           {commonFields}
-          <SubmitButton disabled={!hasTargets || uploading} pendingLabel="Đang đăng...">
+          <SubmitButton disabled={!canSubmit} pendingLabel="Đang đăng...">
             🚀 Đăng ngay
           </SubmitButton>
         </form>
@@ -318,7 +334,7 @@ export function ComposeForm({
             className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
           />
           <SubmitButton
-            disabled={!hasTargets || uploading}
+            disabled={!canSubmit}
             pendingLabel="Đang lưu..."
             className="w-fit cursor-pointer bg-graphite px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60"
           >
