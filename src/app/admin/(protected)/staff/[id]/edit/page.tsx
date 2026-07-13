@@ -16,7 +16,13 @@ export default async function EditStaffPage({
   if (current.role !== "ADMIN") redirect("/admin");
 
   const { id } = await params;
-  const staff = await prisma.staff.findUnique({ where: { id } });
+  // select only what StaffForm's defaultValues needs — passwordHash must
+  // never reach the client, and findUnique() with no `select` would ship
+  // the full row (including it) into this Client Component's RSC payload.
+  const staff = await prisma.staff.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, role: true },
+  });
   if (!staff) notFound();
 
   return (
