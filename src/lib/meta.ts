@@ -130,6 +130,7 @@ export async function getPagesAndInstagram(userToken: string): Promise<Connected
 }
 
 export type PublishTarget = {
+  id: string;
   platform: "FACEBOOK" | "INSTAGRAM";
   pageId: string;
   igUserId: string | null;

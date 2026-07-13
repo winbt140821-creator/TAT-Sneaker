@@ -18,6 +18,7 @@ function readCompose(formData: FormData) {
 async function loadTargets(targetIds: string[]): Promise<PublishTarget[]> {
   const accounts = await prisma.socialAccount.findMany({ where: { id: { in: targetIds } } });
   return accounts.map((a) => ({
+    id: a.id,
     platform: a.platform,
     pageId: a.pageId,
     igUserId: a.igUserId,
@@ -35,15 +36,14 @@ export async function publishNowAction(
   if (targetIds.length === 0) return { error: "Hãy chọn ít nhất 1 trang để đăng." };
 
   const targets = await loadTargets(targetIds);
-  const idByTarget = new Map(targetIds.map((id, i) => [i, id]));
   const results = await Promise.all(
-    targets.map(async (t, i) => {
+    targets.map(async (t) => {
       try {
         const r = await publishToTarget(t, { message, images, productId });
-        return { targetId: idByTarget.get(i)!, name: t.name, ok: true, link: r.url };
+        return { targetId: t.id, name: t.name, ok: true, link: r.url };
       } catch (err) {
         return {
-          targetId: idByTarget.get(i)!,
+          targetId: t.id,
           name: t.name,
           ok: false,
           error: err instanceof Error ? err.message : "Lỗi không xác định",

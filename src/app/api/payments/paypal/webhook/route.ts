@@ -22,7 +22,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
-  const event = JSON.parse(body) as { event_type?: string; resource?: { id?: string } };
+  let event: { event_type?: string; resource?: { id?: string } };
+  try {
+    event = JSON.parse(body);
+  } catch {
+    return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
+  }
+
   const paypalOrderId = event.resource?.id;
   if (!paypalOrderId) return NextResponse.json({ received: true });
 

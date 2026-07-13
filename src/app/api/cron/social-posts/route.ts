@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const results = await Promise.all(
       accounts.map(async (a) => {
         const target: PublishTarget = {
+          id: a.id,
           platform: a.platform,
           pageId: a.pageId,
           igUserId: a.igUserId,

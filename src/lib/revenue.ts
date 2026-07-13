@@ -64,9 +64,13 @@ export async function getRevenueByBucket(
   to: Date,
 ): Promise<RevenueBucketRow[]> {
   const fmt = STRFTIME_FORMAT[bucket];
+  // createdAt is stored in UTC; shift by Vietnam's fixed UTC+7 offset before
+  // formatting so a bucket boundary falls on the Vietnam calendar day/week/
+  // month/year, not the UTC one — otherwise orders placed between midnight
+  // and 7am local time get bucketed into the previous day.
   const rows = await prisma.$queryRaw<{ period: string; revenue: number | null; orderCount: number }[]>(
     Prisma.sql`
-      SELECT strftime(${fmt}, o."createdAt") as period,
+      SELECT strftime(${fmt}, o."createdAt", '+7 hours') as period,
              SUM(oi.price * oi.quantity) as revenue,
              COUNT(DISTINCT o.id) as orderCount
       FROM "Order" o

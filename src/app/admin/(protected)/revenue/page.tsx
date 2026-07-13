@@ -50,8 +50,12 @@ export default async function AdminRevenuePage({
   let from: Date;
   let to: Date;
   if (hasCustomRange) {
-    from = new Date(`${params.from}T00:00:00`);
-    to = new Date(`${params.to}T23:59:59.999`);
+    // Explicit +07:00 (Vietnam, no DST) rather than relying on the server
+    // process's ambient timezone — Vercel functions run in UTC, so a bare
+    // "T00:00:00" would parse as UTC midnight (7am Vietnam time), silently
+    // clipping the first/last 7 hours of the intended local calendar day.
+    from = new Date(`${params.from}T00:00:00+07:00`);
+    to = new Date(`${params.to}T23:59:59.999+07:00`);
   } else {
     to = new Date();
     const preset = RANGE_PRESETS[rangeKey];
