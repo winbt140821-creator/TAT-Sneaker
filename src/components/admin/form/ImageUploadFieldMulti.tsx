@@ -4,6 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB — mirrors src/lib/uploads.ts
+// Uploading dozens of photos as one unbounded Promise.all() burst overwhelms
+// mobile connections (seen in practice: 38 photos at once over cellular data
+// -> at least one PUT fails with a generic "Load failed" network error) —
+// cap how many are in flight at once instead.
+const UPLOAD_CONCURRENCY = 4;
 
 // Uploads go straight from the browser to R2 via a presigned URL — never
 // through this form's Server Action. Vercel hard-caps Server Action/Function
@@ -71,20 +76,39 @@ export function ImageUploadFieldMulti({
       if (!res.ok) throw new Error(data.error ?? "Upload thất bại");
 
       const targets: { uploadUrl: string; publicUrl: string }[] = data.targets;
-      const uploadedUrls = await Promise.all(
-        files.map(async (file, i) => {
-          const target = targets[i];
-          const putRes = await fetch(target.uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": file.type },
-            body: file,
-          });
-          if (!putRes.ok) throw new Error(`Upload "${file.name}" thất bại`);
-          return target.publicUrl;
-        })
-      );
 
-      updateImages([...images, ...uploadedUrls]);
+      // Uploaded in small batches rather than one giant Promise.all() burst,
+      // and a failed file no longer discards every file that DID succeed —
+      // each is tracked independently so a flaky connection loses at most
+      // the files it actually failed on.
+      const succeeded: string[] = [];
+      const failedNames: string[] = [];
+      for (let start = 0; start < files.length; start += UPLOAD_CONCURRENCY) {
+        const batch = files.slice(start, start + UPLOAD_CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map(async (file, i) => {
+            const target = targets[start + i];
+            const putRes = await fetch(target.uploadUrl, {
+              method: "PUT",
+              headers: { "Content-Type": file.type },
+              body: file,
+            });
+            if (!putRes.ok) throw new Error(file.name);
+            return target.publicUrl;
+          })
+        );
+        results.forEach((r, i) => {
+          if (r.status === "fulfilled") succeeded.push(r.value);
+          else failedNames.push(batch[i].name);
+        });
+      }
+
+      if (succeeded.length > 0) updateImages([...images, ...succeeded]);
+      if (failedNames.length > 0) {
+        setError(
+          `Tải lên thất bại ${failedNames.length}/${files.length} ảnh (mạng không ổn định) — thử tải lại các ảnh còn thiếu: ${failedNames.slice(0, 3).join(", ")}${failedNames.length > 3 ? "…" : ""}`
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload thất bại");
     } finally {
