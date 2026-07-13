@@ -49,6 +49,16 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   if (input.items.length === 0) {
     return { error: "Giỏ hàng trống." };
   }
+  // Cart items come from the client (ultimately localStorage) — a negative
+  // or non-integer quantity would pass `availableQty < item.quantity`
+  // (making it false), then flow into the stock decrement as an INCREASE
+  // and into the order total as a negative charge. Reject anything that
+  // isn't a positive integer before it reaches stock math or pricing.
+  for (const item of input.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+      return { error: "Số lượng sản phẩm không hợp lệ." };
+    }
+  }
 
   const productIds = [...new Set(input.items.map((i) => i.productId))];
   const [products, campaigns] = await Promise.all([
