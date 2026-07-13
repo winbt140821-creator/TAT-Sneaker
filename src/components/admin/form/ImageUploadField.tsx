@@ -88,10 +88,15 @@ export function ImageUploadField({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload thất bại");
 
-      const target = data.targets[0] as { uploadUrl: string; publicUrl: string };
+      const target = data.targets[0] as { uploadUrl: string; publicUrl: string; contentType?: string };
       const putRes = await fetch(target.uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": file.type },
+        // The presigned R2 URL is signed against a Content-Type derived
+        // server-side from the file extension (src/lib/uploads.ts) — using
+        // the browser's own file.type here instead can silently mismatch
+        // (some mobile browsers report an empty/different MIME type for
+        // camera-roll photos), which R2 rejects as a signature failure.
+        headers: { "Content-Type": target.contentType ?? file.type },
         body: file,
       });
       if (!putRes.ok) throw new Error("Upload thất bại");

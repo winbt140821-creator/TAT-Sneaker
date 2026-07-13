@@ -9,6 +9,40 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB — mirrors src/lib/uploads.ts
 // -> at least one PUT fails with a generic "Load failed" network error) —
 // cap how many are in flight at once instead.
 const UPLOAD_CONCURRENCY = 4;
+const MAX_ATTEMPTS = 3;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function uploadWithRetry(
+  file: File,
+  target: { uploadUrl: string; publicUrl: string; contentType?: string }
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const putRes = await fetch(target.uploadUrl, {
+        method: "PUT",
+        // The presigned R2 URL is signed against a Content-Type derived from
+        // the file extension server-side (see src/lib/uploads.ts) — using
+        // the browser's own file.type here instead can silently mismatch
+        // (e.g. some mobile browsers report an empty/different MIME type for
+        // camera-roll photos), which R2 rejects as a signature failure on
+        // every single file, not just some — not a flaky-network symptom at
+        // all despite looking like one.
+        headers: { "Content-Type": target.contentType ?? file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error(file.name);
+      return target.publicUrl;
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_ATTEMPTS) await delay(attempt * 800);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(file.name);
+}
 
 // Uploads go straight from the browser to R2 via a presigned URL — never
 // through this form's Server Action. Vercel hard-caps Server Action/Function
@@ -75,27 +109,19 @@ export function ImageUploadFieldMulti({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload thất bại");
 
-      const targets: { uploadUrl: string; publicUrl: string }[] = data.targets;
+      const targets: { uploadUrl: string; publicUrl: string; contentType?: string }[] = data.targets;
 
       // Uploaded in small batches rather than one giant Promise.all() burst,
-      // and a failed file no longer discards every file that DID succeed —
-      // each is tracked independently so a flaky connection loses at most
-      // the files it actually failed on.
+      // each file retries a couple of times on its own before being counted
+      // as failed, and a failed file no longer discards every file that DID
+      // succeed — each is tracked independently so a flaky connection loses
+      // at most the files that failed after every retry.
       const succeeded: string[] = [];
       const failedNames: string[] = [];
       for (let start = 0; start < files.length; start += UPLOAD_CONCURRENCY) {
         const batch = files.slice(start, start + UPLOAD_CONCURRENCY);
         const results = await Promise.allSettled(
-          batch.map(async (file, i) => {
-            const target = targets[start + i];
-            const putRes = await fetch(target.uploadUrl, {
-              method: "PUT",
-              headers: { "Content-Type": file.type },
-              body: file,
-            });
-            if (!putRes.ok) throw new Error(file.name);
-            return target.publicUrl;
-          })
+          batch.map((file, i) => uploadWithRetry(file, targets[start + i]))
         );
         results.forEach((r, i) => {
           if (r.status === "fulfilled") succeeded.push(r.value);
@@ -106,7 +132,7 @@ export function ImageUploadFieldMulti({
       if (succeeded.length > 0) updateImages([...images, ...succeeded]);
       if (failedNames.length > 0) {
         setError(
-          `Tải lên thất bại ${failedNames.length}/${files.length} ảnh (mạng không ổn định) — thử tải lại các ảnh còn thiếu: ${failedNames.slice(0, 3).join(", ")}${failedNames.length > 3 ? "…" : ""}`
+          `Đã tự thử lại nhưng vẫn thất bại ${failedNames.length}/${files.length} ảnh — chọn lại các ảnh còn thiếu: ${failedNames.slice(0, 3).join(", ")}${failedNames.length > 3 ? "…" : ""}`
         );
       }
     } catch (err) {

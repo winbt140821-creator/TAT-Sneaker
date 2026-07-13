@@ -62,7 +62,7 @@ function r2Config() {
   return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl };
 }
 
-export type UploadTarget = { uploadUrl: string; publicUrl: string };
+export type UploadTarget = { uploadUrl: string; publicUrl: string; contentType: string };
 
 /**
  * Generates one upload destination per requested file: a presigned R2 PUT
@@ -88,11 +88,13 @@ export async function createUploadTargets(
       if (!ALLOWED_EXTENSIONS.has(ext)) throw new Error(`Định dạng không hỗ trợ: ${name}`);
 
       const filename = `${randomUUID()}${ext}`;
+      const contentType = CONTENT_TYPE_FOR_EXT[ext];
 
       if (!config) {
         return {
           uploadUrl: `/api/admin/uploads/local/${filename}`,
           publicUrl: `/uploads/${filename}`,
+          contentType,
         };
       }
 
@@ -106,12 +108,12 @@ export async function createUploadTargets(
         new PutObjectCommand({
           Bucket: config.bucket,
           Key: filename,
-          ContentType: CONTENT_TYPE_FOR_EXT[ext],
+          ContentType: contentType,
         }),
         { expiresIn: 300 }
       );
 
-      return { uploadUrl, publicUrl: `${config.publicUrl.replace(/\/$/, "")}/${filename}` };
+      return { uploadUrl, publicUrl: `${config.publicUrl.replace(/\/$/, "")}/${filename}`, contentType };
     })
   );
 }
