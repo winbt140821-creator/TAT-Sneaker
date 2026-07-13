@@ -6,10 +6,20 @@ import { SearchIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
+import { renderSocialPostTemplate } from "@/lib/social-post-template";
 import { publishNowAction, schedulePostAction, type ComposeFormState } from "./actions";
 
 type Account = { id: string; platform: "FACEBOOK" | "INSTAGRAM"; name: string };
-type Product = { id: string; sku: string; name: string; priceLabel: string; images: string[] };
+type Product = {
+  id: string;
+  sku: string;
+  name: string;
+  priceLabel: string;
+  images: string[];
+  link: string;
+  categoryIds: string[];
+};
+type Category = { id: string; label: string; parentId: string | null };
 
 const initialState: ComposeFormState = {};
 
@@ -41,10 +51,14 @@ function ProductThumb({ src, alt }: { src: string | undefined; alt: string }) {
 export function ComposeForm({
   accounts,
   products,
+  categories,
+  socialPostTemplate,
   catalogConfigured,
 }: {
   accounts: Account[];
   products: Product[];
+  categories: Category[];
+  socialPostTemplate: string;
   catalogConfigured: boolean;
 }) {
   const [publishState, publishAction] = useActionState(publishNowAction, initialState);
@@ -57,20 +71,25 @@ export function ComposeForm({
   const [uploading, setUploading] = useState(false);
 
   const [productSearch, setProductSearch] = useState("");
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
-  }, [products, productSearch]);
+    return products.filter((p) => {
+      if (activeCategoryId && !p.categoryIds.includes(activeCategoryId)) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+    });
+  }, [products, productSearch, activeCategoryId]);
 
-  // Chọn 1 sản phẩm -> lấy TOÀN BỘ ảnh của nó + soạn sẵn nội dung (tên + giá)
-  // để người dùng chỉ cần bổ sung thêm mô tả, không phải gõ lại từ đầu.
+  // Chọn 1 sản phẩm -> lấy TOÀN BỘ ảnh của nó + soạn sẵn nội dung theo mẫu
+  // (xem "Mẫu nội dung mặc định" ở trên) để người dùng chỉ cần bổ sung thêm
+  // mô tả, không phải gõ lại từ đầu.
   function pickProduct(p: Product) {
     setActiveProductId(p.id);
     setSelectedImages(p.images);
-    setMessage(`${p.name}\nGiá: ${p.priceLabel}`);
+    setMessage(renderSocialPostTemplate(socialPostTemplate, { ten: p.name, link: p.link }));
   }
 
   const allImages = useMemo(
@@ -206,6 +225,34 @@ export function ComposeForm({
           />
           <SearchIcon className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
         </div>
+
+        {categories.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveCategoryId(null)}
+              className={
+                "die-cut-flat cursor-pointer px-3 py-2 font-mono text-xs uppercase tracking-wide transition-colors " +
+                (activeCategoryId === null ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/30")
+              }
+            >
+              Tất cả
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setActiveCategoryId((prev) => (prev === c.id ? null : c.id))}
+                className={
+                  "die-cut-flat cursor-pointer px-3 py-2 font-mono text-xs uppercase tracking-wide transition-colors " +
+                  (activeCategoryId === c.id ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-kraft-dark/30")
+                }
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-2 grid max-h-96 grid-cols-2 gap-2 overflow-y-auto die-cut-flat bg-kraft p-2 sm:grid-cols-3 md:grid-cols-4">
           {filteredProducts.map((p) => {

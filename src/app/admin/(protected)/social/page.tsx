@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { isMetaConfigured, isCatalogConfigured, getFacebookLoginUrl } from "@/lib/meta";
+import { getSiteSettings } from "@/lib/settings";
+import { absoluteUrl } from "@/lib/seo";
+import { DEFAULT_SOCIAL_POST_TEMPLATE } from "@/lib/social-post-template";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
+import { TextAreaField } from "@/components/admin/form/TextAreaField";
+import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { ComposeForm } from "./ComposeForm";
-import { deleteSocialPostAction, disconnectSocialAccountAction } from "./actions";
+import {
+  deleteSocialPostAction,
+  disconnectSocialAccountAction,
+  updateSocialPostTemplateAction,
+} from "./actions";
 
 export default async function AdminSocialPage({
   searchParams,
@@ -12,7 +21,7 @@ export default async function AdminSocialPage({
 }) {
   const { error } = await searchParams;
 
-  const [accounts, posts, products] = await Promise.all([
+  const [accounts, posts, products, categories, settings] = await Promise.all([
     // Never select accessToken here — this result (via `accounts` below)
     // gets passed straight into <ComposeForm>, a Client Component, which
     // would serialize the raw Facebook Page token into the page's HTML/RSC
@@ -26,9 +35,21 @@ export default async function AdminSocialPage({
     prisma.socialPost.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
     prisma.product.findMany({
       where: { hidden: false },
-      select: { id: true, sku: true, name: true, images: true, price: true },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        images: true,
+        price: true,
+        categories: { select: { id: true } },
+      },
       orderBy: { name: "asc" },
     }),
+    prisma.category.findMany({
+      select: { id: true, label: true, parentId: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    getSiteSettings(),
   ]);
 
   const productOptions = products.map((p) => ({
@@ -37,7 +58,12 @@ export default async function AdminSocialPage({
     name: p.name,
     priceLabel: formatPrice(p.price),
     images: JSON.parse(p.images || "[]") as string[],
+    link: absoluteUrl(`/san-pham/${p.id}`),
+    categoryIds: p.categories.map((c) => c.id),
   }));
+
+  const categoryOptions = categories.map((c) => ({ id: c.id, label: c.label, parentId: c.parentId }));
+  const socialPostTemplate = settings?.socialPostTemplate ?? DEFAULT_SOCIAL_POST_TEMPLATE;
 
   return (
     <div>
@@ -104,9 +130,36 @@ export default async function AdminSocialPage({
         )}
       </div>
 
+      {/* Mẫu nội dung mặc định */}
+      <details className="mt-6 die-cut bg-paper p-4">
+        <summary className="cursor-pointer font-display text-lg text-ink">Mẫu nội dung mặc định</summary>
+        <p className="mt-2 font-mono text-[11px] text-graphite">
+          Áp dụng khi chọn 1 sản phẩm ở khung soạn bài bên dưới — dùng{" "}
+          <code className="text-ink">{"{ten}"}</code> cho tên sản phẩm và{" "}
+          <code className="text-ink">{"{link}"}</code> cho đường dẫn sản phẩm trên web. Vẫn có thể gõ
+          thêm/sửa nội dung sau khi chọn sản phẩm.
+        </p>
+        <form action={updateSocialPostTemplateAction} className="mt-3 flex flex-col gap-3">
+          <TextAreaField
+            id="socialPostTemplate"
+            name="socialPostTemplate"
+            label="Mẫu"
+            rows={4}
+            defaultValue={socialPostTemplate}
+          />
+          <SubmitButton>Lưu mẫu</SubmitButton>
+        </form>
+      </details>
+
       {/* Soạn & đăng bài */}
       <div className="mt-6">
-        <ComposeForm accounts={accounts} products={productOptions} catalogConfigured={isCatalogConfigured()} />
+        <ComposeForm
+          accounts={accounts}
+          products={productOptions}
+          categories={categoryOptions}
+          socialPostTemplate={socialPostTemplate}
+          catalogConfigured={isCatalogConfigured()}
+        />
       </div>
 
       {/* Lịch sử */}

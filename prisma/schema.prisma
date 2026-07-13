@@ -211,6 +211,12 @@ model SiteSettings {
   // different.
   defaultProductDescription String?
 
+  // Default text template for the social compose form's "pick a product"
+  // auto-fill (src/app/admin/(protected)/social/ComposeForm.tsx) — supports
+  // {ten} (product name) and {link} (absolute product page URL) placeholders.
+  // Staff still edit/add their own text in the compose textarea afterward.
+  socialPostTemplate String?
+
   heroEyebrow            String?
   heroEyebrowEnabled     Boolean @default(true)
   heroHeading            String?

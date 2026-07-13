@@ -110,3 +110,16 @@ export async function disconnectSocialAccountAction(id: string) {
   await prisma.socialAccount.delete({ where: { id } });
   revalidatePath("/admin/social");
 }
+
+export async function updateSocialPostTemplateAction(formData: FormData): Promise<void> {
+  await requireStaff();
+  const socialPostTemplate = String(formData.get("socialPostTemplate") ?? "").trim() || null;
+
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { socialPostTemplate },
+    create: { id: "singleton", socialPostTemplate },
+  });
+
+  revalidatePath("/admin/social");
+}
