@@ -1,14 +1,29 @@
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getNavCategories } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
-import { BagIcon } from "./icons";
+import { BagIcon, UserIcon } from "./icons";
 import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
 import { CartBadge } from "./CartBadge";
 import { AccountMenu } from "./AccountMenu";
 import { AdminLinkButton } from "./AdminLinkButton";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
+
+// AccountMenu reads useSearchParams() (to preserve query params when
+// switching language) — without a Suspense boundary around it, Next.js
+// can't statically prerender any page that renders Header (i.e. every
+// customer page), and fails the build outright ("useSearchParams() should
+// be wrapped in a suspense boundary"). The fallback mirrors AccountMenu's
+// own collapsed-icon appearance so there's no layout shift.
+function AccountMenuFallback() {
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center text-graphite">
+      <UserIcon className="h-5 w-5" />
+    </div>
+  );
+}
 
 // Deliberately does NOT call auth()/getCurrentStaff() (both read cookies())
 // — that would force every customer page rendering this shared Header to
@@ -55,7 +70,9 @@ export async function Header() {
             <BagIcon className="h-5 w-5" />
             <CartBadge />
           </Link>
-          <AccountMenu />
+          <Suspense fallback={<AccountMenuFallback />}>
+            <AccountMenu />
+          </Suspense>
         </div>
       </div>
 
