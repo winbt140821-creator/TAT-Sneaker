@@ -146,7 +146,12 @@ export function ImageUploadFieldMulti({
     <fieldset>
       <legend className="font-mono text-xs uppercase tracking-wide text-graphite">{label}</legend>
       <div className="mt-2 flex flex-col gap-3">
-        {images.length > 0 && (
+        {/* When onImagesChange is passed, the parent already renders its own
+            gallery + hidden inputs for these same URLs (e.g. ComposeForm's
+            "Ảnh đã chọn" section merges this with product-picked images) —
+            showing this component's own preview too would just duplicate
+            every uploaded photo on the page. */}
+        {images.length > 0 && !onImagesChange && (
           <div className="flex flex-wrap gap-3">
             {images.map((url) => (
               <div key={url} className="relative">
