@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -20,11 +21,16 @@ const LOCALE_LABELS: Record<string, string> = {
   zh: "中文",
 };
 
-export function AccountMenu({
-  session,
-}: {
-  session: { name: string; avatarUrl?: string | null } | null;
-}) {
+export function AccountMenu() {
+  const { data: authSession } = useSession();
+  const tHeader = useTranslations("header");
+  const session = authSession?.user
+    ? {
+        name: authSession.user.name || authSession.user.email || tHeader("accountFallback"),
+        avatarUrl: authSession.user.image,
+      }
+    : null;
+
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const wishlistItems = useSyncExternalStore(

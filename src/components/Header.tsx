@@ -1,22 +1,24 @@
-import NextLink from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getNavCategories } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
-import { getCurrentStaff } from "@/lib/auth";
-import { auth } from "@/auth";
-import { BagIcon, DashboardIcon } from "./icons";
+import { BagIcon } from "./icons";
 import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
 import { CartBadge } from "./CartBadge";
 import { AccountMenu } from "./AccountMenu";
+import { AdminLinkButton } from "./AdminLinkButton";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
 
+// Deliberately does NOT call auth()/getCurrentStaff() (both read cookies())
+// — that would force every customer page rendering this shared Header to
+// skip static rendering/caching just to know the logged-in state. The
+// login-dependent bits (AccountMenu, AdminLinkButton) fetch their own state
+// client-side instead; see next-intl SessionProvider in
+// src/app/[locale]/layout.tsx and src/app/api/admin/session/route.ts.
 export async function Header() {
-  const [categories, session, staff, t, settings] = await Promise.all([
+  const [categories, t, settings] = await Promise.all([
     getNavCategories(),
-    auth(),
-    getCurrentStaff(),
     getTranslations("header"),
     getSiteSettings(),
   ]);
@@ -44,18 +46,7 @@ export async function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-1">
-          {staff && (
-            <NextLink
-              href="/admin"
-              aria-label={t("adminLinkAria")}
-              className="die-cut-flat flex h-10 shrink-0 cursor-pointer items-center gap-1.5 bg-ink px-2.5 text-paper transition-colors hover:bg-ink-soft sm:px-3"
-            >
-              <DashboardIcon className="h-4 w-4" />
-              <span className="hidden font-mono text-xs font-semibold uppercase tracking-wide sm:inline">
-                {t("adminLink")}
-              </span>
-            </NextLink>
-          )}
+          <AdminLinkButton />
           <Link
             href="/gio-hang"
             aria-label={t("cartAria")}
@@ -64,13 +55,7 @@ export async function Header() {
             <BagIcon className="h-5 w-5" />
             <CartBadge />
           </Link>
-          <AccountMenu
-            session={
-              session?.user
-                ? { name: session.user.name || session.user.email || t("accountFallback"), avatarUrl: session.user.image }
-                : null
-            }
-          />
+          <AccountMenu />
         </div>
       </div>
 
