@@ -55,6 +55,12 @@ export async function updateStaticPageAction(
   });
 
   revalidatePath("/admin/pages");
+  // "vi" is unprefixed (default locale, localePrefix: "as-needed" — see
+  // src/i18n/routing.ts), en/zh need their own prefixed path revalidated too
+  // now that this route is static-cacheable (generateStaticParams in
+  // src/app/[locale]/trang/[slug]/page.tsx).
   revalidatePath(`/trang/${page.slug}`);
+  revalidatePath(`/en/trang/${page.slug}`);
+  revalidatePath(`/zh/trang/${page.slug}`);
   redirect("/admin/pages");
 }

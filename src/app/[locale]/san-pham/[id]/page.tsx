@@ -32,6 +32,21 @@ function getBrandCategory(product: NonNullable<Awaited<ReturnType<typeof getProd
   );
 }
 
+// No ids pre-rendered at build time (dynamicParams defaults to true) — this
+// just makes the route ELIGIBLE for static caching at all; without it, Next
+// always classifies a dynamic segment as fully server-rendered-per-request
+// with no caching whatsoever.
+export async function generateStaticParams() {
+  return [];
+}
+
+// Price/stock here can change from several places that don't all revalidate
+// this specific page directly (sale campaigns can affect many products at
+// once, checkout decrements stock inside a transaction) — a short time-based
+// ceiling means any of those show up here within a minute regardless, rather
+// than needing every mutation path to enumerate every affected product page.
+export const revalidate = 60;
+
 export async function generateMetadata({
   params,
 }: {
