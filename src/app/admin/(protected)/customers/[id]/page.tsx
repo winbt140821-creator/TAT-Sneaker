@@ -92,7 +92,9 @@ export default async function AdminCustomerDetailPage({
                   <p className="mt-1 font-mono text-xs text-graphite">{addr.phone}</p>
                   {addr.company && <p className="font-mono text-xs text-graphite">{addr.company}</p>}
                   <p className="mt-1 font-body text-sm text-ink">
-                    {[addr.address, addr.ward, addr.province].filter(Boolean).join(", ")}
+                    {addr.province
+                      ? [addr.address, addr.ward, addr.province].filter(Boolean).join(", ")
+                      : [addr.address, addr.country].filter(Boolean).join(", ")}
                     {addr.zip ? ` (${addr.zip})` : ""}
                   </p>
                   <p className="mt-1 font-mono text-[10px] text-graphite">

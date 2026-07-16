@@ -4,10 +4,6 @@ import { verifyWebhookSignature } from "@/lib/payments/paypal";
 
 // PayPal's async webhook — the real source of truth for capture status
 // (the browser /capture redirect alone isn't trustworthy).
-//
-// TODO: confirm the exact event payload shape once a real PayPal REST app +
-// webhook is configured; the shape below follows PayPal's documented
-// Orders v2 event conventions (resource.id / event_type).
 export async function POST(request: NextRequest) {
   const body = await request.text();
 
@@ -22,14 +18,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
-  let event: { event_type?: string; resource?: { id?: string } };
+  let event: {
+    event_type?: string;
+    resource?: {
+      id?: string;
+      supplementary_data?: { related_ids?: { order_id?: string } };
+    };
+  };
   try {
     event = JSON.parse(body);
   } catch {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
 
-  const paypalOrderId = event.resource?.id;
+  // On PAYMENT.CAPTURE.* events resource.id is the CAPTURE id — the PayPal
+  // order id (what we store as providerRef) lives in supplementary_data.
+  // On CHECKOUT.ORDER.* events resource.id is the order id itself.
+  const paypalOrderId = event.resource?.supplementary_data?.related_ids?.order_id ?? event.resource?.id;
   if (!paypalOrderId) return NextResponse.json({ received: true });
 
   const payment = await prisma.payment.findFirst({
@@ -40,7 +45,11 @@ export async function POST(request: NextRequest) {
   if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { status: "SUCCEEDED", providerRawStatus: event.event_type },
+      data: {
+        status: "SUCCEEDED",
+        providerRawStatus: event.event_type,
+        providerTxnId: event.resource?.id,
+      },
     });
     await prisma.order.update({ where: { id: payment.orderId }, data: { depositPaid: true } });
   }

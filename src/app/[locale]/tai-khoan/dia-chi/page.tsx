@@ -27,8 +27,10 @@ export default async function AccountAddressesPage() {
     phone: a.phone,
     company: a.company ?? "",
     address: a.address,
+    isDomestic: Boolean(a.province),
     province: a.province ?? "",
     ward: a.ward ?? "",
+    country: a.country,
     zip: a.zip ?? "",
     isDefault: a.isDefault,
   }));

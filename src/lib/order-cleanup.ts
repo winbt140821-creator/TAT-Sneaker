@@ -52,23 +52,42 @@ export async function restoreOrderStock(
 // CANCELLED. Disabled entirely when the setting is null — admin cancels by
 // hand in that case. Cheap to call on every admin order-list/dashboard
 // render since the WHERE clause only ever matches genuinely stale rows.
+//
+// Plain COD orders (depositAmount = 0) are swept separately, on
+// SiteSettings.autoCancelUnpaidCodHours — they never touch a payment
+// gateway at all, so "abandoned" means "staff never confirmed it with the
+// customer." This is also the backstop against checkout's stock decrement
+// being abused: since checkout has no login requirement, a bot could
+// otherwise place unlimited unpaid COD orders to drain a size's stock
+// forever with nothing to cancel them.
 export async function autoCancelStaleOrders(): Promise<void> {
   // getSiteSettings() is wrapped in React's cache() — reusing it here means
   // a page that also reads site settings elsewhere in the same request only
   // pays for one query instead of two.
   const settings = await getSiteSettings();
-  const hours = settings?.autoCancelUnpaidDepositHours;
-  if (!hours || hours <= 0) return;
+  const depositHours = settings?.autoCancelUnpaidDepositHours;
+  const codHours = settings?.autoCancelUnpaidCodHours;
 
-  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-
-  const stale = await prisma.order.findMany({
-    where: {
+  const staleWhere: Prisma.OrderWhereInput[] = [];
+  if (depositHours && depositHours > 0) {
+    staleWhere.push({
       status: "PENDING",
       depositAmount: { gt: 0 },
       depositPaid: false,
-      createdAt: { lt: cutoff },
-    },
+      createdAt: { lt: new Date(Date.now() - depositHours * 60 * 60 * 1000) },
+    });
+  }
+  if (codHours && codHours > 0) {
+    staleWhere.push({
+      status: "PENDING",
+      paymentMethod: "COD",
+      createdAt: { lt: new Date(Date.now() - codHours * 60 * 60 * 1000) },
+    });
+  }
+  if (staleWhere.length === 0) return;
+
+  const stale = await prisma.order.findMany({
+    where: { OR: staleWhere },
     select: { id: true },
   });
   if (stale.length === 0) return;

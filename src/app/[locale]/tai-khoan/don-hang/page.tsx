@@ -39,6 +39,8 @@ export default async function AccountOrdersPage({
         createdAt: true,
         province: true,
         ward: true,
+        country: true,
+        postalCode: true,
         address: true,
         paymentMethod: true,
         depositAmount: true,
@@ -67,7 +69,9 @@ export default async function AccountOrdersPage({
             : t("paymentStatusPending");
       const fullAddress = order.province && order.ward
         ? `${order.address}, ${order.ward}, ${order.province}`
-        : order.address;
+        : order.country !== "Việt Nam"
+          ? [order.address, order.postalCode, order.country].filter(Boolean).join(", ")
+          : order.address;
 
       return {
         order,

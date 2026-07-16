@@ -12,6 +12,7 @@ import {
   updateUsdExchangeRateAction,
   updateCnyExchangeRateAction,
   updateAutoCancelHoursAction,
+  updateAutoCancelCodHoursAction,
 } from "../actions";
 
 export default async function AdminSettingsPaymentsPage() {
@@ -203,6 +204,32 @@ export default async function AdminSettingsPaymentsPage() {
             step={1}
             placeholder="Để trống = tắt"
             defaultValue={settings?.autoCancelUnpaidDepositHours ?? ""}
+          />
+          <SubmitButton className="mt-3 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
+            Lưu thay đổi
+          </SubmitButton>
+        </form>
+      </div>
+
+      <div className="border-t border-kraft-dark pt-8">
+        <h2 className="font-display text-xl text-ink">Tự động hủy đơn COD chưa xác nhận</h2>
+        <p className="mt-1 font-mono text-xs text-graphite">
+          Đơn thanh toán khi nhận hàng (COD) mà nhân viên chưa xác nhận sau số giờ này sẽ tự
+          động chuyển sang &quot;Đã hủy&quot; và trả lại tồn kho. Vì thanh toán không yêu cầu đăng
+          nhập, đây cũng là lớp bảo vệ chống spam đặt đơn ảo để chiếm tồn kho. Để trống để tắt
+          tính năng này.
+        </p>
+
+        <form action={updateAutoCancelCodHoursAction} className="mt-6 flex max-w-xs flex-col gap-1.5">
+          <TextField
+            id="autoCancelUnpaidCodHours"
+            name="autoCancelUnpaidCodHours"
+            label="Số giờ trước khi tự hủy"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="Để trống = tắt"
+            defaultValue={settings?.autoCancelUnpaidCodHours ?? ""}
           />
           <SubmitButton className="mt-3 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
             Lưu thay đổi

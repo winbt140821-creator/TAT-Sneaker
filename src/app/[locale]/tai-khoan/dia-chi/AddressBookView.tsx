@@ -35,6 +35,15 @@ function AddressFormModal({
     const province = PROVINCES.find((p) => p.name === initial?.province);
     return province?.wards.find((w) => w.name === initial?.ward)?.code ?? "";
   });
+  // New addresses default to domestic. Editing an existing one infers scope
+  // from what was actually saved: a province means it was domestic (country
+  // is always "Việt Nam" in that case, see actions.ts sanitizeAddressInput).
+  const [isDomestic, setIsDomestic] = useState(
+    () => !initial || Boolean(initial.province) || !initial.country || initial.country === "Việt Nam"
+  );
+  const [country, setCountry] = useState(() =>
+    initial && !initial.province && initial.country && initial.country !== "Việt Nam" ? initial.country : ""
+  );
   const skipNextWardReset = useRef(true);
 
   useEffect(() => {
@@ -58,8 +67,10 @@ function AddressFormModal({
       phone: String(formData.get("phone") ?? ""),
       company: String(formData.get("company") ?? ""),
       address: String(formData.get("address") ?? ""),
+      isDomestic,
       province: PROVINCES.find((p) => p.code === provinceCode)?.name ?? "",
       ward: wards.find((w) => w.code === wardCode)?.name ?? "",
+      country,
       zip: String(formData.get("zip") ?? ""),
       isDefault: formData.get("isDefault") === "on",
     };
@@ -126,39 +137,82 @@ function AddressFormModal({
             placeholder={t("addressCompany")}
             className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
           />
-          <input
-            name="address"
-            required
-            defaultValue={initial?.address}
-            placeholder={tCheckout("addressDetailPlaceholder")}
-            className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
-          />
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <SearchableSelect
-              id="dia-chi-province"
-              name="provinceCode"
-              value={provinceCode}
-              onChange={setProvinceCode}
-              options={PROVINCES}
-              placeholder={tCheckout("provincePlaceholder")}
-              searchPlaceholder={tCheckout("searchPlaceholder")}
-              emptyLabel={tCheckout("searchEmptyLabel")}
-              required
-            />
-            <SearchableSelect
-              id="dia-chi-ward"
-              name="wardCode"
-              value={wardCode}
-              onChange={setWardCode}
-              options={wards}
-              placeholder={tCheckout("wardPlaceholder")}
-              searchPlaceholder={tCheckout("searchPlaceholder")}
-              emptyLabel={tCheckout("searchEmptyLabel")}
-              disabled={!provinceCode}
-              required
-            />
+          <div className="flex flex-wrap gap-2">
+            <label className="flex cursor-pointer items-center gap-2 border border-graphite bg-paper px-3 py-2 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <input
+                type="radio"
+                name="addressScope"
+                checked={isDomestic}
+                onChange={() => setIsDomestic(true)}
+              />
+              {tCheckout("shippingDomestic")}
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 border border-graphite bg-paper px-3 py-2 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <input
+                type="radio"
+                name="addressScope"
+                checked={!isDomestic}
+                onChange={() => setIsDomestic(false)}
+              />
+              {tCheckout("shippingInternational")}
+            </label>
           </div>
+
+          {isDomestic ? (
+            <>
+              <input
+                name="address"
+                required
+                defaultValue={initial?.address}
+                placeholder={tCheckout("addressDetailPlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <SearchableSelect
+                  id="dia-chi-province"
+                  name="provinceCode"
+                  value={provinceCode}
+                  onChange={setProvinceCode}
+                  options={PROVINCES}
+                  placeholder={tCheckout("provincePlaceholder")}
+                  searchPlaceholder={tCheckout("searchPlaceholder")}
+                  emptyLabel={tCheckout("searchEmptyLabel")}
+                  required
+                />
+                <SearchableSelect
+                  id="dia-chi-ward"
+                  name="wardCode"
+                  value={wardCode}
+                  onChange={setWardCode}
+                  options={wards}
+                  placeholder={tCheckout("wardPlaceholder")}
+                  searchPlaceholder={tCheckout("searchPlaceholder")}
+                  emptyLabel={tCheckout("searchEmptyLabel")}
+                  disabled={!provinceCode}
+                  required
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                name="country"
+                required
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder={tCheckout("countryPlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+              <textarea
+                name="address"
+                required
+                rows={3}
+                defaultValue={initial?.address}
+                placeholder={tCheckout("addressInternationalPlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+            </>
+          )}
 
           <input
             name="zip"
@@ -253,7 +307,9 @@ export function AddressBookView({ addresses }: { addresses: Address[] }) {
                 <p className="mt-1 font-mono text-xs text-graphite">{addr.phone}</p>
                 {addr.company && <p className="font-mono text-xs text-graphite">{addr.company}</p>}
                 <p className="mt-1 font-body text-sm text-ink">
-                  {[addr.address, addr.ward, addr.province].filter(Boolean).join(", ")}
+                  {addr.province
+                    ? [addr.address, addr.ward, addr.province].filter(Boolean).join(", ")
+                    : [addr.address, addr.country].filter(Boolean).join(", ")}
                   {addr.zip ? ` (${addr.zip})` : ""}
                 </p>
               </div>

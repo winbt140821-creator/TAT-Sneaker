@@ -25,12 +25,9 @@ export default async function OrderConfirmationPage({
   params: Promise<{ locale: string; code: string }>;
 }) {
   const { code } = await params;
-  const [session, locale] = await Promise.all([auth(), getLocale()]);
-  if (!session?.user?.email) {
-    redirectGuard({ href: `/dang-nhap?callbackUrl=/don-hang/${code}`, locale });
-  }
-
-  const [order, t, tCommon, tCheckout, tAccount, settings] = await Promise.all([
+  const [session, locale, order, t, tCommon, tCheckout, tAccount, settings] = await Promise.all([
+    auth(),
+    getLocale(),
     prisma.order.findUnique({
       where: { code },
       include: { items: { include: { product: true } }, customer: true },
@@ -42,11 +39,22 @@ export default async function OrderConfirmationPage({
     getSiteSettings(),
   ]);
 
-  // notFound() rather than a "not your order" message either way — an order
-  // that doesn't exist and an order that isn't yours should look identical
-  // to the requester, otherwise the response itself confirms the code is
-  // valid (an oracle for guessing other customers' codes).
-  if (!order || order.customer?.email !== session.user.email) notFound();
+  if (!order) notFound();
+
+  // Guest orders (no customerId) have no account to gate behind — the order
+  // code itself is the bearer credential (engineered with enough entropy to
+  // not be guessable, see createOrderAction), same trust model most guest
+  // checkouts use for their confirmation links. Orders placed by a logged-in
+  // customer still require a matching session; notFound() rather than a
+  // "not your order" message either way, otherwise the response itself would
+  // confirm the code is valid (an oracle for guessing other customers' codes).
+  if (order.customerId) {
+    if (!session?.user?.email) {
+      redirectGuard({ href: `/dang-nhap?callbackUrl=/don-hang/${code}`, locale });
+    } else if (order.customer?.email !== session.user.email) {
+      notFound();
+    }
+  }
 
   const STATUS_LABEL: Record<OrderStatus, string> = {
     PENDING: t("statusPending"),
@@ -69,7 +77,9 @@ export default async function OrderConfirmationPage({
   const paymentMethodLabel = PAYMENT_METHOD_LABEL[order.paymentMethod] ?? PAYMENT_METHOD_LABEL.COD;
   const fullAddress = order.province && order.ward
     ? `${order.address}, ${order.ward}, ${order.province}`
-    : order.address;
+    : order.country !== "Việt Nam"
+      ? [order.address, order.postalCode, order.country].filter(Boolean).join(", ")
+      : order.address;
 
   const dynamicBankQrUrl =
     settings?.bankBin && settings?.bankAccountNumber

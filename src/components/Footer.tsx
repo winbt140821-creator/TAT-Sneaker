@@ -167,6 +167,17 @@ export async function Footer() {
                     </Link>
                   </li>
                 ))}
+                {i === 1 && (
+                  <li>
+                    <Link
+                      href="/tra-cuu-don-hang"
+                      className="flex items-center gap-1 font-body text-sm text-kraft hover:text-paper hover:underline"
+                    >
+                      <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-forest sm:hidden" />
+                      {t("supportOrderLookup")}
+                    </Link>
+                  </li>
+                )}
               </ul>
             </div>
           ))}

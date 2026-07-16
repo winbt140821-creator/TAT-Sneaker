@@ -24,18 +24,18 @@ import { trackInitiateCheckout } from "@/lib/meta-pixel";
 
 type CartProduct = Awaited<ReturnType<typeof getCartProductsAction>>[number];
 
-// Bank transfer is the only online payment method shown at checkout for now.
-// VNPay and the card/PayPal option are both hidden until real gateway
-// credentials are set up (see src/lib/payments/*.ts) — the admin QR
-// management for them is left in place in Settings in case they come back
-// later.
+// VNPay stays hidden until real VNPay credentials are set up (see
+// src/lib/payments/vnpay.ts) — the admin QR management for it is left in
+// place in Settings in case it comes back later.
 
 export function CheckoutForm({
+  isLoggedIn,
   bankName,
   bankAccountHolder,
   usdExchangeRate,
   cnyExchangeRate,
 }: {
+  isLoggedIn: boolean;
   bankName?: string | null;
   bankAccountHolder?: string | null;
   usdExchangeRate?: number | null;
@@ -51,8 +51,11 @@ export function CheckoutForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payInFull, setPayInFull] = useState(false);
+  const [provider, setProvider] = useState<"BANK_TRANSFER" | "PAYPAL">("BANK_TRANSFER");
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
+  const [isDomestic, setIsDomestic] = useState(true);
+  const [country, setCountry] = useState("");
   const cartItems = useSyncExternalStore(subscribeCart, getCartSnapshot, getServerCartSnapshot);
   const isEmpty = cartItems.length === 0;
 
@@ -103,7 +106,9 @@ export function CheckoutForm({
   // paying in full simply covers it as part of the full amount.
   const needsOnlinePayment = payInFull || summary.deposit > 0;
   const amountDueNow = payInFull ? summary.total : summary.deposit;
-  const provider = "BANK_TRANSFER" as const;
+  // PayPal needs an admin-set USD exchange rate to convert the VND amount —
+  // hide the card option until one is configured (see initiatePaymentAction).
+  const paypalAvailable = Boolean(usdExchangeRate);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -120,9 +125,13 @@ export function CheckoutForm({
     const result = await createOrderAction({
       customerName: String(formData.get("customerName") ?? ""),
       customerPhone: String(formData.get("customerPhone") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      isDomestic,
       province: provinceName,
       ward: wardName,
+      country,
       address: String(formData.get("address") ?? ""),
+      postalCode: String(formData.get("postalCode") ?? ""),
       note: String(formData.get("note") ?? ""),
       items,
       paymentMethod,
@@ -176,6 +185,32 @@ export function CheckoutForm({
           {t("title")}
         </h2>
 
+        {!isLoggedIn && (
+          <div className="mt-4 flex flex-col gap-1.5">
+            <label htmlFor="email" className="font-mono text-xs uppercase tracking-wide text-graphite">
+              {t("email")}
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder={t("emailPlaceholder")}
+              className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+            />
+            <p className="font-mono text-[11px] text-graphite">
+              {t("guestNotePrefix")}{" "}
+              <Link
+                href={`/dang-nhap?callbackUrl=/thanh-toan`}
+                className="cursor-pointer text-forest underline hover:text-forest-dark"
+              >
+                {t("guestNoteLoginLabel")}
+              </Link>
+            </p>
+          </div>
+        )}
+
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="customerName" className="font-mono text-xs uppercase tracking-wide text-graphite">
@@ -207,56 +242,133 @@ export function CheckoutForm({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="provinceCode" className="font-mono text-xs uppercase tracking-wide text-graphite">
-              {t("province")}
-            </label>
-            <SearchableSelect
-              id="provinceCode"
-              name="provinceCode"
-              value={provinceCode}
-              onChange={handleProvinceChange}
-              options={PROVINCES}
-              placeholder={t("provincePlaceholder")}
-              searchPlaceholder={t("searchPlaceholder")}
-              emptyLabel={t("searchEmptyLabel")}
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="wardCode" className="font-mono text-xs uppercase tracking-wide text-graphite">
-              {t("ward")}
-            </label>
-            <SearchableSelect
-              id="wardCode"
-              name="wardCode"
-              value={wardCode}
-              onChange={setWardCode}
-              options={wards}
-              placeholder={t("wardPlaceholder")}
-              searchPlaceholder={t("searchPlaceholder")}
-              emptyLabel={t("searchEmptyLabel")}
-              disabled={!provinceCode}
-              required
-            />
-          </div>
-        </div>
-
         <div className="mt-4 flex flex-col gap-1.5">
-          <label htmlFor="address" className="font-mono text-xs uppercase tracking-wide text-graphite">
-            {t("address")}
-          </label>
-          <input
-            id="address"
-            name="address"
-            required
-            autoComplete="street-address"
-            placeholder={t("addressDetailPlaceholder")}
-            className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
-          />
+          <span className="font-mono text-xs uppercase tracking-wide text-graphite">
+            {t("shippingScopeTitle")}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <label className="flex cursor-pointer items-center gap-2 border border-graphite bg-paper px-3 py-2 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <input
+                type="radio"
+                name="shippingScope"
+                checked={isDomestic}
+                onChange={() => setIsDomestic(true)}
+              />
+              {t("shippingDomestic")}
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 border border-graphite bg-paper px-3 py-2 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+              <input
+                type="radio"
+                name="shippingScope"
+                checked={!isDomestic}
+                onChange={() => setIsDomestic(false)}
+              />
+              {t("shippingInternational")}
+            </label>
+          </div>
         </div>
+
+        {isDomestic ? (
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="provinceCode" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                  {t("province")}
+                </label>
+                <SearchableSelect
+                  id="provinceCode"
+                  name="provinceCode"
+                  value={provinceCode}
+                  onChange={handleProvinceChange}
+                  options={PROVINCES}
+                  placeholder={t("provincePlaceholder")}
+                  searchPlaceholder={t("searchPlaceholder")}
+                  emptyLabel={t("searchEmptyLabel")}
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="wardCode" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                  {t("ward")}
+                </label>
+                <SearchableSelect
+                  id="wardCode"
+                  name="wardCode"
+                  value={wardCode}
+                  onChange={setWardCode}
+                  options={wards}
+                  placeholder={t("wardPlaceholder")}
+                  searchPlaceholder={t("searchPlaceholder")}
+                  emptyLabel={t("searchEmptyLabel")}
+                  disabled={!provinceCode}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label htmlFor="address" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                {t("address")}
+              </label>
+              <input
+                id="address"
+                name="address"
+                required
+                autoComplete="street-address"
+                placeholder={t("addressDetailPlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label htmlFor="country" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                {t("country")}
+              </label>
+              <input
+                id="country"
+                name="country"
+                required
+                autoComplete="country-name"
+                placeholder={t("countryPlaceholder")}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label htmlFor="address" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                {t("address")}
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                required
+                rows={3}
+                autoComplete="street-address"
+                placeholder={t("addressInternationalPlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <label htmlFor="postalCode" className="font-mono text-xs uppercase tracking-wide text-graphite">
+                {t("postalCode")}
+              </label>
+              <input
+                id="postalCode"
+                name="postalCode"
+                required
+                autoComplete="postal-code"
+                placeholder={t("postalCodePlaceholder")}
+                className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
+              />
+            </div>
+          </>
+        )}
 
         <div className="mt-4 flex flex-col gap-1.5">
           <label htmlFor="note" className="font-mono text-xs uppercase tracking-wide text-graphite">
@@ -306,29 +418,59 @@ export function CheckoutForm({
           </div>
 
           {needsOnlinePayment && (
-            <div className="die-cut-flat mt-4 bg-kraft p-3">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">
-                {payInFull
-                  ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
-                  : t("paymentMethod")}
-              </p>
-              <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
-                {bankName && (
-                  <p>
-                    {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
-                  </p>
+            <div className="mt-4">
+              <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("paymentMethod")}</p>
+              <div className="mt-2 flex flex-col gap-2">
+                <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+                  <input
+                    type="radio"
+                    name="onlineProvider"
+                    checked={provider === "BANK_TRANSFER"}
+                    onChange={() => setProvider("BANK_TRANSFER")}
+                  />
+                  {t("methodBankTransfer")}
+                </label>
+                {paypalAvailable && (
+                  <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+                    <input
+                      type="radio"
+                      name="onlineProvider"
+                      checked={provider === "PAYPAL"}
+                      onChange={() => setProvider("PAYPAL")}
+                    />
+                    {t("methodCard")}
+                  </label>
                 )}
-                {bankAccountHolder && (
-                  <p>
-                    {t("bankAccountHolderLabel")}: <span className="font-semibold">{bankAccountHolder}</span>
-                  </p>
-                )}
-                <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
               </div>
 
-              <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
-                {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
-              </p>
+              <div className="die-cut-flat mt-3 bg-kraft p-3">
+                <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">
+                  {payInFull
+                    ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
+                    : t("paymentMethod")}
+                </p>
+
+                {provider === "BANK_TRANSFER" && (
+                  <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
+                    {bankName && (
+                      <p>
+                        {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
+                      </p>
+                    )}
+                    {bankAccountHolder && (
+                      <p>
+                        {t("bankAccountHolderLabel")}:{" "}
+                        <span className="font-semibold">{bankAccountHolder}</span>
+                      </p>
+                    )}
+                    <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
+                  </div>
+                )}
+
+                <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
+                  {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
+                </p>
+              </div>
             </div>
           )}
 

@@ -11,6 +11,8 @@ import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
 import { createOrder as createPaypalOrder } from "@/lib/payments/paypal";
 import { sendCapiPurchase } from "@/lib/meta-capi";
+import { getLiveUsdVndRate } from "@/lib/fx";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Thrown from inside the $transaction below to abort it and surface a normal
 // { error } result — the outer catch converts it, since Prisma's interactive
@@ -26,9 +28,18 @@ export type PaymentMethod = "COD" | "VNPAY" | "PAYPAL" | "BANK_TRANSFER";
 export type CheckoutInput = {
   customerName: string;
   customerPhone: string;
+  email: string; // required for guest checkout; ignored (session email used instead) when logged in
+  // Domestic orders use the province/ward dropdowns (VN-only lookup) and
+  // always ship as "Việt Nam". International orders leave province/ward
+  // blank and instead require a customer-typed country name — Viettel Post
+  // (the only carrier this app integrates with) doesn't ship abroad, so
+  // those orders are flagged for staff to arrange shipping manually.
+  isDomestic: boolean;
   province: string;
   ward: string;
+  country: string;
   address: string;
+  postalCode: string; // required for international orders; ignored for domestic
   note?: string;
   items: CheckoutItem[];
   paymentMethod: PaymentMethod;
@@ -36,15 +47,34 @@ export type CheckoutInput = {
 };
 export type CheckoutResult = { error?: string; id?: string; code?: string; amountDue?: number };
 
+const DOMESTIC_COUNTRY = "Việt Nam";
+
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
+  // Checkout has no login requirement, so this is the first line of defense
+  // against a bot spamming unpaid COD orders to drain stock — a genuine
+  // shopper placing several orders in ten minutes is not what this catches.
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(`createOrder:${ip}`, 5, 10 * 60 * 1000)) {
+    return { error: "Bạn đã đặt quá nhiều đơn trong thời gian ngắn. Vui lòng thử lại sau ít phút." };
+  }
+
   const customerName = input.customerName.trim();
   const customerPhone = input.customerPhone.trim();
   const province = input.province.trim();
   const ward = input.ward.trim();
   const address = input.address.trim();
+  const country = input.isDomestic ? DOMESTIC_COUNTRY : input.country.trim();
+  const postalCode = input.isDomestic ? "" : input.postalCode.trim();
 
-  if (!customerName || !customerPhone || !province || !ward || !address) {
+  if (!customerName || !customerPhone || !address) {
     return { error: "Vui lòng nhập đầy đủ thông tin giao hàng." };
+  }
+  if (input.isDomestic) {
+    if (!province || !ward) {
+      return { error: "Vui lòng nhập đầy đủ thông tin giao hàng." };
+    }
+  } else if (!country || !postalCode) {
+    return { error: "Vui lòng nhập đầy đủ quốc gia và mã bưu điện." };
   }
   if (input.items.length === 0) {
     return { error: "Giỏ hàng trống." };
@@ -79,13 +109,26 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     }
   }
 
+  // Checkout works without an account — a logged-in session snapshots its
+  // account email; a guest supplies one directly (validated below) so staff
+  // can reach them and so the order confirmation link works as a bearer
+  // token (see don-hang/[code]/page.tsx) instead of requiring login.
   const session = await auth();
-  if (!session?.user?.email) {
-    return { error: "Vui lòng đăng nhập để đặt hàng." };
-  }
-  const customer = await prisma.customer.findUnique({ where: { email: session.user.email } });
-  if (!customer) {
-    return { error: "Vui lòng đăng nhập để đặt hàng." };
+  let customerId: string | null = null;
+  let contactEmail: string;
+  if (session?.user?.email) {
+    const loggedInCustomer = await prisma.customer.findUnique({ where: { email: session.user.email } });
+    if (!loggedInCustomer) {
+      return { error: "Vui lòng đăng nhập lại." };
+    }
+    customerId = loggedInCustomer.id;
+    contactEmail = loggedInCustomer.email;
+  } else {
+    const guestEmail = input.email.trim();
+    if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      return { error: "Vui lòng nhập email hợp lệ." };
+    }
+    contactEmail = guestEmail;
   }
 
   // Timestamp keeps codes roughly chronological for admins; the random
@@ -166,11 +209,14 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           code,
           customerName,
           customerPhone,
-          province,
-          ward,
+          province: input.isDomestic ? province : null,
+          ward: input.isDomestic ? ward : null,
+          country,
+          postalCode: postalCode || null,
           address,
+          email: contactEmail,
           note: input.note?.trim() || null,
-          customerId: customer.id,
+          customerId,
           paymentMethod: input.paymentMethod,
           depositAmount: amountDue,
           utmSource: attribution.utmSource,
@@ -207,8 +253,9 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   await sendCapiPurchase({
     orderCode: code,
     value: orderTotal,
-    email: session.user.email,
+    email: contactEmail,
     phone: customerPhone,
+    isDomestic: input.isDomestic,
     clientIp: headersList.get("x-forwarded-for")?.split(",")[0]?.trim(),
     userAgent: headersList.get("user-agent") ?? undefined,
     fbp: cookieStore.get("_fbp")?.value,
@@ -238,15 +285,20 @@ export async function initiatePaymentAction(
   orderId: string,
   provider: PaymentProviderChoice,
 ): Promise<InitiatePaymentResult> {
-  const session = await auth();
-  if (!session?.user?.email) return { error: "Vui lòng đăng nhập để đặt hàng." };
-
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { customer: true } });
   if (!order) return { error: "Không tìm thấy đơn hàng." };
   // orderId comes straight from the client — without this check anyone
   // could initiate (and create Payment rows against) someone else's order.
-  if (order.customer?.email !== session.user.email) {
-    return { error: "Không tìm thấy đơn hàng." };
+  // Orders placed by a logged-in customer require a matching session, same
+  // as before; guest orders (no customerId) have no account to check
+  // against — the caller already possesses this order's id, which is only
+  // ever handed back to the browser that just created it (see
+  // createOrderAction's return value).
+  if (order.customerId) {
+    const session = await auth();
+    if (order.customer?.email !== session?.user?.email) {
+      return { error: "Không tìm thấy đơn hàng." };
+    }
   }
   if (order.depositAmount <= 0) return { error: "Đơn hàng này không cần thanh toán trước." };
   if (order.depositPaid) return { error: "Đơn hàng đã được thanh toán." };
@@ -296,9 +348,13 @@ export async function initiatePaymentAction(
     return { redirectUrl: result.paymentUrl };
   }
 
-  // PAYPAL (also used for the Visa/Mastercard card-only checkout option)
-  const settings = await getSiteSettings();
-  const rate = settings?.usdExchangeRate;
+  // PAYPAL (also used for the Visa/Mastercard card-only checkout option).
+  // Prefer a live market rate so the USD amount PayPal shows the customer
+  // doesn't drift from whatever an admin last typed in; fall back to the
+  // admin-set rate if the FX API is unreachable, so a flaky third party
+  // never blocks checkout entirely.
+  const [settings, liveRate] = await Promise.all([getSiteSettings(), getLiveUsdVndRate()]);
+  const rate = liveRate ?? settings?.usdExchangeRate;
   if (!rate) {
     return { error: "Chưa cấu hình tỷ giá USD trong Cài đặt. Vui lòng liên hệ quản trị viên." };
   }

@@ -68,7 +68,10 @@ export default async function AdminOrderDetailPage({
   const paymentMethodLabel = PAYMENT_METHOD_LABEL[order.paymentMethod] ?? PAYMENT_METHOD_LABEL.COD;
   const fullAddress = order.province && order.ward
     ? `${order.address}, ${order.ward}, ${order.province}`
-    : order.address;
+    : order.country !== "Việt Nam"
+      ? [order.address, order.postalCode, order.country].filter(Boolean).join(", ")
+      : order.address;
+  const isInternational = !order.province || !order.ward;
 
   const codAmount = order.paymentMethod === "COD" ? total - order.depositAmount : 0;
   const shipmentInfoText = [
@@ -179,6 +182,10 @@ export default async function AdminOrderDetailPage({
           <div className="die-cut mt-4 flex flex-col gap-1 bg-paper p-4 font-mono text-xs text-graphite">
             <p>Người nhận: <span className="text-ink">{order.customerName}</span></p>
             <p>Điện thoại: <span className="text-ink">{order.customerPhone}</span></p>
+            {order.email && <p>Email: <span className="text-ink">{order.email}</span></p>}
+            {!order.customerId && (
+              <p className="text-forest">Đơn khách vãng lai (không có tài khoản)</p>
+            )}
             <p>Địa chỉ: <span className="text-ink">{fullAddress}</span></p>
             <p>Hình thức thanh toán: <span className="text-ink">{paymentMethodLabel}</span></p>
             {order.note && <p>Ghi chú: <span className="text-ink">{order.note}</span></p>}
@@ -212,7 +219,7 @@ export default async function AdminOrderDetailPage({
 
           <div className="mt-4 border-t border-kraft-dark pt-4">
             <p className="font-mono text-xs uppercase tracking-wide text-graphite">
-              Vận chuyển (Viettel Post)
+              {isInternational ? "Vận chuyển (Quốc tế)" : "Vận chuyển (Viettel Post)"}
             </p>
 
             {order.trackingCode ? (
@@ -233,18 +240,28 @@ export default async function AdminOrderDetailPage({
               </div>
             ) : (
               <div className="mt-2 flex flex-col gap-3">
-                <CopyShipmentInfoButton text={shipmentInfoText} />
-                <p className="font-mono text-[10px] leading-relaxed text-graphite">
-                  Dán thông tin trên vào web/app Viettel Post để tạo đơn thủ công, rồi nhập mã vận
-                  đơn nhận được vào ô bên dưới.
-                </p>
+                {isInternational ? (
+                  <p className="font-mono text-[10px] leading-relaxed text-graphite">
+                    Đơn giao ra nước ngoài — Viettel Post không hỗ trợ tuyến này. Vui lòng thu xếp
+                    vận chuyển quốc tế thủ công (bưu điện/hãng chuyển phát quốc tế), rồi nhập mã vận
+                    đơn nhận được vào ô bên dưới.
+                  </p>
+                ) : (
+                  <>
+                    <CopyShipmentInfoButton text={shipmentInfoText} />
+                    <p className="font-mono text-[10px] leading-relaxed text-graphite">
+                      Dán thông tin trên vào web/app Viettel Post để tạo đơn thủ công, rồi nhập mã vận
+                      đơn nhận được vào ô bên dưới.
+                    </p>
+                  </>
+                )}
                 <form
                   action={setTrackingCodeAction.bind(null, order.id)}
                   className="flex flex-col gap-2"
                 >
                   <input
                     name="trackingCode"
-                    placeholder="Mã vận đơn Viettel Post"
+                    placeholder={isInternational ? "Mã vận đơn" : "Mã vận đơn Viettel Post"}
                     required
                     className="die-cut-flat bg-paper px-3 py-2 text-sm text-ink"
                   />

@@ -184,6 +184,13 @@ model SiteSettings {
   // See src/lib/order-cleanup.ts.
   autoCancelUnpaidDepositHours Int?
 
+  // Plain COD orders (no deposit at all) that staff never confirms with the
+  // customer permanently lock stock otherwise — checkout has no login
+  // requirement, so this is also the backstop against bots/spam placing
+  // COD orders just to drain a size's stock. Same null-disables-it
+  // semantics as autoCancelUnpaidDepositHours. See src/lib/order-cleanup.ts.
+  autoCancelUnpaidCodHours Int?
+
   // Manual bank transfer — no bank API integration, customer transfers by
   // hand using this info, staff confirms receipt manually (same pattern as
   // the VNPay/PayPal QR flow above).
@@ -302,8 +309,9 @@ model Address {
   phone      String
   company    String?
   address    String
-  province   String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key
-  ward       String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key
+  province   String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key. Null for international addresses (see country).
+  ward       String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key. Null for international addresses.
+  country    String  @default("Việt Nam") // customer-typed country name for international addresses; always "Việt Nam" when province/ward are set
   zip        String?
   isDefault  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -324,9 +332,12 @@ model Order {
   code          String      @unique
   customerName  String
   customerPhone String
-  province      String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key
-  ward          String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key
-  address       String // street-level detail only (số nhà, tên đường) once province/ward exist; full free-text blob on older orders
+  province      String? // display name, e.g. "Thành phố Hà Nội" — snapshot, not a lookup key. Null for international orders (see country).
+  ward          String? // display name, e.g. "Phường Ba Đình" — snapshot, not a lookup key. Null for international orders.
+  country       String  @default("Việt Nam") // customer-typed country name for international orders; always "Việt Nam" when province/ward are set
+  postalCode    String? // international orders only — domestic shipping doesn't use postal codes
+  address       String // street-level detail only (số nhà, tên đường) once province/ward exist; full free-text address blob for international orders or older pre-province/ward rows
+  email         String? // contact email — always collected for guest checkout; snapshotted from the account email when logged in
   note          String?
   status        OrderStatus @default(PENDING)
   items         OrderItem[]

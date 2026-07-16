@@ -200,6 +200,22 @@ export async function updateAutoCancelHoursAction(formData: FormData): Promise<v
   revalidateSettings();
 }
 
+export async function updateAutoCancelCodHoursAction(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const raw = String(formData.get("autoCancelUnpaidCodHours") ?? "").trim();
+  const hours = raw ? Math.round(Number(raw)) : null;
+  const value = hours && hours > 0 ? hours : null;
+
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { autoCancelUnpaidCodHours: value },
+    create: { id: "singleton", autoCancelUnpaidCodHours: value },
+  });
+
+  revalidateSettings();
+}
+
 // Kept in sync with SOCIAL_PLATFORMS in page.tsx — the icon picker only
 // ever submits one of these values, this just rejects tampered requests.
 const ALLOWED_SOCIAL_PLATFORMS = ["Facebook", "Messenger", "TikTok", "Zalo", "Instagram", "YouTube"];

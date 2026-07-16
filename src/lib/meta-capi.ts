@@ -5,12 +5,15 @@ function sha256(value: string): string {
   return createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
 }
 
-// Meta expects digits only, country code included, no leading '+'. Checkout
-// only collects Vietnamese phone numbers, so a leading "0" is swapped for
-// the "84" country code; anything already given with a country code is left
-// as-is.
-function normalizePhone(phone: string): string {
+// Meta expects digits only, country code included, no leading '+'. Domestic
+// checkout only collects Vietnamese phone numbers without a country code, so
+// a leading "0" is swapped for "84". International orders collect whatever
+// format the customer typed (their own country's convention) — guessing a
+// "84" prefix on those would guarantee a hash mismatch, so they're passed
+// through as digits-only instead.
+function normalizePhone(phone: string, isDomestic: boolean): string {
   const digits = phone.replace(/\D/g, "");
+  if (!isDomestic) return digits;
   return digits.startsWith("0") ? `84${digits.slice(1)}` : digits;
 }
 
@@ -19,6 +22,7 @@ type PurchaseEventInput = {
   value: number;
   email?: string | null;
   phone?: string | null;
+  isDomestic?: boolean;
   clientIp?: string;
   userAgent?: string;
   fbp?: string;
@@ -41,7 +45,7 @@ export async function sendCapiPurchase(input: PurchaseEventInput): Promise<void>
 
     const userData: Record<string, unknown> = {};
     if (input.email) userData.em = [sha256(input.email)];
-    if (input.phone) userData.ph = [sha256(normalizePhone(input.phone))];
+    if (input.phone) userData.ph = [sha256(normalizePhone(input.phone, input.isDomestic ?? true))];
     if (input.clientIp) userData.client_ip_address = input.clientIp;
     if (input.userAgent) userData.client_user_agent = input.userAgent;
     if (input.fbp) userData.fbp = input.fbp;
