@@ -129,6 +129,27 @@ export function TruckIcon({ className }: IconProps) {
   );
 }
 
+export function CreditCardIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">
+      <rect x="3" y="6" width="18" height="12" rx="1.6" stroke="currentColor" strokeWidth={1.6} />
+      <path d="M3 10h18" stroke="currentColor" strokeWidth={1.6} />
+      <path d="M6.5 14.3h4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function BankIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">
+      <path d="M3 9.5L12 4l9 5.5" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" />
+      <path d="M4.5 9.5h15V19h-15z" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" />
+      <path d="M7.5 12.5v3.7M12 12.5v3.7M16.5 12.5v3.7" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+      <path d="M3 19h18" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function RotateIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">

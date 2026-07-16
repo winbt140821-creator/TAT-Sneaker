@@ -14,7 +14,7 @@ import {
   updateCartQuantity,
 } from "@/lib/cart-storage";
 import { formatPriceForLocale } from "@/lib/currency";
-import { TrashIcon } from "@/components/icons";
+import { TrashIcon, TruckIcon, BankIcon, CreditCardIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
@@ -387,95 +387,104 @@ export function CheckoutForm({
       <div id="payment-info">
         <h2 className="font-display text-lg uppercase tracking-wide text-ink">{t("paymentInfoTitle")}</h2>
 
-        <div className="mt-4">
-          <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("paymentTierTitle")}</p>
-          <div className="mt-2 flex flex-col gap-2">
-            <label className="flex cursor-pointer flex-col gap-1 border border-graphite bg-paper px-3 py-2.5 has-[:checked]:border-forest has-[:checked]:bg-forest/10">
-              <span className="flex items-center gap-2.5 text-sm text-ink">
-                <input
-                  type="radio"
-                  name="payInFullChoice"
-                  checked={!payInFull}
-                  onChange={() => setPayInFull(false)}
-                />
-                {t("payCod")}
-              </span>
-              {summary.deposit > 0 && (
-                <p className="ml-6 font-mono text-[11px] text-graphite">
-                  {t("depositNoteInline", { amount: formatPrice(summary.deposit) })}
-                </p>
-              )}
-            </label>
-            <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
+        <div className="mt-4 flex flex-col gap-2.5">
+          <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+            <span className="flex items-center gap-2.5 text-sm text-ink">
               <input
                 type="radio"
-                name="payInFullChoice"
-                checked={payInFull}
-                onChange={() => setPayInFull(true)}
+                name="unifiedPayment"
+                checked={!payInFull}
+                onChange={() => setPayInFull(false)}
               />
-              {t("payInFullOption")}
-            </label>
-          </div>
-
-          {needsOnlinePayment && (
-            <div className="mt-4">
-              <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("paymentMethod")}</p>
-              <div className="mt-2 flex flex-col gap-2">
-                <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
-                  <input
-                    type="radio"
-                    name="onlineProvider"
-                    checked={provider === "BANK_TRANSFER"}
-                    onChange={() => setProvider("BANK_TRANSFER")}
-                  />
-                  {t("methodBankTransfer")}
-                </label>
-                {paypalAvailable && (
-                  <label className="flex cursor-pointer items-center gap-2.5 border border-graphite bg-paper px-3 py-2.5 text-sm text-ink has-[:checked]:border-forest has-[:checked]:bg-forest/10">
-                    <input
-                      type="radio"
-                      name="onlineProvider"
-                      checked={provider === "PAYPAL"}
-                      onChange={() => setProvider("PAYPAL")}
-                    />
-                    {t("methodCard")}
-                  </label>
-                )}
-              </div>
-
-              <div className="die-cut-flat mt-3 bg-kraft p-3">
-                <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">
-                  {payInFull
-                    ? t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })
-                    : t("paymentMethod")}
-                </p>
-
-                {provider === "BANK_TRANSFER" && (
-                  <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-ink">
+              <TruckIcon className="h-5 w-5 text-graphite" />
+              {t("payCod")}
+            </span>
+            {!payInFull && (
+              <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                {summary.deposit > 0 ? (
+                  <>
+                    <p>{t("depositNoteInline", { amount: formatPrice(summary.deposit) })}</p>
                     {bankName && (
                       <p>
-                        {t("bankNameLabel")}: <span className="font-semibold">{bankName}</span>
+                        {t("bankNameLabel")}: <span className="font-semibold text-ink">{bankName}</span>
                       </p>
                     )}
                     {bankAccountHolder && (
                       <p>
                         {t("bankAccountHolderLabel")}:{" "}
-                        <span className="font-semibold">{bankAccountHolder}</span>
+                        <span className="font-semibold text-ink">{bankAccountHolder}</span>
                       </p>
                     )}
-                    <p className="mt-1 text-[10px] text-graphite">{t("bankTransferQrAfterOrder")}</p>
-                  </div>
+                    <p>{t("bankTransferQrAfterOrder")}</p>
+                    <p className="mt-1 border-t border-kraft-dark pt-2">{t("noteOnline")}</p>
+                  </>
+                ) : (
+                  <p>{t("noteCod")}</p>
                 )}
-
-                <p className="mt-3 border-t border-kraft-dark pt-3 font-mono text-[11px] text-graphite">
-                  {payInFull ? t("payInFullNoteOnline") : t("noteOnline")}
-                </p>
               </div>
-            </div>
-          )}
+            )}
+          </label>
 
-          {!needsOnlinePayment && (
-            <p className="mt-4 font-mono text-xs text-graphite">{t("noteCod")}</p>
+          <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+            <span className="flex items-center gap-2.5 text-sm text-ink">
+              <input
+                type="radio"
+                name="unifiedPayment"
+                checked={payInFull && provider === "BANK_TRANSFER"}
+                onChange={() => {
+                  setPayInFull(true);
+                  setProvider("BANK_TRANSFER");
+                }}
+              />
+              <BankIcon className="h-5 w-5 text-graphite" />
+              {t("methodBankTransfer")}
+            </span>
+            {payInFull && provider === "BANK_TRANSFER" && (
+              <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                <p className="uppercase tracking-wide">
+                  {t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })}
+                </p>
+                {bankName && (
+                  <p>
+                    {t("bankNameLabel")}: <span className="font-semibold text-ink">{bankName}</span>
+                  </p>
+                )}
+                {bankAccountHolder && (
+                  <p>
+                    {t("bankAccountHolderLabel")}:{" "}
+                    <span className="font-semibold text-ink">{bankAccountHolder}</span>
+                  </p>
+                )}
+                <p>{t("bankTransferQrAfterOrder")}</p>
+                <p className="mt-1 border-t border-kraft-dark pt-2">{t("payInFullNoteOnline")}</p>
+              </div>
+            )}
+          </label>
+
+          {paypalAvailable && (
+            <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+              <span className="flex items-center gap-2.5 text-sm text-ink">
+                <input
+                  type="radio"
+                  name="unifiedPayment"
+                  checked={payInFull && provider === "PAYPAL"}
+                  onChange={() => {
+                    setPayInFull(true);
+                    setProvider("PAYPAL");
+                  }}
+                />
+                <CreditCardIcon className="h-5 w-5 text-graphite" />
+                {t("methodCard")}
+              </span>
+              {payInFull && provider === "PAYPAL" && (
+                <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                  <p className="uppercase tracking-wide">
+                    {t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })}
+                  </p>
+                  <p>{t("payInFullNoteOnline")}</p>
+                </div>
+              )}
+            </label>
           )}
         </div>
       </div>
