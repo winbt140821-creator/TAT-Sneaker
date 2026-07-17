@@ -176,6 +176,16 @@ model SiteSettings {
   footerAbout   String? // short description shown in the footer brand column
   vnpayQrUrl  String? // VNPay QR code shown on checkout when the cart requires a deposit and VNPay is picked
   paypalQrUrl String? // PayPal QR code shown on checkout when the cart requires a deposit and PayPal is picked
+
+  // Free-text override for the COD payment option at checkout (title +
+  // description) — e.g. "Hỗ trợ đặt cọc 30% qua Zalo" with a paragraph
+  // explaining the process and shop's own contact/refund policy. Admin
+  // edits this directly in Settings so policy wording (deposit %, contact
+  // number, refund terms) is never hardcoded/guessed at in code. When
+  // codOptionNote is empty, checkout falls back to the generic
+  // auto-generated COD/deposit note instead.
+  codOptionTitle String?
+  codOptionNote  String?
   // USD/CNY exchange rates are no longer admin-set — they're fetched live
   // from a free FX API (see src/lib/fx.ts) so PayPal charge amounts and
   // USD/CNY price display always track the real market rate.

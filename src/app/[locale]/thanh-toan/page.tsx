@@ -33,6 +33,8 @@ export default async function CheckoutPage() {
             isLoggedIn={Boolean(session?.user)}
             bankName={settings?.bankName}
             bankAccountHolder={settings?.bankAccountHolder}
+            codOptionTitle={settings?.codOptionTitle}
+            codOptionNote={settings?.codOptionNote}
             usdExchangeRate={rates.usdExchangeRate}
             cnyExchangeRate={rates.cnyExchangeRate}
           />

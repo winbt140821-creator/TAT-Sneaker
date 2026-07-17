@@ -139,6 +139,26 @@ export function CreditCardIcon({ className }: IconProps) {
   );
 }
 
+export function PaypalIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">
+      <path
+        d="M8 5.5h5.4c2.3 0 3.9 1.4 3.6 3.6-.4 2.7-2.4 4.2-5 4.2h-2l-.8 5.2H6.4L8 5.5z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11 8.7h5c2.3 0 3.7 1.3 3.4 3.5-.4 2.6-2.3 4-4.9 4h-2l-.8 5"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        opacity={0.55}
+      />
+    </svg>
+  );
+}
+
 export function BankIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">

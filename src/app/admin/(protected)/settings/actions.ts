@@ -99,6 +99,23 @@ export async function updateBankTransferInfoAction(formData: FormData): Promise<
   revalidateSettings();
 }
 
+export async function updateCodOptionAction(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const data = {
+    codOptionTitle: String(formData.get("codOptionTitle") ?? "").trim() || null,
+    codOptionNote: String(formData.get("codOptionNote") ?? "").trim() || null,
+  };
+
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: data,
+    create: { id: "singleton", ...data },
+  });
+
+  revalidateSettings();
+}
+
 export async function updateContactInfoAction(formData: FormData): Promise<void> {
   await requireStaff();
 

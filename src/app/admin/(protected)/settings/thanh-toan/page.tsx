@@ -1,6 +1,7 @@
 import { getSiteSettings } from "@/lib/settings";
 import { getLiveExchangeRates } from "@/lib/fx";
 import { TextField } from "@/components/admin/form/TextField";
+import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SingleImageUploadForm } from "@/components/admin/form/SingleImageUploadForm";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
@@ -10,6 +11,7 @@ import {
   updatePaypalQrAction,
   updateBankTransferQrAction,
   updateBankTransferInfoAction,
+  updateCodOptionAction,
   updateAutoCancelHoursAction,
   updateAutoCancelCodHoursAction,
 } from "../actions";
@@ -90,6 +92,36 @@ export default async function AdminSettingsPaymentsPage() {
             </p>
           }
         />
+      </div>
+
+      <div className="border-t border-kraft-dark pt-8">
+        <h2 className="font-display text-xl text-ink">Nội dung mục &quot;Thanh toán khi nhận hàng (COD)&quot;</h2>
+        <p className="mt-1 font-mono text-xs text-graphite">
+          Tự viết tiêu đề và mô tả cho mục này ở trang thanh toán — ví dụ nêu rõ % đặt cọc,
+          số Zalo/điện thoại hỗ trợ, chính sách hoàn cọc... Để trống thì trang thanh toán tự
+          hiện thông tin đặt cọc + chuyển khoản mặc định như hiện tại.
+        </p>
+
+        <form action={updateCodOptionAction} className="mt-6 flex max-w-md flex-col gap-4">
+          <TextField
+            id="codOptionTitle"
+            name="codOptionTitle"
+            label="Tiêu đề"
+            placeholder="VD: Hỗ trợ đặt cọc 30% qua Zalo – Nhận hàng sau 6-10 ngày"
+            defaultValue={settings?.codOptionTitle ?? ""}
+          />
+          <TextAreaField
+            id="codOptionNote"
+            name="codOptionNote"
+            label="Mô tả chi tiết"
+            rows={5}
+            placeholder="VD: Để đảm bảo đơn hàng được xử lý nhanh chóng, vui lòng đặt cọc 30% giá trị đơn hàng khi xác nhận đặt mua. Phần còn lại thanh toán khi nhận hàng (COD). Liên hệ Zalo 0393002410 để được hỗ trợ."
+            defaultValue={settings?.codOptionNote ?? ""}
+          />
+          <SubmitButton className="mt-1 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
+            Lưu thay đổi
+          </SubmitButton>
+        </form>
       </div>
 
       <div className="border-t border-kraft-dark pt-8">

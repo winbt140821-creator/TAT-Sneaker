@@ -14,7 +14,7 @@ import {
   updateCartQuantity,
 } from "@/lib/cart-storage";
 import { formatPriceForLocale } from "@/lib/currency";
-import { TrashIcon, TruckIcon, BankIcon, CreditCardIcon } from "@/components/icons";
+import { TrashIcon, TruckIcon, BankIcon, CreditCardIcon, PaypalIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
@@ -32,12 +32,16 @@ export function CheckoutForm({
   isLoggedIn,
   bankName,
   bankAccountHolder,
+  codOptionTitle,
+  codOptionNote,
   usdExchangeRate,
   cnyExchangeRate,
 }: {
   isLoggedIn: boolean;
   bankName?: string | null;
   bankAccountHolder?: string | null;
+  codOptionTitle?: string | null;
+  codOptionNote?: string | null;
   usdExchangeRate?: number | null;
   cnyExchangeRate?: number | null;
 }) {
@@ -52,6 +56,12 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [payInFull, setPayInFull] = useState(false);
   const [provider, setProvider] = useState<"BANK_TRANSFER" | "PAYPAL">("BANK_TRANSFER");
+  // "Thanh toán qua PayPal" and "Thanh toán bằng thẻ tín dụng" are both
+  // provider === "PAYPAL" on the backend (PayPal's own hosted page offers
+  // both login-with-account and guest card entry either way — see
+  // src/lib/payments/paypal.ts) — this only tracks which of the two radio
+  // rows should render as selected.
+  const [paypalVariant, setPaypalVariant] = useState<"ACCOUNT" | "CARD">("ACCOUNT");
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
   const [isDomestic, setIsDomestic] = useState(true);
@@ -397,11 +407,13 @@ export function CheckoutForm({
                 onChange={() => setPayInFull(false)}
               />
               <TruckIcon className="h-5 w-5 text-graphite" />
-              {t("payCod")}
+              {codOptionTitle || t("payCod")}
             </span>
             {!payInFull && (
               <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
-                {summary.deposit > 0 ? (
+                {codOptionNote ? (
+                  <p className="whitespace-pre-line">{codOptionNote}</p>
+                ) : summary.deposit > 0 ? (
                   <>
                     <p>{t("depositNoteInline", { amount: formatPrice(summary.deposit) })}</p>
                     {bankName && (
@@ -462,29 +474,58 @@ export function CheckoutForm({
           </label>
 
           {paypalAvailable && (
-            <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
-              <span className="flex items-center gap-2.5 text-sm text-ink">
-                <input
-                  type="radio"
-                  name="unifiedPayment"
-                  checked={payInFull && provider === "PAYPAL"}
-                  onChange={() => {
-                    setPayInFull(true);
-                    setProvider("PAYPAL");
-                  }}
-                />
-                <CreditCardIcon className="h-5 w-5 text-graphite" />
-                {t("methodCard")}
-              </span>
-              {payInFull && provider === "PAYPAL" && (
-                <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
-                  <p className="uppercase tracking-wide">
-                    {t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })}
-                  </p>
-                  <p>{t("payInFullNoteOnline")}</p>
-                </div>
-              )}
-            </label>
+            <>
+              <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+                <span className="flex items-center gap-2.5 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="unifiedPayment"
+                    checked={payInFull && provider === "PAYPAL" && paypalVariant === "ACCOUNT"}
+                    onChange={() => {
+                      setPayInFull(true);
+                      setProvider("PAYPAL");
+                      setPaypalVariant("ACCOUNT");
+                    }}
+                  />
+                  <PaypalIcon className="h-5 w-5 text-graphite" />
+                  {t("methodPaypal")}
+                </span>
+                {payInFull && provider === "PAYPAL" && paypalVariant === "ACCOUNT" && (
+                  <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                    <p className="uppercase tracking-wide">
+                      {t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })}
+                    </p>
+                    <p>{t("payInFullNoteOnline")}</p>
+                  </div>
+                )}
+              </label>
+
+              <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+                <span className="flex items-center gap-2.5 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="unifiedPayment"
+                    checked={payInFull && provider === "PAYPAL" && paypalVariant === "CARD"}
+                    onChange={() => {
+                      setPayInFull(true);
+                      setProvider("PAYPAL");
+                      setPaypalVariant("CARD");
+                    }}
+                  />
+                  <CreditCardIcon className="h-5 w-5 text-graphite" />
+                  {t("methodCard")}
+                </span>
+                {payInFull && provider === "PAYPAL" && paypalVariant === "CARD" && (
+                  <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                    <p className="uppercase tracking-wide">
+                      {t("payInFullNoteInline", { amount: formatPrice(amountDueNow) })}
+                    </p>
+                    <p>{t("methodCardNote")}</p>
+                    <p>{t("payInFullNoteOnline")}</p>
+                  </div>
+                )}
+              </label>
+            </>
           )}
         </div>
       </div>
