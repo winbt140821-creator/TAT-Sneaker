@@ -259,6 +259,7 @@
     "methodPaypal": "Thanh toán qua PayPal",
     "methodCard": "Thanh toán bằng thẻ tín dụng",
     "methodCardNote": "Bạn sẽ nhập thông tin thẻ trên trang thanh toán an toàn của PayPal, không cần có tài khoản PayPal.",
+    "zaloChatButton": "Nhắn Zalo",
     "bankNameLabel": "Ngân hàng",
     "bankAccountNumberLabel": "Số tài khoản",
     "bankAccountHolderLabel": "Chủ tài khoản",

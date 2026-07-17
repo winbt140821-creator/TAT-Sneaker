@@ -184,8 +184,9 @@ model SiteSettings {
   // number, refund terms) is never hardcoded/guessed at in code. When
   // codOptionNote is empty, checkout falls back to the generic
   // auto-generated COD/deposit note instead.
-  codOptionTitle String?
-  codOptionNote  String?
+  codOptionTitle     String?
+  codOptionNote      String?
+  codOptionZaloPhone String? // shown as a tap-to-chat zalo.me link on checkout and the order confirmation page, alongside codOptionNote
   // USD/CNY exchange rates are no longer admin-set — they're fetched live
   // from a free FX API (see src/lib/fx.ts) so PayPal charge amounts and
   // USD/CNY price display always track the real market rate.

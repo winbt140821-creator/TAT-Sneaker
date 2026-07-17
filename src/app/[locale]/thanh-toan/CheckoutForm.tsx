@@ -14,7 +14,8 @@ import {
   updateCartQuantity,
 } from "@/lib/cart-storage";
 import { formatPriceForLocale } from "@/lib/currency";
-import { TrashIcon, TruckIcon, BankIcon, CreditCardIcon, PaypalIcon } from "@/components/icons";
+import { TrashIcon, TruckIcon, BankIcon, CreditCardIcon, PaypalIcon, ZaloIcon } from "@/components/icons";
+import { buildZaloLink } from "@/lib/zalo";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
@@ -34,6 +35,7 @@ export function CheckoutForm({
   bankAccountHolder,
   codOptionTitle,
   codOptionNote,
+  codOptionZaloPhone,
   usdExchangeRate,
   cnyExchangeRate,
 }: {
@@ -42,6 +44,7 @@ export function CheckoutForm({
   bankAccountHolder?: string | null;
   codOptionTitle?: string | null;
   codOptionNote?: string | null;
+  codOptionZaloPhone?: string | null;
   usdExchangeRate?: number | null;
   cnyExchangeRate?: number | null;
 }) {
@@ -119,6 +122,7 @@ export function CheckoutForm({
   // PayPal needs an admin-set USD exchange rate to convert the VND amount —
   // hide the card option until one is configured (see initiatePaymentAction).
   const paypalAvailable = Boolean(usdExchangeRate);
+  const zaloLink = codOptionZaloPhone ? buildZaloLink(codOptionZaloPhone) : null;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -412,7 +416,21 @@ export function CheckoutForm({
             {!payInFull && (
               <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
                 {codOptionNote ? (
-                  <p className="whitespace-pre-line">{codOptionNote}</p>
+                  <>
+                    <p className="whitespace-pre-line">{codOptionNote}</p>
+                    {zaloLink && (
+                      <a
+                        href={zaloLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 inline-flex w-fit cursor-pointer items-center gap-1.5 border border-graphite bg-paper px-3 py-1.5 text-ink transition-colors hover:border-forest hover:text-forest"
+                      >
+                        <ZaloIcon className="h-4 w-4" />
+                        {t("zaloChatButton")}
+                      </a>
+                    )}
+                  </>
                 ) : summary.deposit > 0 ? (
                   <>
                     <p>{t("depositNoteInline", { amount: formatPrice(summary.deposit) })}</p>

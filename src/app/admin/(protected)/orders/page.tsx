@@ -17,10 +17,48 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 
 const PAGE_SIZE = 20;
 
+const ORDER_LIST_SELECT = {
+  id: true,
+  code: true,
+  customerName: true,
+  customerPhone: true,
+  status: true,
+  paymentMethod: true,
+  depositAmount: true,
+  depositPaid: true,
+  utmSource: true,
+  utmCampaign: true,
+  fbclid: true,
+  items: { select: { price: true, quantity: true } },
+} as const;
+
+type OrderListRow = { depositAmount: number; items: { price: number; quantity: number }[] };
+
+function isFullPaymentOrder(order: OrderListRow): boolean {
+  const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  return total > 0 && order.depositAmount >= total;
+}
+
+// Orders where staff still need to reach out (Zalo, phone, whichever the
+// shop actually uses) to collect the deposit — see codOptionNote in
+// Settings. "COD" (nothing charged at all) and paid-in-full orders don't
+// need this manual follow-up. A deposit is only ever collected via bank
+// transfer in the checkout UI (see CheckoutForm's "COD" radio — its
+// provider defaults to BANK_TRANSFER, and PayPal always implies paying in
+// full), so paymentMethod alone gets close, but "paid in full via bank
+// transfer" also matches that filter — isFullPaymentOrder() (mirroring the
+// per-row badge logic below) is what actually excludes those, hence the
+// in-memory filter rather than a single Prisma `where`.
+const PENDING_ZALO_DEPOSIT_CANDIDATE_WHERE = {
+  paymentMethod: "BANK_TRANSFER",
+  depositAmount: { gt: 0 },
+  depositPaid: false,
+} as const;
+
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string; zaloDeposit?: string }>;
 }) {
   // Kicked off without awaiting yet so this background hygiene sweep
   // overlaps with the searchParams/where-building work and the main queries
@@ -28,10 +66,11 @@ export default async function AdminOrdersPage({
   // same tradeoff note in src/app/admin/(protected)/page.tsx.
   const cleanupPromise = autoCancelStaleOrders();
 
-  const { status, q, page: pageParam } = await searchParams;
+  const { status, q, page: pageParam, zaloDeposit } = await searchParams;
   const activeStatus = Object.values(OrderStatus).includes(status as OrderStatus)
     ? (status as OrderStatus)
     : undefined;
+  const zaloDepositOnly = zaloDeposit === "1";
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
 
@@ -48,31 +87,44 @@ export default async function AdminOrdersPage({
     : {};
   const where = { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere };
 
-  const [, orders, totalCount, counts] = await Promise.all([
+  // The global count badge on the quick-filter button always reflects every
+  // pending Zalo-deposit order, independent of the status/search filters
+  // currently applied to the main list below.
+  const [, allZaloDepositCandidates, counts] = await Promise.all([
     cleanupPromise,
-    prisma.order.findMany({
-      where,
-      select: {
-        id: true,
-        code: true,
-        customerName: true,
-        customerPhone: true,
-        status: true,
-        paymentMethod: true,
-        depositAmount: true,
-        depositPaid: true,
-        utmSource: true,
-        utmCampaign: true,
-        fbclid: true,
-        items: { select: { price: true, quantity: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    }),
-    prisma.order.count({ where }),
+    prisma.order.findMany({ where: PENDING_ZALO_DEPOSIT_CANDIDATE_WHERE, select: ORDER_LIST_SELECT }),
     prisma.order.groupBy({ by: ["status"], _count: true }),
   ]);
+  const pendingZaloDepositCount = allZaloDepositCandidates.filter((o) => !isFullPaymentOrder(o)).length;
+
+  let orders: (typeof allZaloDepositCandidates)[number][];
+  let totalCount: number;
+  if (zaloDepositOnly) {
+    // Same "not actually paid in full" filter as above, but scoped to the
+    // current status/search filters, then paginated in memory — the
+    // deposit-vs-total comparison can't be pushed into a Prisma `where`.
+    const candidates = activeStatus || query
+      ? await prisma.order.findMany({
+          where: { ...PENDING_ZALO_DEPOSIT_CANDIDATE_WHERE, ...where },
+          select: ORDER_LIST_SELECT,
+          orderBy: { createdAt: "desc" },
+        })
+      : allZaloDepositCandidates;
+    const filtered = candidates.filter((o) => !isFullPaymentOrder(o));
+    totalCount = filtered.length;
+    orders = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  } else {
+    [orders, totalCount] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        select: ORDER_LIST_SELECT,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+      prisma.order.count({ where }),
+    ]);
+  }
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const countByStatus = Object.fromEntries(counts.map((c) => [c.status, c._count]));
@@ -121,6 +173,15 @@ export default async function AdminOrdersPage({
             {STATUS_LABEL[s]} ({countByStatus[s] ?? 0})
           </Link>
         ))}
+        <Link
+          href={zaloDepositOnly ? "/admin/orders" : "/admin/orders?zaloDeposit=1"}
+          className={
+            "die-cut-flat cursor-pointer px-3 py-1.5 font-mono text-xs uppercase tracking-wide " +
+            (zaloDepositOnly ? "bg-stamp text-paper" : "bg-paper text-stamp hover:bg-kraft-dark/30")
+          }
+        >
+          Chờ cọc qua Zalo ({pendingZaloDepositCount})
+        </Link>
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
@@ -131,7 +192,7 @@ export default async function AdminOrdersPage({
         )}
         {orders.map((order) => {
           const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-          const isFullPayment = order.paymentMethod !== "COD" && order.depositAmount >= total && total > 0;
+          const isFullPayment = isFullPaymentOrder(order);
           return (
             <div
               key={order.id}
@@ -167,7 +228,9 @@ export default async function AdminOrdersPage({
                     >
                       {order.depositPaid
                         ? (isFullPayment ? "Đã thanh toán" : "Đã cọc")
-                        : (isFullPayment ? "Chờ thanh toán" : "Chờ cọc")}
+                        : isFullPayment
+                          ? "Chờ thanh toán"
+                          : "Chờ cọc qua Zalo"}
                     </span>
                   )}
                   {order.status === "CANCELLED" && (

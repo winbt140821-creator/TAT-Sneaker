@@ -259,6 +259,7 @@
     "methodPaypal": "Pay with PayPal",
     "methodCard": "Pay by credit card",
     "methodCardNote": "You'll enter your card details on PayPal's secure checkout page — no PayPal account needed.",
+    "zaloChatButton": "Chat on Zalo",
     "bankNameLabel": "Bank",
     "bankAccountNumberLabel": "Account number",
     "bankAccountHolderLabel": "Account holder",

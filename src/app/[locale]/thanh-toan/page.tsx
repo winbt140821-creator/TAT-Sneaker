@@ -35,6 +35,7 @@ export default async function CheckoutPage() {
             bankAccountHolder={settings?.bankAccountHolder}
             codOptionTitle={settings?.codOptionTitle}
             codOptionNote={settings?.codOptionNote}
+            codOptionZaloPhone={settings?.codOptionZaloPhone}
             usdExchangeRate={rates.usdExchangeRate}
             cnyExchangeRate={rates.cnyExchangeRate}
           />

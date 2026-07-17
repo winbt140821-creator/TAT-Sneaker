@@ -12,6 +12,8 @@ import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import { buildVietQrUrl } from "@/lib/vietqr-banks";
+import { buildZaloLink } from "@/lib/zalo";
+import { ZaloIcon } from "@/components/icons";
 import { OrderStatusStepper } from "@/components/OrderStatusStepper";
 import { TrackingCodeLink } from "./TrackingCodeLink";
 import { PurchaseTracker } from "./PurchaseTracker";
@@ -80,6 +82,8 @@ export default async function OrderConfirmationPage({
     : order.country !== "Việt Nam"
       ? [order.address, order.postalCode, order.country].filter(Boolean).join(", ")
       : order.address;
+
+  const zaloLink = settings?.codOptionZaloPhone ? buildZaloLink(settings.codOptionZaloPhone) : null;
 
   const dynamicBankQrUrl =
     settings?.bankBin && settings?.bankAccountNumber
@@ -176,9 +180,34 @@ export default async function OrderConfirmationPage({
               </div>
             )}
             {order.depositAmount > 0 && !order.depositPaid && (
-              <p className="mt-2 font-mono text-xs text-graphite">
-                {order.paymentMethod === "BANK_TRANSFER" ? t("bankTransferPendingTitle") : t("depositNote")}
-              </p>
+              // A deposit is always collected online (bank transfer/PayPal —
+              // see CheckoutForm's "COD" radio, whose provider still
+              // defaults to BANK_TRANSFER), so order.paymentMethod is never
+              // literally "COD" here even when the customer picked the
+              // deposit-then-COD path — !isFullPayment is what actually
+              // distinguishes "just a deposit, rest on delivery" from "paid
+              // the whole order online".
+              !isFullPayment && settings?.codOptionNote ? (
+                <div className="die-cut-flat mt-2 flex flex-col gap-1.5 bg-paper p-4 font-mono text-xs text-ink">
+                  {settings.codOptionTitle && <p className="font-semibold">{settings.codOptionTitle}</p>}
+                  <p className="whitespace-pre-line text-graphite">{settings.codOptionNote}</p>
+                  {zaloLink && (
+                    <a
+                      href={zaloLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex w-fit cursor-pointer items-center gap-1.5 border border-graphite bg-paper px-3 py-1.5 text-ink transition-colors hover:border-forest hover:text-forest"
+                    >
+                      <ZaloIcon className="h-4 w-4" />
+                      {tCheckout("zaloChatButton")}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-2 font-mono text-xs text-graphite">
+                  {order.paymentMethod === "BANK_TRANSFER" ? t("bankTransferPendingTitle") : t("depositNote")}
+                </p>
+              )
             )}
 
             {order.paymentMethod === "BANK_TRANSFER" && !order.depositPaid && (

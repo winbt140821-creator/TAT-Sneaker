@@ -105,6 +105,7 @@ export async function updateCodOptionAction(formData: FormData): Promise<void> {
   const data = {
     codOptionTitle: String(formData.get("codOptionTitle") ?? "").trim() || null,
     codOptionNote: String(formData.get("codOptionNote") ?? "").trim() || null,
+    codOptionZaloPhone: String(formData.get("codOptionZaloPhone") ?? "").trim() || null,
   };
 
   await prisma.siteSettings.upsert({

@@ -97,9 +97,9 @@ export default async function AdminSettingsPaymentsPage() {
       <div className="border-t border-kraft-dark pt-8">
         <h2 className="font-display text-xl text-ink">Nội dung mục &quot;Thanh toán khi nhận hàng (COD)&quot;</h2>
         <p className="mt-1 font-mono text-xs text-graphite">
-          Tự viết tiêu đề và mô tả cho mục này ở trang thanh toán — ví dụ nêu rõ % đặt cọc,
-          số Zalo/điện thoại hỗ trợ, chính sách hoàn cọc... Để trống thì trang thanh toán tự
-          hiện thông tin đặt cọc + chuyển khoản mặc định như hiện tại.
+          Tự viết tiêu đề và mô tả cho mục này ở trang thanh toán và trang xác nhận đơn hàng —
+          ví dụ nêu rõ % đặt cọc, chính sách hoàn cọc... Để trống thì hệ thống tự hiện thông
+          tin đặt cọc + chuyển khoản mặc định như hiện tại.
         </p>
 
         <form action={updateCodOptionAction} className="mt-6 flex max-w-md flex-col gap-4">
@@ -115,8 +115,16 @@ export default async function AdminSettingsPaymentsPage() {
             name="codOptionNote"
             label="Mô tả chi tiết"
             rows={5}
-            placeholder="VD: Để đảm bảo đơn hàng được xử lý nhanh chóng, vui lòng đặt cọc 30% giá trị đơn hàng khi xác nhận đặt mua. Phần còn lại thanh toán khi nhận hàng (COD). Liên hệ Zalo 0393002410 để được hỗ trợ."
+            placeholder="VD: Để đảm bảo đơn hàng được xử lý nhanh chóng, vui lòng đặt cọc 30% giá trị đơn hàng khi xác nhận đặt mua. Phần còn lại thanh toán khi nhận hàng (COD)."
             defaultValue={settings?.codOptionNote ?? ""}
+          />
+          <TextField
+            id="codOptionZaloPhone"
+            name="codOptionZaloPhone"
+            label="Số Zalo hỗ trợ (hiện nút bấm-là-chat)"
+            type="tel"
+            placeholder="VD: 0393002410"
+            defaultValue={settings?.codOptionZaloPhone ?? ""}
           />
           <SubmitButton className="mt-1 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
             Lưu thay đổi

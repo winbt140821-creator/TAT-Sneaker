@@ -259,6 +259,7 @@
     "methodPaypal": "使用 PayPal 支付",
     "methodCard": "信用卡支付",
     "methodCardNote": "您将在 PayPal 的安全结账页面输入卡片信息，无需 PayPal 账户。",
+    "zaloChatButton": "Zalo 聊天",
     "bankNameLabel": "银行",
     "bankAccountNumberLabel": "账号",
     "bankAccountHolderLabel": "账户持有人",
