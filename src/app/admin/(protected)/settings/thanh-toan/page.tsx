@@ -7,8 +7,6 @@ import { SingleImageUploadForm } from "@/components/admin/form/SingleImageUpload
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { VIETQR_BANKS } from "@/lib/vietqr-banks";
 import {
-  updateVnpayQrAction,
-  updatePaypalQrAction,
   updateBankTransferQrAction,
   updateBankTransferInfoAction,
   updateCodOptionAction,
@@ -130,52 +128,6 @@ export default async function AdminSettingsPaymentsPage() {
             Lưu thay đổi
           </SubmitButton>
         </form>
-      </div>
-
-      <div className="border-t border-kraft-dark pt-8">
-        <h2 className="font-display text-xl text-ink">Mã QR đặt cọc — VNPay</h2>
-        <p className="mt-1 font-mono text-xs text-graphite">
-          VNPay đang tạm ẩn khỏi trang đặt hàng nên mã QR này chưa hiển thị cho khách — giữ lại
-          phần này để bạn có thể bật lại VNPay sau khi có tài khoản VNPay Sandbox/thật.
-        </p>
-
-        <SingleImageUploadForm
-          action={updateVnpayQrAction}
-          id="vnpayQrImage"
-          name="image"
-          label={settings?.vnpayQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
-          currentUrl={settings?.vnpayQrUrl}
-          currentAlt="Mã QR VNPay hiện tại"
-          previewWidth={200}
-          previewHeight={200}
-          previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
-          removeFieldName="remove"
-          removeLabel="Gỡ mã QR"
-          unoptimized
-        />
-      </div>
-
-      <div className="border-t border-kraft-dark pt-8">
-        <h2 className="font-display text-xl text-ink">Mã QR đặt cọc — PayPal</h2>
-        <p className="mt-1 font-mono text-xs text-graphite">
-          Hiện khi khách chọn thanh toán cọc qua PayPal ở trang thanh toán, cho những đơn hàng cần
-          đặt cọc trước.
-        </p>
-
-        <SingleImageUploadForm
-          action={updatePaypalQrAction}
-          id="paypalQrImage"
-          name="image"
-          label={settings?.paypalQrUrl ? "Thay mã QR mới" : "Tải lên mã QR"}
-          currentUrl={settings?.paypalQrUrl}
-          currentAlt="Mã QR PayPal hiện tại"
-          previewWidth={200}
-          previewHeight={200}
-          previewClassName="die-cut h-auto w-full max-w-[200px] object-cover"
-          removeFieldName="remove"
-          removeLabel="Gỡ mã QR"
-          unoptimized
-        />
       </div>
 
       <div className="border-t border-kraft-dark pt-8">

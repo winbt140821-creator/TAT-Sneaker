@@ -174,8 +174,9 @@ model SiteSettings {
   phone         String?
   email         String?
   footerAbout   String? // short description shown in the footer brand column
-  vnpayQrUrl  String? // VNPay QR code shown on checkout when the cart requires a deposit and VNPay is picked
-  paypalQrUrl String? // PayPal QR code shown on checkout when the cart requires a deposit and PayPal is picked
+  // vnpayQrUrl/paypalQrUrl removed — VNPay stays hidden from checkout, and
+  // PayPal now goes through the real Orders API redirect flow instead of a
+  // static scan-to-pay QR code (see src/lib/payments/paypal.ts).
 
   // Free-text override for the COD payment option at checkout (title +
   // description) — e.g. "Hỗ trợ đặt cọc 30% qua Zalo" with a paragraph

@@ -47,10 +47,7 @@ export async function updateHeroImagesAction(formData: FormData): Promise<void> 
   revalidateSettings();
 }
 
-async function updateQrFieldAction(
-  field: "vnpayQrUrl" | "paypalQrUrl" | "bankTransferQrUrl",
-  formData: FormData
-): Promise<void> {
+export async function updateBankTransferQrAction(formData: FormData): Promise<void> {
   await requireStaff();
 
   const remove = formData.get("remove") === "on";
@@ -59,23 +56,19 @@ async function updateQrFieldAction(
   if (remove) {
     await prisma.siteSettings.upsert({
       where: { id: "singleton" },
-      update: { [field]: null },
-      create: { id: "singleton", [field]: null },
+      update: { bankTransferQrUrl: null },
+      create: { id: "singleton", bankTransferQrUrl: null },
     });
   } else if (newUrl) {
     await prisma.siteSettings.upsert({
       where: { id: "singleton" },
-      update: { [field]: newUrl },
-      create: { id: "singleton", [field]: newUrl },
+      update: { bankTransferQrUrl: newUrl },
+      create: { id: "singleton", bankTransferQrUrl: newUrl },
     });
   }
 
   revalidateSettings();
 }
-
-export const updateVnpayQrAction = updateQrFieldAction.bind(null, "vnpayQrUrl");
-export const updatePaypalQrAction = updateQrFieldAction.bind(null, "paypalQrUrl");
-export const updateBankTransferQrAction = updateQrFieldAction.bind(null, "bankTransferQrUrl");
 
 export async function updateBankTransferInfoAction(formData: FormData): Promise<void> {
   await requireStaff();
