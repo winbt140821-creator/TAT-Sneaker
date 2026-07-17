@@ -257,6 +257,7 @@
     "payInFullNoteInline": "Thanh toán {amount} ngay qua hình thức bên dưới.",
     "methodBankTransfer": "Chuyển khoản ngân hàng",
     "methodPaypal": "Thanh toán qua PayPal",
+    "methodPaypalDeposit": "Đặt cọc qua PayPal",
     "methodCard": "Thanh toán bằng thẻ tín dụng",
     "methodCardNote": "Bạn sẽ nhập thông tin thẻ trên trang thanh toán an toàn của PayPal, không cần có tài khoản PayPal.",
     "zaloChatButton": "Nhắn Zalo",

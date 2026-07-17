@@ -123,6 +123,10 @@ export function CheckoutForm({
   // hide the card option until one is configured (see initiatePaymentAction).
   const paypalAvailable = Boolean(usdExchangeRate);
   const zaloLink = codOptionZaloPhone ? buildZaloLink(codOptionZaloPhone) : null;
+  // Only worth offering as its own option when the deposit is strictly less
+  // than the full order — otherwise it's identical to "pay in full via
+  // PayPal" below.
+  const depositOnlyPaypalAvailable = paypalAvailable && summary.deposit > 0 && summary.deposit < summary.total;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -407,13 +411,16 @@ export function CheckoutForm({
               <input
                 type="radio"
                 name="unifiedPayment"
-                checked={!payInFull}
-                onChange={() => setPayInFull(false)}
+                checked={!payInFull && provider === "BANK_TRANSFER"}
+                onChange={() => {
+                  setPayInFull(false);
+                  setProvider("BANK_TRANSFER");
+                }}
               />
               <TruckIcon className="h-5 w-5 text-graphite" />
               {codOptionTitle || t("payCod")}
             </span>
-            {!payInFull && (
+            {!payInFull && provider === "BANK_TRANSFER" && (
               <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
                 {codOptionNote ? (
                   <>
@@ -454,6 +461,30 @@ export function CheckoutForm({
               </div>
             )}
           </label>
+
+          {depositOnlyPaypalAvailable && (
+            <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+              <span className="flex items-center gap-2.5 text-sm text-ink">
+                <input
+                  type="radio"
+                  name="unifiedPayment"
+                  checked={!payInFull && provider === "PAYPAL"}
+                  onChange={() => {
+                    setPayInFull(false);
+                    setProvider("PAYPAL");
+                  }}
+                />
+                <PaypalIcon className="h-5 w-5 text-graphite" />
+                {t("methodPaypalDeposit")}
+              </span>
+              {!payInFull && provider === "PAYPAL" && (
+                <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                  <p>{t("depositNoteInline", { amount: formatPrice(summary.deposit) })}</p>
+                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("noteOnline")}</p>
+                </div>
+              )}
+            </label>
+          )}
 
           <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
             <span className="flex items-center gap-2.5 text-sm text-ink">

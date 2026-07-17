@@ -257,6 +257,7 @@
     "payInFullNoteInline": "通过以下方式立即支付 {amount}。",
     "methodBankTransfer": "银行转账",
     "methodPaypal": "使用 PayPal 支付",
+    "methodPaypalDeposit": "通过 PayPal 支付定金",
     "methodCard": "信用卡支付",
     "methodCardNote": "您将在 PayPal 的安全结账页面输入卡片信息，无需 PayPal 账户。",
     "zaloChatButton": "Zalo 聊天",

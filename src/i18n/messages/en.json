@@ -257,6 +257,7 @@
     "payInFullNoteInline": "Pay {amount} now using one of the methods below.",
     "methodBankTransfer": "Bank transfer",
     "methodPaypal": "Pay with PayPal",
+    "methodPaypalDeposit": "Pay deposit via PayPal",
     "methodCard": "Pay by credit card",
     "methodCardNote": "You'll enter your card details on PayPal's secure checkout page — no PayPal account needed.",
     "zaloChatButton": "Chat on Zalo",
