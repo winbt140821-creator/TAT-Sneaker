@@ -256,6 +256,7 @@
     "depositNoteInline": "Cần đặt cọc {amount} trước, phần còn lại thanh toán khi nhận hàng.",
     "payInFullNoteInline": "Thanh toán {amount} ngay qua hình thức bên dưới.",
     "methodBankTransfer": "Chuyển khoản ngân hàng",
+    "methodBankTransferDeposit": "Đặt cọc trực tiếp bằng chuyển khoản",
     "methodPaypal": "Thanh toán qua PayPal",
     "methodPaypalDeposit": "Đặt cọc qua PayPal",
     "methodCard": "Thanh toán bằng thẻ tín dụng",

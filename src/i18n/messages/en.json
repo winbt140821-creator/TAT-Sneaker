@@ -256,6 +256,7 @@
     "depositNoteInline": "A {amount} deposit is required now; the rest is paid on delivery.",
     "payInFullNoteInline": "Pay {amount} now using one of the methods below.",
     "methodBankTransfer": "Bank transfer",
+    "methodBankTransferDeposit": "Pay deposit via bank transfer",
     "methodPaypal": "Pay with PayPal",
     "methodPaypalDeposit": "Pay deposit via PayPal",
     "methodCard": "Pay by credit card",

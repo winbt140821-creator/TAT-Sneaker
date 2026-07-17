@@ -256,6 +256,7 @@
     "depositNoteInline": "需先支付定金 {amount}，余款货到付款。",
     "payInFullNoteInline": "通过以下方式立即支付 {amount}。",
     "methodBankTransfer": "银行转账",
+    "methodBankTransferDeposit": "通过银行转账支付定金",
     "methodPaypal": "使用 PayPal 支付",
     "methodPaypalDeposit": "通过 PayPal 支付定金",
     "methodCard": "信用卡支付",

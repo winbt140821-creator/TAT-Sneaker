@@ -65,6 +65,11 @@ export function CheckoutForm({
   // src/lib/payments/paypal.ts) — this only tracks which of the two radio
   // rows should render as selected.
   const [paypalVariant, setPaypalVariant] = useState<"ACCOUNT" | "CARD">("ACCOUNT");
+  // Same idea as paypalVariant: "Hỗ trợ đặt cọc qua Zalo" and "Đặt cọc trực
+  // tiếp bằng chuyển khoản" are both !payInFull && provider === "BANK_TRANSFER"
+  // on the backend (staff confirm the deposit by hand either way) — this
+  // only tracks which radio row to render as selected.
+  const [depositVariant, setDepositVariant] = useState<"ZALO" | "BANK">("ZALO");
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
   const [isDomestic, setIsDomestic] = useState(true);
@@ -123,10 +128,11 @@ export function CheckoutForm({
   // hide the card option until one is configured (see initiatePaymentAction).
   const paypalAvailable = Boolean(usdExchangeRate);
   const zaloLink = codOptionZaloPhone ? buildZaloLink(codOptionZaloPhone) : null;
-  // Only worth offering as its own option when the deposit is strictly less
-  // than the full order — otherwise it's identical to "pay in full via
-  // PayPal" below.
-  const depositOnlyPaypalAvailable = paypalAvailable && summary.deposit > 0 && summary.deposit < summary.total;
+  // Only worth offering deposit-only options when the deposit is strictly
+  // less than the full order — otherwise they're identical to their
+  // "pay in full" counterparts below.
+  const depositOnlyAvailable = summary.deposit > 0 && summary.deposit < summary.total;
+  const depositOnlyPaypalAvailable = paypalAvailable && depositOnlyAvailable;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -411,16 +417,17 @@ export function CheckoutForm({
               <input
                 type="radio"
                 name="unifiedPayment"
-                checked={!payInFull && provider === "BANK_TRANSFER"}
+                checked={!payInFull && provider === "BANK_TRANSFER" && depositVariant === "ZALO"}
                 onChange={() => {
                   setPayInFull(false);
                   setProvider("BANK_TRANSFER");
+                  setDepositVariant("ZALO");
                 }}
               />
               <TruckIcon className="h-5 w-5 text-graphite" />
               {codOptionTitle || t("payCod")}
             </span>
-            {!payInFull && provider === "BANK_TRANSFER" && (
+            {!payInFull && provider === "BANK_TRANSFER" && depositVariant === "ZALO" && (
               <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
                 {codOptionNote ? (
                   <>
@@ -461,6 +468,43 @@ export function CheckoutForm({
               </div>
             )}
           </label>
+
+          {depositOnlyAvailable && (
+            <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
+              <span className="flex items-center gap-2.5 text-sm text-ink">
+                <input
+                  type="radio"
+                  name="unifiedPayment"
+                  checked={!payInFull && provider === "BANK_TRANSFER" && depositVariant === "BANK"}
+                  onChange={() => {
+                    setPayInFull(false);
+                    setProvider("BANK_TRANSFER");
+                    setDepositVariant("BANK");
+                  }}
+                />
+                <BankIcon className="h-5 w-5 text-graphite" />
+                {t("methodBankTransferDeposit")}
+              </span>
+              {!payInFull && provider === "BANK_TRANSFER" && depositVariant === "BANK" && (
+                <div className="mt-2 ml-7 flex flex-col gap-1 font-mono text-[11px] text-graphite">
+                  <p>{t("depositNoteInline", { amount: formatPrice(summary.deposit) })}</p>
+                  {bankName && (
+                    <p>
+                      {t("bankNameLabel")}: <span className="font-semibold text-ink">{bankName}</span>
+                    </p>
+                  )}
+                  {bankAccountHolder && (
+                    <p>
+                      {t("bankAccountHolderLabel")}:{" "}
+                      <span className="font-semibold text-ink">{bankAccountHolder}</span>
+                    </p>
+                  )}
+                  <p>{t("bankTransferQrAfterOrder")}</p>
+                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("noteOnline")}</p>
+                </div>
+              )}
+            </label>
+          )}
 
           {depositOnlyPaypalAvailable && (
             <label className="cursor-pointer border border-graphite bg-paper px-3.5 py-3 has-[:checked]:border-forest has-[:checked]:bg-forest/5">
