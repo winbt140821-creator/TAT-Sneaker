@@ -1,9 +1,8 @@
 // Client for PayPal's Orders API v2 (Checkout).
 //
 // PayPal does not settle in VND — all PayPal charges must be in USD,
-// converted from the VND order/deposit amount using
-// SiteSettings.usdExchangeRate (admin-set fixed rate, edited in
-// /admin/settings).
+// converted from the VND order/deposit amount using a live market rate
+// (see src/lib/fx.ts).
 //
 // Setup:
 //   1. Register: https://developer.paypal.com/ (free developer account) ->

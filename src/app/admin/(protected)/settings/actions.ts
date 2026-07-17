@@ -163,27 +163,6 @@ export async function updateHeroContentAction(formData: FormData): Promise<void>
   revalidateSettings();
 }
 
-async function updateExchangeRateAction(
-  field: "usdExchangeRate" | "cnyExchangeRate",
-  formData: FormData
-): Promise<void> {
-  await requireStaff();
-
-  const raw = String(formData.get(field) ?? "").trim();
-  const rate = raw ? Math.round(Number(raw)) : null;
-
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
-    update: { [field]: rate && rate > 0 ? rate : null },
-    create: { id: "singleton", [field]: rate && rate > 0 ? rate : null },
-  });
-
-  revalidateSettings();
-}
-
-export const updateUsdExchangeRateAction = updateExchangeRateAction.bind(null, "usdExchangeRate");
-export const updateCnyExchangeRateAction = updateExchangeRateAction.bind(null, "cnyExchangeRate");
-
 export async function updateAutoCancelHoursAction(formData: FormData): Promise<void> {
   await requireStaff();
 

@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/settings";
+import { getLiveExchangeRates } from "@/lib/fx";
 import { TextField } from "@/components/admin/form/TextField";
 import { SelectField } from "@/components/admin/form/SelectField";
 import { SingleImageUploadForm } from "@/components/admin/form/SingleImageUploadForm";
@@ -9,14 +10,16 @@ import {
   updatePaypalQrAction,
   updateBankTransferQrAction,
   updateBankTransferInfoAction,
-  updateUsdExchangeRateAction,
-  updateCnyExchangeRateAction,
   updateAutoCancelHoursAction,
   updateAutoCancelCodHoursAction,
 } from "../actions";
 
+function formatRate(rate: number | null) {
+  return rate ? new Intl.NumberFormat("vi-VN").format(Math.round(rate)) : null;
+}
+
 export default async function AdminSettingsPaymentsPage() {
-  const settings = await getSiteSettings();
+  const [settings, rates] = await Promise.all([getSiteSettings(), getLiveExchangeRates()]);
   // Back-compat: accounts configured before the bank dropdown existed only
   // have a free-text bankName saved — best-effort match it to a bin so the
   // select doesn't look reset to "— Chọn ngân hàng —" the first time this
@@ -136,54 +139,22 @@ export default async function AdminSettingsPaymentsPage() {
       </div>
 
       <div className="border-t border-kraft-dark pt-8">
-        <h2 className="font-display text-xl text-ink">Tỷ giá USD</h2>
+        <h2 className="font-display text-xl text-ink">Tỷ giá USD / CNY</h2>
         <p className="mt-1 font-mono text-xs text-graphite">
-          Dùng để hiện giá bằng USD khi khách xem trang bằng tiếng Anh, và để quy đổi
-          tiền cọc khi khách chọn thanh toán qua PayPal (PayPal không nhận VND). Ví dụ:
-          25000 nghĩa là 1 USD = 25.000₫. Cập nhật định kỳ, không tự động đồng bộ theo
-          tỷ giá thực tế.
+          Tự động lấy theo tỷ giá thị trường thực tế (cập nhật mỗi giờ), dùng để hiện giá
+          USD/CNY cho khách xem trang bằng tiếng Anh/Trung và để quy đổi tiền khi thanh
+          toán qua PayPal. Không còn nhập tay — nếu API tỷ giá tạm thời không truy cập
+          được, hệ thống dùng lại giá trị đã lấy được gần nhất.
         </p>
 
-        <form action={updateUsdExchangeRateAction} className="mt-6 flex max-w-xs flex-col gap-1.5">
-          <TextField
-            id="usdExchangeRate"
-            name="usdExchangeRate"
-            label="VND / 1 USD"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="25000"
-            defaultValue={settings?.usdExchangeRate ?? ""}
-          />
-          <SubmitButton className="mt-3 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
-            Lưu thay đổi
-          </SubmitButton>
-        </form>
-      </div>
-
-      <div className="border-t border-kraft-dark pt-8">
-        <h2 className="font-display text-xl text-ink">Tỷ giá CNY (Nhân dân tệ)</h2>
-        <p className="mt-1 font-mono text-xs text-graphite">
-          Dùng để hiện giá bằng CNY khi khách xem trang bằng tiếng Trung. Ví dụ: 3600
-          nghĩa là 1 CNY = 3.600₫. Để trống thì khách xem tiếng Trung vẫn thấy giá bằng
-          VNĐ như bình thường.
-        </p>
-
-        <form action={updateCnyExchangeRateAction} className="mt-6 flex max-w-xs flex-col gap-1.5">
-          <TextField
-            id="cnyExchangeRate"
-            name="cnyExchangeRate"
-            label="VND / 1 CNY"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="3600"
-            defaultValue={settings?.cnyExchangeRate ?? ""}
-          />
-          <SubmitButton className="mt-3 w-fit cursor-pointer bg-ink px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
-            Lưu thay đổi
-          </SubmitButton>
-        </form>
+        <div className="mt-4 flex max-w-xs flex-col gap-2 font-mono text-sm text-ink">
+          <p>
+            1 USD = {formatRate(rates.usdExchangeRate) ?? "—"}₫
+          </p>
+          <p>
+            1 CNY = {formatRate(rates.cnyExchangeRate) ?? "—"}₫
+          </p>
+        </div>
       </div>
 
       <div className="border-t border-kraft-dark pt-8">

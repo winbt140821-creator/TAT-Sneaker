@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { headers, cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getActiveCampaigns, salePriceFor } from "@/lib/sale";
-import { getSiteSettings } from "@/lib/settings";
 import { auth } from "@/auth";
 import { absoluteUrl } from "@/lib/seo";
 import { createPaymentUrl } from "@/lib/payments/vnpay";
@@ -349,14 +348,13 @@ export async function initiatePaymentAction(
   }
 
   // PAYPAL (also used for the Visa/Mastercard card-only checkout option).
-  // Prefer a live market rate so the USD amount PayPal shows the customer
-  // doesn't drift from whatever an admin last typed in; fall back to the
-  // admin-set rate if the FX API is unreachable, so a flaky third party
-  // never blocks checkout entirely.
-  const [settings, liveRate] = await Promise.all([getSiteSettings(), getLiveUsdVndRate()]);
-  const rate = liveRate ?? settings?.usdExchangeRate;
+  // Rate comes solely from the live FX API now (see src/lib/fx.ts) — there
+  // is no admin-set fallback to fall back to anymore, so a null rate here
+  // means the API and its hourly Next.js cache are both currently
+  // unavailable, a transient condition rather than a missing setting.
+  const rate = await getLiveUsdVndRate();
   if (!rate) {
-    return { error: "Chưa cấu hình tỷ giá USD trong Cài đặt. Vui lòng liên hệ quản trị viên." };
+    return { error: "Không thể lấy tỷ giá USD lúc này. Vui lòng thử lại sau ít phút." };
   }
 
   const amountUsdCents = Math.round((order.depositAmount / rate) * 100);

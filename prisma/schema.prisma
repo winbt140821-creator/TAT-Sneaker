@@ -176,8 +176,9 @@ model SiteSettings {
   footerAbout   String? // short description shown in the footer brand column
   vnpayQrUrl  String? // VNPay QR code shown on checkout when the cart requires a deposit and VNPay is picked
   paypalQrUrl String? // PayPal QR code shown on checkout when the cart requires a deposit and PayPal is picked
-  usdExchangeRate Int? // VND per 1 USD, admin-set fixed rate, used only to compute PayPal charge amounts (PayPal cannot settle in VND)
-  cnyExchangeRate Int? // VND per 1 CNY, admin-set fixed rate, used to display prices in CNY when the zh locale is active
+  // USD/CNY exchange rates are no longer admin-set — they're fetched live
+  // from a free FX API (see src/lib/fx.ts) so PayPal charge amounts and
+  // USD/CNY price display always track the real market rate.
 
   // Orders that require a deposit but never get it paid clutter the admin
   // order list — null disables auto-cancel entirely (admin cancels by hand).

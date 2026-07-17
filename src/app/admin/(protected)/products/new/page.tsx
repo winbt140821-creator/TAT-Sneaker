@@ -1,16 +1,16 @@
 import { prisma } from "@/lib/db";
-import { getSiteSettings } from "@/lib/settings";
+import { getLiveExchangeRates } from "@/lib/fx";
 import { createProductAction } from "../actions";
 import { ProductForm } from "../ProductForm";
 
 export default async function NewProductPage() {
-  const [categories, settings] = await Promise.all([
+  const [categories, rates] = await Promise.all([
     prisma.category.findMany({
       where: { parentId: null },
       include: { children: { orderBy: { sortOrder: "asc" } } },
       orderBy: { label: "asc" },
     }),
-    getSiteSettings(),
+    getLiveExchangeRates(),
   ]);
 
   return (
@@ -21,8 +21,8 @@ export default async function NewProductPage() {
           action={createProductAction}
           categories={categories}
           submitLabel="Tạo sản phẩm"
-          usdExchangeRate={settings?.usdExchangeRate}
-          cnyExchangeRate={settings?.cnyExchangeRate}
+          usdExchangeRate={rates.usdExchangeRate}
+          cnyExchangeRate={rates.cnyExchangeRate}
         />
       </div>
     </div>

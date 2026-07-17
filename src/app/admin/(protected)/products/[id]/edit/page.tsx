@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSiteSettings } from "@/lib/settings";
+import { getLiveExchangeRates } from "@/lib/fx";
 import { updateProductAction } from "../../actions";
 import { ProductForm } from "../../ProductForm";
 
@@ -10,14 +10,14 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, categories, settings] = await Promise.all([
+  const [product, categories, rates] = await Promise.all([
     prisma.product.findUnique({ where: { id }, include: { categories: true } }),
     prisma.category.findMany({
       where: { parentId: null },
       include: { children: { orderBy: { sortOrder: "asc" } } },
       orderBy: { label: "asc" },
     }),
-    getSiteSettings(),
+    getLiveExchangeRates(),
   ]);
 
   if (!product) notFound();
@@ -29,8 +29,8 @@ export default async function EditProductPage({
         <ProductForm
           action={updateProductAction.bind(null, product.id)}
           categories={categories}
-          usdExchangeRate={settings?.usdExchangeRate}
-          cnyExchangeRate={settings?.cnyExchangeRate}
+          usdExchangeRate={rates.usdExchangeRate}
+          cnyExchangeRate={rates.cnyExchangeRate}
           defaultValues={{
             name: product.name,
             sku: product.sku,

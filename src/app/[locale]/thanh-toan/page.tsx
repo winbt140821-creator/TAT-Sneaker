@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { auth } from "@/auth";
 import { getSiteSettings } from "@/lib/settings";
+import { getLiveExchangeRates } from "@/lib/fx";
 import { CheckoutForm } from "./CheckoutForm";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
@@ -15,9 +16,10 @@ export const metadata: Metadata = { robots: { index: false, follow: true } };
 // snapshots the account email instead, so this page stays a Server
 // Component that reads the session rather than gating access on it.
 export default async function CheckoutPage() {
-  const [session, settings, t] = await Promise.all([
+  const [session, settings, rates, t] = await Promise.all([
     auth(),
     getSiteSettings(),
+    getLiveExchangeRates(),
     getTranslations("checkout"),
   ]);
 
@@ -31,8 +33,8 @@ export default async function CheckoutPage() {
             isLoggedIn={Boolean(session?.user)}
             bankName={settings?.bankName}
             bankAccountHolder={settings?.bankAccountHolder}
-            usdExchangeRate={settings?.usdExchangeRate}
-            cnyExchangeRate={settings?.cnyExchangeRate}
+            usdExchangeRate={rates.usdExchangeRate}
+            cnyExchangeRate={rates.cnyExchangeRate}
           />
         </div>
       </main>

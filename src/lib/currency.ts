@@ -18,10 +18,11 @@ const INTL_LOCALE: Record<"USD" | "CNY", string> = {
 };
 
 // Pure/sync, no server-only imports — safe in both Server and Client
-// Components once locale and rates are already known (rates come from
-// admin-set SiteSettings fields, passed down as props in Client Components).
-// Falls back to VNĐ when the locale has no mapped currency or the admin
-// hasn't set a rate for it yet, rather than showing a broken/zero price.
+// Components once locale and rates are already known (rates come from the
+// live FX API, see src/lib/fx.ts, passed down as props in Client
+// Components). Falls back to VNĐ when the locale has no mapped currency or
+// the live rate is temporarily unavailable, rather than showing a broken or
+// zero price.
 export function formatPriceForLocale(
   vnd: number,
   locale: string,

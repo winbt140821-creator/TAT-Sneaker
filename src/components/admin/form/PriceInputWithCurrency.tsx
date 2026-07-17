@@ -6,10 +6,10 @@ type Currency = "VND" | "USD" | "CNY";
 
 // Admin mostly sources stock from China, so cost/sale prices need to be
 // enterable in CNY/USD too — but Product.price and Product.costPrice are
-// always stored in VND. This converts on the fly using the same admin-set
+// always stored in VND. This converts on the fly using the same live
 // exchange rates already used to display prices in USD/CNY to customers
-// (SiteSettings.usdExchangeRate/cnyExchangeRate), and submits only the
-// converted VND amount via a hidden input.
+// (see src/lib/fx.ts), and submits only the converted VND amount via a
+// hidden input.
 export function PriceInputWithCurrency({
   id,
   name,

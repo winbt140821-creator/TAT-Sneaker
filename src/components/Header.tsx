@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getNavCategories } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
+import { getLiveExchangeRates } from "@/lib/fx";
 import { BagIcon, UserIcon } from "./icons";
 import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
 import { CartBadge } from "./CartBadge";
@@ -32,10 +33,11 @@ function AccountMenuFallback() {
 // client-side instead; see next-intl SessionProvider in
 // src/app/[locale]/layout.tsx and src/app/api/admin/session/route.ts.
 export async function Header() {
-  const [categories, t, settings] = await Promise.all([
+  const [categories, t, settings, rates] = await Promise.all([
     getNavCategories(),
     getTranslations("header"),
     getSiteSettings(),
+    getLiveExchangeRates(),
   ]);
 
   return (
@@ -55,8 +57,8 @@ export async function Header() {
         <div className="hidden max-w-md sm:block">
           <SearchBar
             id="search-desktop"
-            usdExchangeRate={settings?.usdExchangeRate}
-            cnyExchangeRate={settings?.cnyExchangeRate}
+            usdExchangeRate={rates.usdExchangeRate}
+            cnyExchangeRate={rates.cnyExchangeRate}
           />
         </div>
 
@@ -79,8 +81,8 @@ export async function Header() {
       <div className="border-t border-kraft-dark px-4 py-2 sm:hidden">
         <SearchBar
           id="search-mobile"
-          usdExchangeRate={settings?.usdExchangeRate}
-          cnyExchangeRate={settings?.cnyExchangeRate}
+          usdExchangeRate={rates.usdExchangeRate}
+          cnyExchangeRate={rates.cnyExchangeRate}
         />
       </div>
     </header>
