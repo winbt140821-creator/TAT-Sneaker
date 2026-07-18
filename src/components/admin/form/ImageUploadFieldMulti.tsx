@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import Image from "next/image";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB — mirrors src/lib/uploads.ts
@@ -77,6 +77,7 @@ export function ImageUploadFieldMulti({
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   function updateUploading(next: boolean) {
     setUploading(next);
@@ -86,6 +87,20 @@ export function ImageUploadFieldMulti({
   function updateImages(next: string[]) {
     setImages(next);
     onImagesChange?.(next);
+  }
+
+  // The first image doubles as the product's cover photo everywhere it's
+  // listed (product cards, cart, checkout, Facebook feed) — dragging live-
+  // reorders the array as the dragged thumbnail crosses another one, rather
+  // than only committing on drop, so the layout preview matches the result.
+  function handleDragOver(e: DragEvent, overIndex: number) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === overIndex) return;
+    const next = [...images];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(overIndex, 0, moved);
+    setDragIndex(overIndex);
+    updateImages(next);
   }
 
   async function handleFiles(fileList: FileList | null) {
@@ -153,16 +168,30 @@ export function ImageUploadFieldMulti({
             every uploaded photo on the page. */}
         {images.length > 0 && !onImagesChange && (
           <div className="flex flex-wrap gap-3">
-            {images.map((url) => (
-              <div key={url} className="relative">
+            {images.map((url, index) => (
+              <div
+                key={url}
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={() => setDragIndex(null)}
+                onDrop={(e) => e.preventDefault()}
+                className={`relative cursor-move transition-opacity ${dragIndex === index ? "opacity-40" : ""}`}
+              >
                 <Image
                   src={url}
                   alt=""
                   width={72}
                   height={72}
+                  draggable={false}
                   className="h-[72px] w-[72px] border border-graphite object-cover"
                 />
                 <input type="hidden" name={name} value={url} />
+                {index === 0 && (
+                  <span className="absolute -left-1 -top-1 bg-forest px-1 py-0.5 font-mono text-[9px] font-semibold uppercase text-paper">
+                    Bìa
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => updateImages(images.filter((u) => u !== url))}
@@ -174,6 +203,9 @@ export function ImageUploadFieldMulti({
               </div>
             ))}
           </div>
+        )}
+        {images.length > 1 && !onImagesChange && (
+          <p className="font-mono text-[11px] text-graphite">Kéo ảnh để đổi thứ tự — ảnh đầu tiên là ảnh bìa.</p>
         )}
 
         <input

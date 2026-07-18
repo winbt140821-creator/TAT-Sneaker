@@ -143,6 +143,13 @@ export function ProductForm({
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-5">
+      <ImageUploadFieldMulti
+        name="images"
+        label="Hình ảnh"
+        initialImages={defaultValues?.images ?? []}
+        onUploadingChange={setImagesUploading}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField id="name" name="name" label="Tên sản phẩm" required defaultValue={defaultValues?.name} />
 
@@ -445,13 +452,6 @@ export function ProductForm({
           </div>
         </div>
       </fieldset>
-
-      <ImageUploadFieldMulti
-        name="images"
-        label="Hình ảnh"
-        initialImages={defaultValues?.images ?? []}
-        onUploadingChange={setImagesUploading}
-      />
 
       <TextField
         id="videoUrl"
