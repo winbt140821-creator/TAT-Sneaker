@@ -256,6 +256,8 @@
     "depositNoteInline": "需先支付定金 {amount}，余款货到付款。",
     "payInFullNoteInline": "通过以下方式立即支付 {amount}。",
     "methodBankTransfer": "银行转账",
+    "methodZaloDeposit": "通过 Zalo 协助支付定金",
+    "methodBankTransferDeposit": "直接在网站上支付定金",
     "methodPaypal": "使用 PayPal 支付",
     "methodCard": "信用卡支付",
     "methodCardNote": "您将在 PayPal 的安全结账页面输入卡片信息，无需 PayPal 账户。",

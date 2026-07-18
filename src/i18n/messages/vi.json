@@ -256,6 +256,8 @@
     "depositNoteInline": "Cần đặt cọc {amount} trước, phần còn lại thanh toán khi nhận hàng.",
     "payInFullNoteInline": "Thanh toán {amount} ngay qua hình thức bên dưới.",
     "methodBankTransfer": "Chuyển khoản ngân hàng",
+    "methodZaloDeposit": "Hỗ trợ đặt cọc qua Zalo",
+    "methodBankTransferDeposit": "Đặt cọc trực tiếp qua web",
     "methodPaypal": "Thanh toán qua PayPal",
     "methodCard": "Thanh toán bằng thẻ tín dụng",
     "methodCardNote": "Bạn sẽ nhập thông tin thẻ trên trang thanh toán an toàn của PayPal, không cần có tài khoản PayPal.",

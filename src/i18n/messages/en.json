@@ -256,6 +256,8 @@
     "depositNoteInline": "A {amount} deposit is required now; the rest is paid on delivery.",
     "payInFullNoteInline": "Pay {amount} now using one of the methods below.",
     "methodBankTransfer": "Bank transfer",
+    "methodZaloDeposit": "Deposit support via Zalo",
+    "methodBankTransferDeposit": "Pay deposit directly on our website",
     "methodPaypal": "Pay with PayPal",
     "methodCard": "Pay by credit card",
     "methodCardNote": "You'll enter your card details on PayPal's secure checkout page — no PayPal account needed.",
