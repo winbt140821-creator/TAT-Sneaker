@@ -396,14 +396,8 @@ export function UserIcon({ className }: IconProps) {
 
 export function ZaloIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={`${base} ${className ?? ""}`} aria-hidden="true">
-      <path
-        d="M4 12a8 8 0 1114.7 4.4L20 20l-3.8-1.3A8 8 0 014 12z"
-        stroke="currentColor"
-        strokeWidth={1.6}
-        strokeLinejoin="round"
-      />
-      <path d="M9 14V9.5h3.2M9 11.7h2.6M13.5 9.5v4.5l2.5-4.5v4.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={`${base} ${className ?? ""}`} aria-hidden="true">
+      <path d="M5 5H19V8L10 16H19V19H5V16L14 8H5V5Z" />
     </svg>
   );
 }
