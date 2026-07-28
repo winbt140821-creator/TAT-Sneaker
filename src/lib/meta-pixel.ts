@@ -54,3 +54,33 @@ export function trackPurchase(params: { orderCode: string; value: number }) {
     params.orderCode
   );
 }
+
+// Orders can fire Purchase from two places now — the inline bank-transfer
+// panel right after checkout, and the /don-hang confirmation page on any
+// (re)visit — so both share this localStorage ledger of already-counted order
+// codes to avoid inflating the pixel's Purchase count. Meta still dedupes
+// server-side via eventID (see trackPurchase), but this keeps the browser
+// event itself from firing twice for the same order.
+const PURCHASE_LEDGER_KEY = "meta-pixel-purchases-tracked";
+
+export function trackPurchaseOnce(params: { orderCode: string; value: number }) {
+  let tracked: string[] = [];
+  try {
+    tracked = JSON.parse(localStorage.getItem(PURCHASE_LEDGER_KEY) ?? "[]");
+  } catch {
+    tracked = [];
+  }
+  if (tracked.includes(params.orderCode)) return;
+
+  trackPurchase(params);
+
+  try {
+    localStorage.setItem(
+      PURCHASE_LEDGER_KEY,
+      JSON.stringify([...tracked, params.orderCode].slice(-50))
+    );
+  } catch {
+    // localStorage unavailable (private mode, quota) — nothing to do, worst
+    // case a revisit fires Purchase again.
+  }
+}

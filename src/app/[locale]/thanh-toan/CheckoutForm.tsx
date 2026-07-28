@@ -21,9 +21,29 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { PROVINCES, getWardsByProvinceCode } from "@/lib/vn-locations";
 import { getCartProductsAction } from "../gio-hang/actions";
 import { createOrderAction, initiatePaymentAction, type PaymentMethod } from "./actions";
-import { trackInitiateCheckout } from "@/lib/meta-pixel";
+import { trackInitiateCheckout, trackPurchaseOnce } from "@/lib/meta-pixel";
+import { BankTransferPanel } from "./BankTransferPanel";
 
 type CartProduct = Awaited<ReturnType<typeof getCartProductsAction>>[number];
+
+// A logged-in customer's default saved address, passed from the server page so
+// the shipping fields come pre-filled — one less thing to retype at checkout.
+export type CheckoutDefaultAddress = {
+  fullName: string;
+  phone: string;
+  address: string;
+  province: string | null;
+  ward: string | null;
+  country: string;
+};
+
+type BankPanelState = {
+  code: string;
+  amount: number;
+  remaining: number;
+  isDeposit: boolean;
+  leadTimeDays: number;
+};
 
 // VNPay stays hidden until real VNPay credentials are set up (see
 // src/lib/payments/vnpay.ts) — the admin QR management for it is left in
@@ -33,18 +53,28 @@ export function CheckoutForm({
   isLoggedIn,
   bankName,
   bankAccountHolder,
+  bankAccountNumber,
+  bankBin,
+  bankTransferQrUrl,
   codOptionTitle,
   codOptionNote,
   codOptionZaloPhone,
+  holdHours,
+  defaultAddress,
   usdExchangeRate,
   cnyExchangeRate,
 }: {
   isLoggedIn: boolean;
   bankName?: string | null;
   bankAccountHolder?: string | null;
+  bankAccountNumber?: string | null;
+  bankBin?: string | null;
+  bankTransferQrUrl?: string | null;
   codOptionTitle?: string | null;
   codOptionNote?: string | null;
   codOptionZaloPhone?: string | null;
+  holdHours?: number | null;
+  defaultAddress?: CheckoutDefaultAddress | null;
   usdExchangeRate?: number | null;
   cnyExchangeRate?: number | null;
 }) {
@@ -70,10 +100,27 @@ export function CheckoutForm({
   // the deposit by hand either way) — this only tracks which tile to render
   // as selected and which content to show.
   const [depositVariant, setDepositVariant] = useState<"ZALO" | "BANK">("ZALO");
-  const [provinceCode, setProvinceCode] = useState("");
-  const [wardCode, setWardCode] = useState("");
-  const [isDomestic, setIsDomestic] = useState(true);
-  const [country, setCountry] = useState("");
+  // Pre-fill the shipping fields from the customer's default saved address.
+  // Province/ward are stored as display names but the dropdowns key off codes,
+  // so map name → code up front (an unmatched name just falls back to blank).
+  const defaultProvinceCode = defaultAddress?.province
+    ? PROVINCES.find((p) => p.name === defaultAddress.province)?.code ?? ""
+    : "";
+  const [provinceCode, setProvinceCode] = useState(defaultProvinceCode);
+  const [wardCode, setWardCode] = useState(() =>
+    defaultProvinceCode
+      ? getWardsByProvinceCode(defaultProvinceCode).find((w) => w.name === defaultAddress?.ward)?.code ?? ""
+      : ""
+  );
+  const [isDomestic, setIsDomestic] = useState(
+    defaultAddress ? Boolean(defaultAddress.province) || defaultAddress.country === "Việt Nam" : true
+  );
+  const [country, setCountry] = useState(
+    defaultAddress && !defaultAddress.province && defaultAddress.country !== "Việt Nam"
+      ? defaultAddress.country
+      : ""
+  );
+  const [bankPanel, setBankPanel] = useState<BankPanelState | null>(null);
   const cartItems = useSyncExternalStore(subscribeCart, getCartSnapshot, getServerCartSnapshot);
   const isEmpty = cartItems.length === 0;
 
@@ -178,18 +225,58 @@ export function CheckoutForm({
 
     clearCart();
 
-    if (result.id && result.amountDue) {
+    if (result.id && result.amountDue && result.code) {
+      // Bank transfer: keep the customer right here and reveal the QR + copy
+      // panel inline instead of bouncing to /don-hang — the order code (the
+      // transfer memo) only exists now that the order is created, so this is
+      // the earliest a reconcilable QR can be shown. Purchase fires here since
+      // there's no confirmation-page visit to fire it (deduped against a later
+      // /don-hang visit via trackPurchaseOnce).
+      if (provider === "BANK_TRANSFER") {
+        await initiatePaymentAction(result.id, "BANK_TRANSFER");
+        trackPurchaseOnce({ orderCode: result.code, value: summary.total });
+        setBankPanel({
+          code: result.code,
+          amount: result.amountDue,
+          remaining: payInFull ? 0 : summary.total - summary.deposit,
+          isDeposit: !payInFull,
+          leadTimeDays: summary.maxLeadTime,
+        });
+        setPending(false);
+        return;
+      }
+
       const paymentResult = await initiatePaymentAction(result.id, provider);
       if (paymentResult.redirectUrl) {
         window.location.href = paymentResult.redirectUrl;
         return;
       }
-      // BANK_TRANSFER (no redirect — info already shown above) or gateway
-      // not configured yet — order is still created, fall through to the
-      // confirmation page.
+      // Gateway not configured yet — order is still created, fall through to
+      // the confirmation page.
     }
 
     router.push(`/don-hang/${result.code}`);
+  }
+
+  if (bankPanel) {
+    return (
+      <div className="py-4">
+        <BankTransferPanel
+          orderCode={bankPanel.code}
+          amount={bankPanel.amount}
+          remaining={bankPanel.remaining}
+          isDeposit={bankPanel.isDeposit}
+          leadTimeDays={bankPanel.leadTimeDays}
+          holdHours={holdHours}
+          bankName={bankName}
+          bankAccountNumber={bankAccountNumber}
+          bankAccountHolder={bankAccountHolder}
+          bankBin={bankBin}
+          bankTransferQrUrl={bankTransferQrUrl}
+          zaloLink={zaloLink}
+        />
+      </div>
+    );
   }
 
   if (isEmpty) {
@@ -253,6 +340,7 @@ export function CheckoutForm({
               name="customerName"
               required
               autoComplete="name"
+              defaultValue={defaultAddress?.fullName}
               placeholder={t("name")}
               className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
             />
@@ -268,6 +356,7 @@ export function CheckoutForm({
               type="tel"
               required
               autoComplete="tel"
+              defaultValue={defaultAddress?.phone}
               placeholder={t("phone")}
               className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
             />
@@ -348,6 +437,7 @@ export function CheckoutForm({
                 name="address"
                 required
                 autoComplete="street-address"
+                defaultValue={defaultAddress?.province ? defaultAddress.address : undefined}
                 placeholder={t("addressDetailPlaceholder")}
                 className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
               />
@@ -381,6 +471,7 @@ export function CheckoutForm({
                 required
                 rows={3}
                 autoComplete="street-address"
+                defaultValue={defaultAddress && !defaultAddress.province ? defaultAddress.address : undefined}
                 placeholder={t("addressInternationalPlaceholder")}
                 className="border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
               />
@@ -554,7 +645,7 @@ export function CheckoutForm({
                     </p>
                   )}
                   <p>{t("bankTransferQrAfterOrder")}</p>
-                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("noteOnline")}</p>
+                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("bankDepositRemainderNote")}</p>
                 </div>
               )}
             </label>
@@ -592,7 +683,7 @@ export function CheckoutForm({
                     </p>
                   )}
                   <p>{t("bankTransferQrAfterOrder")}</p>
-                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("payInFullNoteOnline")}</p>
+                  <p className="mt-1 border-t border-kraft-dark pt-2">{t("bankFullReassure")}</p>
                 </div>
               )}
             </label>

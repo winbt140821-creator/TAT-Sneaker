@@ -5,9 +5,10 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
 import { getLiveExchangeRates } from "@/lib/fx";
-import { CheckoutForm } from "./CheckoutForm";
+import { CheckoutForm, type CheckoutDefaultAddress } from "./CheckoutForm";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
 
@@ -23,6 +24,27 @@ export default async function CheckoutPage() {
     getTranslations("checkout"),
   ]);
 
+  // Pre-fill shipping fields from the logged-in customer's default saved
+  // address (guests have nothing to pre-fill). Falls back to the most recent
+  // address when none is explicitly marked default.
+  let defaultAddress: CheckoutDefaultAddress | null = null;
+  if (session?.user?.email) {
+    const address = await prisma.address.findFirst({
+      where: { customer: { email: session.user.email } },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    });
+    if (address) {
+      defaultAddress = {
+        fullName: address.fullName,
+        phone: address.phone,
+        address: address.address,
+        province: address.province,
+        ward: address.ward,
+        country: address.country,
+      };
+    }
+  }
+
   return (
     <>
       <Header />
@@ -33,9 +55,14 @@ export default async function CheckoutPage() {
             isLoggedIn={Boolean(session?.user)}
             bankName={settings?.bankName}
             bankAccountHolder={settings?.bankAccountHolder}
+            bankAccountNumber={settings?.bankAccountNumber}
+            bankBin={settings?.bankBin}
+            bankTransferQrUrl={settings?.bankTransferQrUrl}
             codOptionTitle={settings?.codOptionTitle}
             codOptionNote={settings?.codOptionNote}
             codOptionZaloPhone={settings?.codOptionZaloPhone}
+            holdHours={settings?.autoCancelUnpaidDepositHours}
+            defaultAddress={defaultAddress}
             usdExchangeRate={rates.usdExchangeRate}
             cnyExchangeRate={rates.cnyExchangeRate}
           />
