@@ -1,22 +1,33 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
 import { getActiveCampaigns, salePriceFor, saleProductIds } from "./sale";
 
-// Cached per-request — Header (mobile drawer) and the homepage (desktop
-// sidebar) both need this, so dedupe to a single query per request.
-export const getNavCategories = cache(() => {
-  return prisma.category.findMany({
-    where: { parentId: null },
-    include: {
-      children: {
-        orderBy: { sortOrder: "asc" },
-        include: { _count: { select: { products: true } } },
-      },
-      _count: { select: { products: true } },
-    },
-    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
-  });
-});
+// Called on every single storefront page (Header's mobile drawer + the
+// homepage sidebar), so with no cross-request caching this alone multiplied
+// into a huge share of the read-quota blowout that took the site down.
+// Category edits are infrequent and every admin mutation already calls
+// revalidatePath("/") (see admin/categories/actions.ts), which busts this
+// too. cache() on top still dedupes the rare case both callers run in the
+// same request.
+export const getNavCategories = cache(
+  unstable_cache(
+    () =>
+      prisma.category.findMany({
+        where: { parentId: null },
+        include: {
+          children: {
+            orderBy: { sortOrder: "asc" },
+            include: { _count: { select: { products: true } } },
+          },
+          _count: { select: { products: true } },
+        },
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+      }),
+    ["nav-categories"],
+    { revalidate: 60, tags: ["nav-categories"] }
+  )
+);
 
 // Includes children (for the pills row when viewing a parent category) and
 // parent.children — i.e. siblings — for when the active category is itself
@@ -34,12 +45,19 @@ export async function getCategoryBySlug(slug: string) {
 
 // Admin-curated "featured categories" grid near the bottom of the homepage —
 // only categories explicitly toggled on with a representative photo appear.
-export const getShowcaseCategories = cache(() => {
-  return prisma.category.findMany({
-    where: { showcaseEnabled: true, showcaseImageUrl: { not: null } },
-    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
-  });
-});
+// Same reasoning as getNavCategories above: homepage-only but still worth
+// caching across requests, and covered by the same revalidatePath("/") calls.
+export const getShowcaseCategories = cache(
+  unstable_cache(
+    () =>
+      prisma.category.findMany({
+        where: { showcaseEnabled: true, showcaseImageUrl: { not: null } },
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+      }),
+    ["showcase-categories"],
+    { revalidate: 60, tags: ["showcase-categories"] }
+  )
+);
 
 function parseProduct<T extends { sizeQuantities: string; images: string }>(
   p: T
