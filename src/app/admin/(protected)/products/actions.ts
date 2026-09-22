@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { ProductAvailability } from "@/generated/prisma/client";
-import { ALL_SIZES, PREORDER_DEFAULT_QTY } from "@/lib/inventory";
+import { SIZE_SETS, PREORDER_DEFAULT_QTY, type Department } from "@/lib/inventory";
 
 export type ProductFormState = { error?: string };
 
@@ -22,7 +22,14 @@ function readProductForm(formData: FormData) {
   // Giá nhập (nội bộ, dùng để tính lợi nhuận) = giá gốc + phí ship.
   const costPrice = baseCostPriceRaw ? Math.round(Number(baseCostPriceRaw)) + shippingFee : null;
   const quality = String(formData.get("quality") ?? "Auth");
-  const carriedSizes = formData.getAll("carriedSizes").map(Number).filter((n) => !Number.isNaN(n));
+  const departmentRaw = String(formData.get("department") ?? "SHOES");
+  const department: Department = departmentRaw === "CLOTHING" ? "CLOTHING" : "SHOES";
+  const knownSizes = SIZE_SETS[department];
+  const carriedSizes = formData
+    .getAll("carriedSizes")
+    .map(String)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const availabilityRaw = String(formData.get("availability") ?? "IN_STOCK");
   const availability =
@@ -33,20 +40,20 @@ function readProductForm(formData: FormData) {
     // Preorder items don't need real stock to be orderable — every standard
     // size is sellable by default (see PREORDER_DEFAULT_QTY), and admin only
     // has to edit the sizes where a pair is actually on hand already.
-    for (const s of ALL_SIZES) {
+    for (const s of knownSizes) {
       const carried = carriedSizes.includes(s);
       const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? PREORDER_DEFAULT_QTY));
-      sizeQuantities[String(s)] = carried && Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
+      sizeQuantities[s] = carried && Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
     }
     // Custom (non-standard) sizes still opt in via the checkbox like before.
-    for (const s of carriedSizes.filter((s) => !ALL_SIZES.includes(s))) {
+    for (const s of carriedSizes.filter((s) => !knownSizes.includes(s))) {
       const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? PREORDER_DEFAULT_QTY));
-      sizeQuantities[String(s)] = Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
+      sizeQuantities[s] = Number.isFinite(raw) && raw >= 0 ? raw : PREORDER_DEFAULT_QTY;
     }
   } else {
     for (const s of carriedSizes) {
       const raw = Math.floor(Number(formData.get(`qty_${s}`) ?? 0));
-      sizeQuantities[String(s)] = Number.isFinite(raw) && raw > 0 ? raw : 0;
+      sizeQuantities[s] = Number.isFinite(raw) && raw > 0 ? raw : 0;
     }
   }
   const categoryIds = formData.getAll("categoryIds").map(String);
@@ -69,6 +76,7 @@ function readProductForm(formData: FormData) {
     costPrice,
     shippingFee,
     quality,
+    department,
     sizeQuantities,
     categoryIds,
     images,
@@ -110,6 +118,7 @@ export async function createProductAction(
         costPrice: data.costPrice,
         shippingFee: data.shippingFee,
         quality: data.quality,
+        department: data.department,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,
@@ -157,6 +166,7 @@ export async function updateProductAction(
         costPrice: data.costPrice,
         shippingFee: data.shippingFee,
         quality: data.quality,
+        department: data.department,
         sizeQuantities: JSON.stringify(data.sizeQuantities),
         images: JSON.stringify(data.images),
         videoUrl: data.videoUrl,

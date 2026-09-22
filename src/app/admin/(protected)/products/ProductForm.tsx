@@ -9,10 +9,15 @@ import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
 import { PriceInputWithCurrency } from "@/components/admin/form/PriceInputWithCurrency";
-import { ALL_SIZES } from "@/lib/inventory";
+import { SIZE_SETS, type Department } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
 const QUALITY_TIERS = ["Auth", "Best Quality", "Like Auth", "Rep 11"];
+
+const DEPARTMENTS: { value: Department; label: string }[] = [
+  { value: "SHOES", label: "Giày" },
+  { value: "CLOTHING", label: "Quần áo" },
+];
 
 const LEAD_TIME_DEFAULTS = {
   IN_STOCK: { min: 3, max: 5 },
@@ -24,6 +29,7 @@ const initialState: ProductFormState = {};
 type CategoryOption = {
   id: string;
   label: string;
+  department: Department;
   children: { id: string; label: string }[];
 };
 
@@ -46,6 +52,7 @@ export function ProductForm({
     costPrice?: number | null;
     shippingFee?: number;
     quality?: string;
+    department?: Department;
     sizeQuantities?: Record<string, number>;
     categoryIds?: string[];
     images?: string[];
@@ -60,17 +67,17 @@ export function ProductForm({
   submitLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
-  const [checkedSizes, setCheckedSizes] = useState<number[]>(
-    defaultValues?.sizeQuantities ? Object.keys(defaultValues.sizeQuantities).map(Number) : []
+  const [department, setDepartment] = useState<Department>(defaultValues?.department ?? "SHOES");
+  const [checkedSizes, setCheckedSizes] = useState<string[]>(
+    defaultValues?.sizeQuantities ? Object.keys(defaultValues.sizeQuantities) : []
   );
-  const [customSizes, setCustomSizes] = useState<number[]>(() => {
-    const existing = defaultValues?.sizeQuantities
-      ? Object.keys(defaultValues.sizeQuantities).map(Number)
-      : [];
-    return existing.filter((s) => !ALL_SIZES.includes(s)).sort((a, b) => a - b);
+  const [customSizes, setCustomSizes] = useState<string[]>(() => {
+    const existing = defaultValues?.sizeQuantities ? Object.keys(defaultValues.sizeQuantities) : [];
+    const known = SIZE_SETS[defaultValues?.department ?? "SHOES"];
+    return existing.filter((s) => !known.includes(s)).sort((a, b) => a.localeCompare(b));
   });
   const [newSize, setNewSize] = useState("");
-  const [quantities, setQuantities] = useState<Record<number, number>>(
+  const [quantities, setQuantities] = useState<Record<string, number>>(
     defaultValues?.sizeQuantities ?? {}
   );
   const [bulkQty, setBulkQty] = useState("");
@@ -91,20 +98,30 @@ export function ProductForm({
   }
 
   function handleAddCustomSize() {
-    const n = Math.floor(Number(newSize));
-    if (!newSize || Number.isNaN(n) || n <= 0) return;
+    const s = newSize.trim();
+    if (!s) return;
     setNewSize("");
-    if (ALL_SIZES.includes(n)) {
-      setCheckedSizes((prev) => (prev.includes(n) ? prev : [...prev, n]));
+    if (SIZE_SETS[department].includes(s)) {
+      setCheckedSizes((prev) => (prev.includes(s) ? prev : [...prev, s]));
       return;
     }
-    setCheckedSizes((prev) => (prev.includes(n) ? prev : [...prev, n]));
-    setCustomSizes((prev) => (prev.includes(n) ? prev : [...prev, n].sort((a, b) => a - b)));
+    setCheckedSizes((prev) => (prev.includes(s) ? prev : [...prev, s]));
+    setCustomSizes((prev) => (prev.includes(s) ? prev : [...prev, s].sort((a, b) => a.localeCompare(b))));
   }
 
-  function handleRemoveCustomSize(s: number) {
+  function handleRemoveCustomSize(s: string) {
     setCustomSizes((prev) => prev.filter((x) => x !== s));
     setCheckedSizes((prev) => prev.filter((x) => x !== s));
+  }
+
+  // Switching department mid-edit means an entirely different size set
+  // (shoe sizes vs. letter sizes) — carrying over old selections/quantities
+  // would just leave stale, meaningless data on the product.
+  function handleDepartmentChange(next: Department) {
+    setDepartment(next);
+    setCheckedSizes([]);
+    setCustomSizes([]);
+    setQuantities({});
   }
   const [availability, setAvailability] = useState<"IN_STOCK" | "PREORDER">(
     defaultValues?.availability ?? "IN_STOCK"
@@ -134,7 +151,7 @@ export function ProductForm({
     }
   }
 
-  function handleSizeCheck(s: number, checked: boolean) {
+  function handleSizeCheck(s: string, checked: boolean) {
     setCheckedSizes((prev) => (checked ? [...prev, s] : prev.filter((x) => x !== s)));
     if (checked) {
       setQuantities((prev) => (prev[s] ? prev : { ...prev, [s]: availability === "PREORDER" ? 100 : 0 }));
@@ -191,6 +208,20 @@ export function ProductForm({
           cnyExchangeRate={cnyExchangeRate}
           hint="Giảm giá theo dịp lễ được quản lý ở trang Sale/Khuyến mãi, không nhập ở đây."
         />
+
+        <SelectField
+          id="department"
+          name="department"
+          label="Ngành hàng"
+          value={department}
+          onChange={(e) => handleDepartmentChange(e.target.value as Department)}
+        >
+          {DEPARTMENTS.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
+        </SelectField>
 
         <SelectField
           id="quality"
@@ -277,7 +308,7 @@ export function ProductForm({
       <fieldset>
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">Danh mục</legend>
         <div className="mt-2 flex flex-col gap-2 die-cut-flat bg-paper p-3">
-          {categories.map((top) => (
+          {categories.filter((top) => top.department === department).map((top) => (
             <div key={top.id}>
               <label className="flex items-center gap-2.5 py-1.5 font-body text-sm text-ink">
                 <input
@@ -340,7 +371,7 @@ export function ProductForm({
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {ALL_SIZES.map((s) => {
+            {SIZE_SETS[department].map((s) => {
               const carried = checkedSizes.includes(s);
               return (
                 <div key={s} className="flex flex-col items-center gap-1.5">
@@ -428,8 +459,7 @@ export function ProductForm({
 
           <div className="mt-3 flex items-center gap-2">
             <input
-              type="number"
-              min={1}
+              type="text"
               value={newSize}
               onChange={(e) => setNewSize(e.target.value)}
               onKeyDown={(e) => {
@@ -438,7 +468,7 @@ export function ProductForm({
                   handleAddCustomSize();
                 }
               }}
-              placeholder="Size khác (VD: 46)"
+              placeholder={department === "SHOES" ? "Size khác (VD: 46)" : "Size khác (VD: XXXL)"}
               aria-label="Nhập size khác"
               className="w-36 border border-graphite bg-paper px-2 py-1.5 text-sm text-ink focus:border-forest"
             />

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { ALL_SIZES } from "@/lib/inventory";
+import { SIZE_SETS, type Department } from "@/lib/inventory";
 import { ChevronDownIcon, FilterIcon } from "./icons";
 
 type Availability = "IN_STOCK" | "PREORDER";
@@ -22,10 +22,12 @@ export function Toolbar({
   from,
   to,
   total,
+  department,
 }: {
   from: number;
   to: number;
   total: number;
+  department: Department;
 }) {
   const t = useTranslations("toolbar");
   const router = useRouter();
@@ -38,6 +40,7 @@ export function Toolbar({
   const maxPrice = searchParams.get("maxPrice") ?? "";
   const size = searchParams.get("size");
   const availability = searchParams.get("availability") as Availability | null;
+  const sizes = SIZE_SETS[department];
 
   const activeFilterCount =
     (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (size ? 1 : 0) + (availability ? 1 : 0);
@@ -119,13 +122,13 @@ export function Toolbar({
           <div>
             <p className="font-mono text-xs uppercase tracking-wide text-graphite">{t("filterSizeLabel")}</p>
             <ul className="mt-2 flex flex-wrap gap-1.5">
-              {ALL_SIZES.map((s) => {
-                const isSelected = size === String(s);
+              {sizes.map((s) => {
+                const isSelected = size === s;
                 return (
                   <li key={s}>
                     <button
                       type="button"
-                      onClick={() => applyPatch({ size: isSelected ? null : String(s) })}
+                      onClick={() => applyPatch({ size: isSelected ? null : s })}
                       aria-pressed={isSelected}
                       className={
                         "flex h-8 w-8 items-center justify-center border font-mono text-xs transition-colors " +

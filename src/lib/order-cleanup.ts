@@ -30,7 +30,7 @@ export async function restoreOrderStock(
     const sizeQuantities =
       pendingQuantities.get(item.productId) ??
       (JSON.parse(product.sizeQuantities) as Record<string, number>);
-    const key = String(item.size);
+    const key = item.sizeLabel ?? String(item.size);
     sizeQuantities[key] = (sizeQuantities[key] ?? 0) + item.quantity;
     pendingQuantities.set(item.productId, sizeQuantities);
   }

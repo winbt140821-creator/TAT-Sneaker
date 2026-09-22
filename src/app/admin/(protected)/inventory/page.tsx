@@ -26,7 +26,15 @@ export default async function AdminInventoryPage({
   const [products, totalCount, { grandTotal }] = await Promise.all([
     prisma.product.findMany({
       where,
-      select: { id: true, sku: true, name: true, images: true, sizeQuantities: true, availability: true },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        images: true,
+        sizeQuantities: true,
+        availability: true,
+        department: true,
+      },
       orderBy: { name: "asc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -93,10 +101,10 @@ export default async function AdminInventoryPage({
         )}
         {parsed.map(({ product: p, images, sizeQuantities }) => {
           const isPreorder = p.availability === "PREORDER";
-          const realStockSizes = getRealStockSizes(sizeQuantities, isPreorder);
-          const productTotal = getRealStockTotal(sizeQuantities, isPreorder);
+          const realStockSizes = getRealStockSizes(sizeQuantities, isPreorder, p.department);
+          const productTotal = getRealStockTotal(sizeQuantities, isPreorder, p.department);
           const hiddenSizes = isPreorder
-            ? getCarriedSizes(sizeQuantities).filter((s) => !realStockSizes.includes(s))
+            ? getCarriedSizes(sizeQuantities, p.department).filter((s) => !realStockSizes.includes(s))
             : [];
 
           return (

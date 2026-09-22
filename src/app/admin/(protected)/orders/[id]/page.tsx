@@ -80,7 +80,7 @@ export default async function AdminOrderDetailPage({
     `Điện thoại: ${order.customerPhone}`,
     `Địa chỉ: ${fullAddress}`,
     `Thu hộ (COD): ${codAmount > 0 ? formatPrice(codAmount) : "0đ (đã thanh toán)"}`,
-    `Hàng hoá: ${order.items.map((i) => `${i.product.name} (size ${i.size}) x${i.quantity}`).join(", ")}`,
+    `Hàng hoá: ${order.items.map((i) => `${i.product.name} (size ${i.sizeLabel ?? i.size}) x${i.quantity}`).join(", ")}`,
     order.note ? `Ghi chú: ${order.note}` : null,
   ]
     .filter(Boolean)
@@ -108,7 +108,7 @@ export default async function AdminOrderDetailPage({
                 <div className="min-w-0">
                   <p className="font-body text-sm font-medium text-ink">{item.product.name}</p>
                   <p className="font-mono text-xs text-graphite">
-                    SKU {item.product.sku} · Size {item.size} × {item.quantity}
+                    SKU {item.product.sku} · Size {item.sizeLabel ?? item.size} × {item.quantity}
                   </p>
                 </div>
                 <p className="shrink-0 font-mono text-sm font-semibold text-forest">

@@ -158,7 +158,7 @@ export default async function OrderConfirmationPage({
               {itemRows.map(({ item, lineTotal }) => (
                 <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-ink">
-                    {item.product.name} — size {item.size} × {item.quantity}
+                    {item.product.name} — size {item.sizeLabel ?? item.size} × {item.quantity}
                   </span>
                   <span className="shrink-0 font-mono text-forest">{lineTotal}</span>
                 </div>

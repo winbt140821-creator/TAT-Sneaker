@@ -6,9 +6,15 @@ import { SelectField } from "@/components/admin/form/SelectField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
+import type { Department } from "@/lib/inventory";
 import type { CategoryFormState } from "./actions";
 
 const initialState: CategoryFormState = {};
+
+const DEPARTMENTS: { value: Department; label: string }[] = [
+  { value: "SHOES", label: "Giày" },
+  { value: "CLOTHING", label: "Quần áo" },
+];
 
 export function CategoryForm({
   action,
@@ -17,11 +23,12 @@ export function CategoryForm({
   submitLabel,
 }: {
   action: (state: CategoryFormState, formData: FormData) => Promise<CategoryFormState>;
-  parents: { id: string; label: string }[];
+  parents: { id: string; label: string; department: Department }[];
   defaultValues?: {
     label?: string;
     slug?: string;
     parentId?: string | null;
+    department?: Department;
     hot?: boolean;
     sale?: boolean;
     sortOrder?: number;
@@ -32,6 +39,7 @@ export function CategoryForm({
 }) {
   const [state, formAction] = useActionState(action, initialState);
   const [imageUploading, setImageUploading] = useState(false);
+  const [department, setDepartment] = useState<Department>(defaultValues?.department ?? "SHOES");
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
@@ -54,13 +62,27 @@ export function CategoryForm({
       />
 
       <SelectField
+        id="department"
+        name="department"
+        label="Ngành hàng"
+        value={department}
+        onChange={(e) => setDepartment(e.target.value as Department)}
+      >
+        {DEPARTMENTS.map((d) => (
+          <option key={d.value} value={d.value}>
+            {d.label}
+          </option>
+        ))}
+      </SelectField>
+
+      <SelectField
         id="parentId"
         name="parentId"
         label="Danh mục cha"
         defaultValue={defaultValues?.parentId ?? ""}
       >
         <option value="">— Danh mục gốc (hiển thị trên thanh menu) —</option>
-        {parents.map((p) => (
+        {parents.filter((p) => p.department === department).map((p) => (
           <option key={p.id} value={p.id}>
             {p.label}
           </option>

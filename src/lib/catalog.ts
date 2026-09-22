@@ -2,6 +2,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
 import { getActiveCampaigns, salePriceFor, saleProductIds } from "./sale";
+import type { Department } from "./inventory";
 
 // Called on every single storefront page (Header's mobile drawer + the
 // homepage sidebar), so with no cross-request caching this alone multiplied
@@ -9,12 +10,14 @@ import { getActiveCampaigns, salePriceFor, saleProductIds } from "./sale";
 // Category edits are infrequent and every admin mutation already calls
 // revalidatePath("/") (see admin/categories/actions.ts), which busts this
 // too. cache() on top still dedupes the rare case both callers run in the
-// same request.
+// same request. department is part of the unstable_cache key automatically
+// (included arguments), so the shoe and clothing storefronts each get their
+// own cache entry instead of clobbering one another.
 export const getNavCategories = cache(
   unstable_cache(
-    () =>
+    (department: Department) =>
       prisma.category.findMany({
-        where: { parentId: null },
+        where: { parentId: null, department },
         include: {
           children: {
             orderBy: { sortOrder: "asc" },
@@ -32,10 +35,12 @@ export const getNavCategories = cache(
 // Includes children (for the pills row when viewing a parent category) and
 // parent.children — i.e. siblings — for when the active category is itself
 // a leaf sub-category (viewing "Jordan 1 Low" shows pills for every other
-// Air Jordan sub-line, matching the reference design).
-export async function getCategoryBySlug(slug: string) {
+// Air Jordan sub-line, matching the reference design). Scoped to `department`
+// so a category slug from the other storefront 404s instead of leaking
+// across (a shoe-site visitor guessing a clothing category's URL, etc).
+export async function getCategoryBySlug(slug: string, department: Department) {
   return prisma.category.findUnique({
-    where: { slug },
+    where: { slug, department },
     include: {
       children: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
       parent: { include: { children: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] } } },
@@ -49,9 +54,9 @@ export async function getCategoryBySlug(slug: string) {
 // caching across requests, and covered by the same revalidatePath("/") calls.
 export const getShowcaseCategories = cache(
   unstable_cache(
-    () =>
+    (department: Department) =>
       prisma.category.findMany({
-        where: { showcaseEnabled: true, showcaseImageUrl: { not: null } },
+        where: { showcaseEnabled: true, showcaseImageUrl: { not: null }, department },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
       }),
     ["showcase-categories"],
@@ -103,6 +108,7 @@ const CATALOG_SELECT = {
 export const CATALOG_PAGE_SIZE = 24;
 
 export async function getProducts({
+  department = "SHOES",
   categorySlug,
   q,
   minPrice,
@@ -112,11 +118,12 @@ export async function getProducts({
   sort = "popularity",
   page = 1,
 }: {
+  department?: Department;
   categorySlug?: string;
   q?: string;
   minPrice?: number;
   maxPrice?: number;
-  size?: number;
+  size?: string;
   availability?: "IN_STOCK" | "PREORDER";
   sort?: ProductSort;
   page?: number;
@@ -127,7 +134,7 @@ export async function getProducts({
   // enum value throws a validation error).
   const safeMinPrice = Number.isFinite(minPrice) ? minPrice : undefined;
   const safeMaxPrice = Number.isFinite(maxPrice) ? maxPrice : undefined;
-  const safeSize = Number.isFinite(size) ? size : undefined;
+  const safeSize = size?.trim() || undefined;
   const safeAvailability =
     availability === "IN_STOCK" || availability === "PREORDER" ? availability : undefined;
   const safeSort = sort in SORT_ORDER_BY ? sort : "popularity";
@@ -138,6 +145,7 @@ export async function getProducts({
 
   const where = {
     hidden: false,
+    department,
     ...(categorySlug === "SALE"
       ? saleIds === "ALL"
         ? {}
@@ -163,7 +171,7 @@ export async function getProducts({
     });
     const filtered = allMatching
       .map(parseProduct)
-      .filter((p) => (p.sizeQuantities[String(safeSize)] ?? 0) > 0)
+      .filter((p) => (p.sizeQuantities[safeSize] ?? 0) > 0)
       .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
     const totalCount = filtered.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / CATALOG_PAGE_SIZE));
@@ -195,10 +203,11 @@ export async function getProducts({
 export type CatalogProduct = Awaited<ReturnType<typeof getProducts>>["products"][number];
 
 // Cached per-request so generateMetadata() and the page component (both call
-// this with the same id) only hit the database once.
-export const getProductById = cache(async (id: string) => {
+// this with the same id) only hit the database once. Scoped to `department`
+// so a product id from the other storefront 404s instead of leaking across.
+export const getProductById = cache(async (id: string, department: Department) => {
   const [product, campaigns] = await Promise.all([
-    prisma.product.findUnique({ where: { id }, include: { categories: true } }),
+    prisma.product.findUnique({ where: { id, department }, include: { categories: true } }),
     getActiveCampaigns(),
   ]);
   if (!product || product.hidden) return null;
@@ -210,6 +219,10 @@ export const getProductById = cache(async (id: string) => {
 // is narrowed to only what a catalog-listing card renders.
 export type ProductDetail = NonNullable<Awaited<ReturnType<typeof getProductById>>>;
 
+// Deliberately NOT department-scoped — used by both the cart (shared across
+// storefronts, see src/lib/cart-storage.ts) and the wishlist, so a lookup by
+// id must resolve regardless of which department's request context it's
+// called from.
 export async function getProductsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   const [products, campaigns] = await Promise.all([
@@ -254,34 +267,36 @@ const HOME_CATEGORY_SECTION_COUNT = 5;
 /** Latest products overall, one section per top-level category (skipping empty
  *  ones and the computed "SALE" tag, capped to HOME_CATEGORY_SECTION_COUNT),
  *  and a separate sale section. */
-export async function getHomeSections() {
+export async function getHomeSections(department: Department) {
   const campaigns = await getActiveCampaigns();
   const saleIds = saleProductIds(campaigns);
 
   const [latest, categories, sale, bestSellingGroups] = await Promise.all([
     prisma.product.findMany({
-      where: { hidden: false },
+      where: { hidden: false, department },
       select: CATALOG_SELECT,
       orderBy: { createdAt: "desc" },
       take: HOME_SECTION_SIZE,
     }),
     prisma.category.findMany({
-      where: { parentId: null, sale: false },
+      where: { parentId: null, sale: false, department },
       include: { children: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
       take: HOME_CATEGORY_SECTION_COUNT,
     }),
     prisma.product.findMany({
-      where: { hidden: false, ...(saleIds === "ALL" ? {} : { id: { in: saleIds } }) },
+      where: { hidden: false, department, ...(saleIds === "ALL" ? {} : { id: { in: saleIds } }) },
       select: CATALOG_SELECT,
       orderBy: { createdAt: "desc" },
       take: HOME_SECTION_SIZE,
     }),
     // Ranked by total units sold across non-cancelled orders — cancelled
-    // orders never reflect real demand for the item.
+    // orders never reflect real demand for the item. Scoped to this
+    // department's products only, so a clothing item's sales never bump it
+    // into the shoe homepage's "bán chạy" section or vice versa.
     prisma.orderItem.groupBy({
       by: ["productId"],
-      where: { order: { status: { not: "CANCELLED" } } },
+      where: { order: { status: { not: "CANCELLED" } }, product: { department } },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: HOME_SECTION_SIZE,
@@ -303,7 +318,7 @@ export async function getHomeSections() {
   const allSectionProducts =
     categoryIds.length > 0
       ? await prisma.product.findMany({
-          where: { hidden: false, categories: { some: { id: { in: categoryIds } } } },
+          where: { hidden: false, department, categories: { some: { id: { in: categoryIds } } } },
           select: { ...CATALOG_SELECT, categories: { select: { id: true } } },
           orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
         })

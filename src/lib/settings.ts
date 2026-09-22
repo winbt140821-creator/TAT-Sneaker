@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
+import type { Department } from "./inventory";
 
 // Every admin mutation that touches SiteSettings already calls
 // revalidatePath("/") (see admin/settings/actions.ts) — that busts this
@@ -32,6 +33,27 @@ export const getSiteSettings = cache(async () => {
   }
 });
 
+// Per-storefront logo/hero — the one part of SiteSettings that the shoe and
+// clothing sites can't share (see prisma/schema.prisma's StorefrontBranding
+// model). Same cache() + unstable_cache layering as getSiteSettings above,
+// and for the same reason: this is awaited on every storefront page.
+// department is included in the unstable_cache args, so each storefront gets
+// its own 60s cache entry.
+const fetchBranding = unstable_cache(
+  (department: Department) => prisma.storefrontBranding.findUnique({ where: { department } }),
+  ["storefront-branding"],
+  { revalidate: 60, tags: ["storefront-branding"] }
+);
+
+export const getBranding = cache(async (department: Department) => {
+  try {
+    return await fetchBranding(department);
+  } catch (err) {
+    console.error("getBranding failed, falling back to null:", err);
+    return null;
+  }
+});
+
 export const getSocialLinks = unstable_cache(
   (onlyEnabled = true) =>
     prisma.socialLink.findMany({
@@ -42,31 +64,31 @@ export const getSocialLinks = unstable_cache(
   { revalidate: 60, tags: ["social-links"] }
 );
 
-/** Maps raw SiteSettings rows into the shape <Hero> expects, so both the
- *  filtered and unfiltered homepage branches can just spread the result. */
-export function heroPropsFromSettings(settings: Awaited<ReturnType<typeof getSiteSettings>>) {
+/** Maps a raw StorefrontBranding row into the shape <Hero> expects, so both
+ *  the filtered and unfiltered homepage branches can just spread the result. */
+export function heroPropsFromSettings(branding: Awaited<ReturnType<typeof getBranding>>) {
   const stats = [
-    { value: settings?.heroStat1Value, label: settings?.heroStat1Label },
-    { value: settings?.heroStat2Value, label: settings?.heroStat2Label },
-    { value: settings?.heroStat3Value, label: settings?.heroStat3Label },
+    { value: branding?.heroStat1Value, label: branding?.heroStat1Label },
+    { value: branding?.heroStat2Value, label: branding?.heroStat2Label },
+    { value: branding?.heroStat3Value, label: branding?.heroStat3Label },
   ].filter((s): s is { value: string; label: string } => Boolean(s.value && s.label));
 
-  const parsedImages: string[] = settings?.heroImages ? JSON.parse(settings.heroImages) : [];
+  const parsedImages: string[] = branding?.heroImages ? JSON.parse(branding.heroImages) : [];
   const coverImages = parsedImages.length > 0
     ? parsedImages
-    : settings?.heroImageUrl
-      ? [settings.heroImageUrl]
+    : branding?.heroImageUrl
+      ? [branding.heroImageUrl]
       : [];
 
   return {
     coverImages,
-    eyebrow: settings?.heroEyebrow,
-    eyebrowEnabled: settings?.heroEyebrowEnabled ?? true,
-    heading: settings?.heroHeading,
-    headingEnabled: settings?.heroHeadingEnabled ?? true,
-    description: settings?.heroDescription,
-    descriptionEnabled: settings?.heroDescriptionEnabled ?? true,
-    statsEnabled: settings?.heroStatsEnabled ?? true,
+    eyebrow: branding?.heroEyebrow,
+    eyebrowEnabled: branding?.heroEyebrowEnabled ?? true,
+    heading: branding?.heroHeading,
+    headingEnabled: branding?.heroHeadingEnabled ?? true,
+    description: branding?.heroDescription,
+    descriptionEnabled: branding?.heroDescriptionEnabled ?? true,
+    statsEnabled: branding?.heroStatsEnabled ?? true,
     stats: stats.length > 0 ? stats : undefined,
   };
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { Logo } from "@/components/Logo";
 import { LoginForm } from "./LoginForm";
 
@@ -15,13 +15,15 @@ export default async function AdminLoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ error }, settings] = await Promise.all([searchParams, getSiteSettings()]);
+  // Admin is one shared back office for both storefronts — always shows the
+  // shoe brand's logo regardless of department, same as the rest of admin.
+  const [{ error }, branding] = await Promise.all([searchParams, getBranding("SHOES")]);
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-kraft px-4">
       <div className="die-cut w-full max-w-sm bg-paper p-8">
         <Logo
-          logoUrl={settings?.logoUrl}
+          logoUrl={branding?.logoUrl}
           imageClassName="h-10 w-auto max-w-[180px] object-contain"
         />
         <p className="mt-1 font-mono text-xs uppercase tracking-wide text-graphite">

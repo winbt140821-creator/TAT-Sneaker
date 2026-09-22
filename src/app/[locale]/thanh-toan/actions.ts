@@ -18,7 +18,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 // transaction just rethrows whatever the callback throws.
 class InsufficientStockError extends Error {}
 
-export type CheckoutItem = { productId: string; size: number; quantity: number };
+export type CheckoutItem = { productId: string; size: string; quantity: number };
 // "COD" means nothing is charged upfront — used only when no per-product
 // deposit is required AND the customer didn't choose to pay in full online.
 // Any other value means that provider was used to collect whatever amountDue
@@ -102,7 +102,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     const product = byId.get(item.productId);
     if (!product) return { error: "Một sản phẩm trong giỏ không còn tồn tại." };
     const sizeQuantities = JSON.parse(product.sizeQuantities) as Record<string, number>;
-    const availableQty = sizeQuantities[String(item.size)] ?? 0;
+    const availableQty = sizeQuantities[item.size] ?? 0;
     if (availableQty < item.quantity) {
       return { error: `${product.name} size ${item.size} chỉ còn ${availableQty} đôi.` };
     }
@@ -183,7 +183,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
         const sizeQuantities =
           pendingQuantities.get(item.productId) ??
           (JSON.parse(product.sizeQuantities) as Record<string, number>);
-        const key = String(item.size);
+        const key = item.size;
         const availableQty = sizeQuantities[key] ?? 0;
         if (availableQty < item.quantity) {
           throw new InsufficientStockError(
@@ -226,9 +226,14 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
             create: input.items.map((item) => {
               const product = byId.get(item.productId)!;
               const unitDeposit = product.depositRequired ? (product.depositAmount ?? 0) : 0;
+              // `size` (legacy Int column, still NOT NULL) can't hold a
+              // letter size — 0 there just means "see sizeLabel", the
+              // canonical value going forward for both departments.
+              const numericSize = Number(item.size);
               return {
                 productId: item.productId,
-                size: item.size,
+                size: Number.isFinite(numericSize) ? Math.trunc(numericSize) : 0,
+                sizeLabel: item.size,
                 quantity: item.quantity,
                 price: priceFor(product.id, product.price),
                 costPrice: product.costPrice ?? 0,

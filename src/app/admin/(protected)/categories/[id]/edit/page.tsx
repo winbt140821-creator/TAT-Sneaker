@@ -14,7 +14,7 @@ export default async function EditCategoryPage({
     prisma.category.findMany({
       where: { parentId: null, NOT: { id } },
       orderBy: { label: "asc" },
-      select: { id: true, label: true },
+      select: { id: true, label: true, department: true },
     }),
   ]);
 

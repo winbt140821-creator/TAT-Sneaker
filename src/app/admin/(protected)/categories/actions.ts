@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
+import type { Department } from "@/lib/inventory";
 
 export type CategoryFormState = { error?: string };
 
@@ -12,6 +13,8 @@ async function readCategoryForm(formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
   const parentId = String(formData.get("parentId") ?? "").trim() || null;
+  const departmentRaw = String(formData.get("department") ?? "SHOES");
+  const department: Department = departmentRaw === "CLOTHING" ? "CLOTHING" : "SHOES";
   const hot = formData.get("hot") === "on";
   const sale = formData.get("sale") === "on";
   const sortOrder = Number(formData.get("sortOrder") ?? 0) || 0;
@@ -23,6 +26,7 @@ async function readCategoryForm(formData: FormData) {
     label,
     slug: slugInput ? slugify(slugInput) : slugify(label),
     parentId,
+    department,
     hot,
     sale,
     sortOrder,

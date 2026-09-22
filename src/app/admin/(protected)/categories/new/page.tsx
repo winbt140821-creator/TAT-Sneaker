@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/db";
 import { createCategoryAction } from "../actions";
 import { CategoryForm } from "../CategoryForm";
+import type { Department } from "@/lib/inventory";
 
 export default async function NewCategoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ parentId?: string }>;
+  searchParams: Promise<{ parentId?: string; department?: string }>;
 }) {
-  const { parentId } = await searchParams;
+  const { parentId, department: departmentParam } = await searchParams;
+  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
   const parents = await prisma.category.findMany({
     where: { parentId: null },
     orderBy: { label: "asc" },
-    select: { id: true, label: true },
+    select: { id: true, label: true, department: true },
   });
 
   return (
@@ -24,7 +26,7 @@ export default async function NewCategoryPage({
         <CategoryForm
           action={createCategoryAction}
           parents={parents}
-          defaultValues={{ parentId }}
+          defaultValues={{ parentId, department }}
           submitLabel="Tạo danh mục"
         />
       </div>

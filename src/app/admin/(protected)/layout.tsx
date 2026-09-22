@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentStaff } from "@/lib/auth";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { AdminSidebar } from "./AdminSidebar";
 
 // Defense in depth alongside robots.ts's /admin disallow — a layout-level
@@ -57,7 +57,9 @@ export default async function AdminLayout({
   // with no session cookie at all, cheaply and without a DB call; a
   // present-but-invalid/expired cookie reaches here, where it's actually
   // validated and sent to login if it doesn't check out.
-  const [staff, settings] = await Promise.all([getCurrentStaff(), getSiteSettings()]);
+  // Admin is one shared back office for both storefronts — always shows the
+  // shoe brand's logo, same reasoning as the login page above.
+  const [staff, branding] = await Promise.all([getCurrentStaff(), getBranding("SHOES")]);
   if (!staff) redirect("/admin/login");
 
   const navGroups = NAV_GROUPS.map((group) => ({
@@ -71,7 +73,7 @@ export default async function AdminLayout({
         navGroups={navGroups}
         staffName={staff.name}
         staffRoleLabel={staff.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
-        logoUrl={settings?.logoUrl}
+        logoUrl={branding?.logoUrl}
       />
 
       <main className="min-w-0 flex-1 p-4 sm:p-8">{children}</main>

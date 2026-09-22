@@ -4,44 +4,45 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { getBankByBin } from "@/lib/vietqr-banks";
+import type { Department } from "@/lib/inventory";
 
 function revalidateSettings() {
   revalidatePath("/admin/settings", "layout");
   revalidatePath("/");
 }
 
-export async function updateLogoAction(formData: FormData): Promise<void> {
+export async function updateLogoAction(department: Department, formData: FormData): Promise<void> {
   await requireStaff();
 
   const remove = formData.get("remove") === "on";
   const newUrl = String(formData.get("image") ?? "").trim() || null;
 
   if (remove) {
-    await prisma.siteSettings.upsert({
-      where: { id: "singleton" },
+    await prisma.storefrontBranding.upsert({
+      where: { department },
       update: { logoUrl: null },
-      create: { id: "singleton", logoUrl: null },
+      create: { department, logoUrl: null },
     });
   } else if (newUrl) {
-    await prisma.siteSettings.upsert({
-      where: { id: "singleton" },
+    await prisma.storefrontBranding.upsert({
+      where: { department },
       update: { logoUrl: newUrl },
-      create: { id: "singleton", logoUrl: newUrl },
+      create: { department, logoUrl: newUrl },
     });
   }
 
   revalidateSettings();
 }
 
-export async function updateHeroImagesAction(formData: FormData): Promise<void> {
+export async function updateHeroImagesAction(department: Department, formData: FormData): Promise<void> {
   await requireStaff();
 
   const heroImages = formData.getAll("images").map(String);
 
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
+  await prisma.storefrontBranding.upsert({
+    where: { department },
     update: { heroImages: JSON.stringify(heroImages) },
-    create: { id: "singleton", heroImages: JSON.stringify(heroImages) },
+    create: { department, heroImages: JSON.stringify(heroImages) },
   });
 
   revalidateSettings();
@@ -146,7 +147,10 @@ export async function updateMarketingSettingsAction(formData: FormData): Promise
   revalidateSettings();
 }
 
-export async function updateHeroContentAction(formData: FormData): Promise<void> {
+export async function updateHeroContentAction(
+  department: Department,
+  formData: FormData
+): Promise<void> {
   await requireStaff();
 
   const data = {
@@ -165,10 +169,10 @@ export async function updateHeroContentAction(formData: FormData): Promise<void>
     heroStat3Label: String(formData.get("heroStat3Label") ?? "").trim() || null,
   };
 
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
+  await prisma.storefrontBranding.upsert({
+    where: { department },
     update: data,
-    create: { id: "singleton", ...data },
+    create: { department, ...data },
   });
 
   revalidateSettings();

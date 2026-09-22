@@ -25,7 +25,8 @@ import {
   getShowcaseCategories,
   type ProductSort,
 } from "@/lib/catalog";
-import { getSiteSettings, heroPropsFromSettings } from "@/lib/settings";
+import { getBranding, heroPropsFromSettings } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { languageAlternates } from "@/lib/seo";
 
 type ListingSearchParams = {
@@ -54,7 +55,7 @@ export async function generateMetadata({
   }
 
   if (category) {
-    const activeCategory = await getCategoryBySlug(category);
+    const activeCategory = await getCategoryBySlug(category, await getDepartment());
     if (activeCategory) {
       const path = `/?category=${encodeURIComponent(activeCategory.slug)}`;
       return {
@@ -78,10 +79,11 @@ export default async function Home({
     category || q || sort || minPrice || maxPrice || size || availability
   );
 
-  const [activeCategory, settings, navCategories, t, tCommon, tProduct] = await Promise.all([
-    category ? getCategoryBySlug(category) : Promise.resolve(null),
-    getSiteSettings(),
-    getNavCategories(),
+  const department = await getDepartment();
+  const [activeCategory, branding, navCategories, t, tCommon, tProduct] = await Promise.all([
+    category ? getCategoryBySlug(category, department) : Promise.resolve(null),
+    getBranding(department),
+    getNavCategories(department),
     getTranslations("home"),
     getTranslations("common"),
     getTranslations("product"),
@@ -90,12 +92,13 @@ export default async function Home({
   if (isFiltered) {
     const currentPage = Math.max(1, Number(page) || 1);
     const { products, totalCount, totalPages } = await getProducts({
+      department,
       categorySlug: activeCategory?.slug,
       q,
       sort: sort as ProductSort | undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      size: size ? Number(size) : undefined,
+      size,
       availability: availability as "IN_STOCK" | "PREORDER" | undefined,
       page: currentPage,
     });
@@ -127,7 +130,7 @@ export default async function Home({
           <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
             <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} />
             <div className="min-w-0 flex-1">
-              <Hero {...heroPropsFromSettings(settings)} />
+              <Hero {...heroPropsFromSettings(branding)} />
             </div>
           </div>
           <TrustBar />
@@ -163,6 +166,7 @@ export default async function Home({
             from={products.length ? (currentPage - 1) * CATALOG_PAGE_SIZE + 1 : 0}
             to={(currentPage - 1) * CATALOG_PAGE_SIZE + products.length}
             total={totalCount}
+            department={department}
           />
           <ProductGrid products={products} />
           <Pagination
@@ -178,8 +182,8 @@ export default async function Home({
   }
 
   const [{ latest, sections, sale, bestSelling }, showcaseCategories] = await Promise.all([
-    getHomeSections(),
-    getShowcaseCategories(),
+    getHomeSections(department),
+    getShowcaseCategories(department),
   ]);
 
   return (
@@ -190,7 +194,7 @@ export default async function Home({
         <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
           <CategorySidebar categories={navCategories} />
           <div className="min-w-0 flex-1">
-            <Hero {...heroPropsFromSettings(settings)} />
+            <Hero {...heroPropsFromSettings(branding)} />
           </div>
         </div>
         <TrustBar />

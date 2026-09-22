@@ -10,6 +10,7 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { Link } from "@/i18n/navigation";
 import { getProductById, getRelatedProducts } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { getDiscountPct } from "@/lib/pricing";
 import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { formatPrice } from "@/lib/products";
@@ -53,12 +54,15 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProductById(id);
+  const department = await getDepartment();
+  const product = await getProductById(id, department);
   if (!product) return {};
 
   const brandCategory = getBrandCategory(product);
   const title = brandCategory
-    ? `${product.name} - Giày ${brandCategory.label} chính hãng`
+    ? department === "CLOTHING"
+      ? `${product.name} - ${brandCategory.label} chính hãng`
+      : `${product.name} - Giày ${brandCategory.label} chính hãng`
     : product.name;
   const description = `${product.name} — ${product.quality}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Đã qua kiểm định 3 bước, giao hàng toàn quốc, thanh toán khi nhận hàng.`;
   const image = product.images[0];
@@ -83,8 +87,9 @@ export default async function ProductDetailPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { id } = await params;
+  const department = await getDepartment();
   const [product, t, tProduct] = await Promise.all([
-    getProductById(id),
+    getProductById(id, department),
     getTranslations("productDetail"),
     getTranslations("product"),
   ]);
@@ -95,7 +100,8 @@ export default async function ProductDetailPage({
 
   const [related, sizeChartRows, price, originalPrice, depositAmount, settings] = await Promise.all([
     getRelatedProducts(product.id, product.categories.map((c) => c.id)),
-    getSizeChartForCategory(brandCategory?.id),
+    // Size chart (VN/US/UK/CM shoe conversion) doesn't apply to clothing.
+    department === "CLOTHING" ? Promise.resolve([]) : getSizeChartForCategory(brandCategory?.id),
     formatPriceForCurrentLocale(product.price),
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
     formatPriceForCurrentLocale(product.depositAmount ?? 0),
@@ -212,6 +218,7 @@ export default async function ProductDetailPage({
                 availability={product.availability}
                 leadTimeMinDays={product.leadTimeMinDays}
                 leadTimeMaxDays={product.leadTimeMaxDays}
+                department={department}
               />
 
               <div className="mt-6 flex flex-col gap-1 border-t border-kraft-dark pt-4 font-mono text-xs text-graphite">

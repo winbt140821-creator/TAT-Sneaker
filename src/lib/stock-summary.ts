@@ -9,15 +9,15 @@ import { getCarriedSizes, getRealStockTotal, hasAnyStock, type SizeQuantities } 
 // duplicated in two places. One shared, cache()-wrapped pass computes both.
 export const getStockSummary = cache(async () => {
   const products = await prisma.product.findMany({
-    select: { sizeQuantities: true, availability: true },
+    select: { sizeQuantities: true, availability: true, department: true },
   });
 
   let outOfStockCount = 0;
   let grandTotal = 0;
   for (const p of products) {
     const sq = JSON.parse(p.sizeQuantities) as SizeQuantities;
-    if (getCarriedSizes(sq).length > 0 && !hasAnyStock(sq)) outOfStockCount++;
-    grandTotal += getRealStockTotal(sq, p.availability === "PREORDER");
+    if (getCarriedSizes(sq, p.department).length > 0 && !hasAnyStock(sq)) outOfStockCount++;
+    grandTotal += getRealStockTotal(sq, p.availability === "PREORDER", p.department);
   }
 
   return { outOfStockCount, grandTotal };

@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getNavCategories } from "@/lib/catalog";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { getLiveExchangeRates } from "@/lib/fx";
 import { BagIcon, UserIcon } from "./icons";
 import { MobileCategoryDrawer } from "./MobileCategoryDrawer";
@@ -33,10 +34,11 @@ function AccountMenuFallback() {
 // client-side instead; see next-intl SessionProvider in
 // src/app/[locale]/layout.tsx and src/app/api/admin/session/route.ts.
 export async function Header() {
-  const [categories, t, settings, rates] = await Promise.all([
-    getNavCategories(),
+  const department = await getDepartment();
+  const [categories, t, branding, rates] = await Promise.all([
+    getNavCategories(department),
     getTranslations("header"),
-    getSiteSettings(),
+    getBranding(department),
     getLiveExchangeRates(),
   ]);
 
@@ -51,7 +53,7 @@ export async function Header() {
           href="/"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80 sm:static sm:left-auto sm:top-auto sm:min-w-0 sm:flex-1 sm:translate-x-0 sm:translate-y-0"
         >
-          <Logo logoUrl={settings?.logoUrl} imageClassName="h-12 w-auto max-w-[170px] object-contain sm:h-16 sm:max-w-[220px]" />
+          <Logo logoUrl={branding?.logoUrl} imageClassName="h-12 w-auto max-w-[170px] object-contain sm:h-16 sm:max-w-[220px]" />
         </Link>
 
         <div className="hidden max-w-md sm:block">

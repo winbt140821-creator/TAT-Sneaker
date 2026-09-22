@@ -1,10 +1,18 @@
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { MultiImageUploadForm } from "@/components/admin/form/MultiImageUploadForm";
+import { DepartmentTabs } from "@/components/admin/DepartmentTabs";
 import { updateHeroImagesAction, updateHeroContentAction } from "../actions";
+import type { Department } from "@/lib/inventory";
 
-export default async function AdminSettingsHomePage() {
-  const settings = await getSiteSettings();
+export default async function AdminSettingsHomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const { department: departmentParam } = await searchParams;
+  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
+  const settings = await getBranding(department);
   const heroImages: string[] = settings?.heroImages
     ? JSON.parse(settings.heroImages)
     : settings?.heroImageUrl
@@ -13,6 +21,8 @@ export default async function AdminSettingsHomePage() {
 
   return (
     <div className="flex flex-col gap-10">
+      <DepartmentTabs basePath="/admin/settings/trang-chu" department={department} />
+
       <div>
         <h2 className="font-display text-xl text-ink">Ảnh bìa</h2>
         <p className="mt-1 font-mono text-xs text-graphite">
@@ -21,7 +31,7 @@ export default async function AdminSettingsHomePage() {
         </p>
 
         <MultiImageUploadForm
-          action={updateHeroImagesAction}
+          action={updateHeroImagesAction.bind(null, department)}
           name="images"
           label="Ảnh bìa"
           initialImages={heroImages}
@@ -35,7 +45,7 @@ export default async function AdminSettingsHomePage() {
           nội dung mặc định.
         </p>
 
-        <form action={updateHeroContentAction} className="mt-6 flex flex-col gap-5">
+        <form action={updateHeroContentAction.bind(null, department)} className="mt-6 flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-graphite">
               <input

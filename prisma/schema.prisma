@@ -15,6 +15,15 @@ enum StaffRole {
   STAFF
 }
 
+// Distinguishes the two storefronts sharing this database/admin
+// (tatsneaker.vn = SHOES, quanao.tatsneaker.vn = CLOTHING). Defaults to
+// SHOES everywhere so every pre-existing row keeps behaving exactly as
+// before this was added.
+enum Department {
+  SHOES
+  CLOTHING
+}
+
 model Staff {
   id                  String    @id @default(cuid())
   name                String
@@ -58,9 +67,14 @@ model Category {
   children      Category[]     @relation("CategoryChildren")
   products      Product[]      @relation("ProductCategories")
   sizeChartRows SizeChartRow[]
+  // Which storefront this category belongs to (see Department) — lets the
+  // shoe site and the clothing site share one Category table while each
+  // only ever sees its own brands/folders.
+  department    Department     @default(SHOES)
   createdAt     DateTime       @default(now())
 
   @@index([parentId])
+  @@index([department])
 }
 
 // Per-brand size conversion table shown on the PDP under "Bảng đo size
@@ -134,6 +148,12 @@ model Product {
 
   shippingFee Int @default(0) // VND cost of importing this item — added to costPrice (giá nhập = giá gốc + phí ship), edited on the product form
 
+  // Which storefront this product is sold on (see Department) — the shoe
+  // site and clothing site share this table but each catalog query filters
+  // to its own department, so a clothing product never leaks onto
+  // tatsneaker.vn and vice versa.
+  department Department @default(SHOES)
+
   categories    Category[]  @relation("ProductCategories")
   saleCampaigns SaleCampaign[] @relation("SaleCampaignProducts")
   orderItems    OrderItem[]
@@ -144,6 +164,7 @@ model Product {
   @@index([createdAt])
   @@index([hidden])
   @@index([sortOrder])
+  @@index([department])
 }
 
 // Holiday/seasonal discount campaigns — replaces the old per-product
@@ -236,6 +257,37 @@ model SiteSettings {
   // {ten} (product name) and {link} (absolute product page URL) placeholders.
   // Staff still edit/add their own text in the compose textarea afterward.
   socialPostTemplate String?
+
+  heroEyebrow            String?
+  heroEyebrowEnabled     Boolean @default(true)
+  heroHeading            String?
+  heroHeadingEnabled     Boolean @default(true)
+  heroDescription        String?
+  heroDescriptionEnabled Boolean @default(true)
+  heroStatsEnabled       Boolean @default(true)
+  heroStat1Value         String?
+  heroStat1Label         String?
+  heroStat2Value         String?
+  heroStat2Label         String?
+  heroStat3Value         String?
+  heroStat3Label         String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// Per-storefront branding (logo + hero banner) — the one part of
+// SiteSettings that the shoe site and clothing site can't share, since they
+// need different logos/hero copy/hero images. Everything else business-wide
+// (bank transfer, COD, contact info, Meta Pixel, auto-cancel hours) stays on
+// the single shared SiteSettings singleton above; there's exactly one row
+// per Department here (SHOES seeded from the pre-existing SiteSettings hero/
+// logo values so the current site's look carries over unchanged).
+model StorefrontBranding {
+  department Department @id
+
+  logoUrl      String?
+  heroImageUrl String? // legacy single-image field, mirrors SiteSettings.heroImageUrl
+  heroImages   String? // JSON string[] — hero banner carousel
 
   heroEyebrow            String?
   heroEyebrowEnabled     Boolean @default(true)
@@ -495,7 +547,15 @@ model OrderItem {
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
   product   Product @relation(fields: [productId], references: [id])
+  // Legacy numeric shoe size, kept as-is (no in-place type change — see
+  // sizeLabel below and the migration notes for why). No longer written by
+  // new orders once sizeLabel ships; only read for historical rows.
   size      Int
+  // Canonical size for every order going forward, for both departments
+  // ("42" for shoes, "M"/"L" for clothing) — a string because clothing
+  // sizes aren't numeric. Nullable only because pre-existing OrderItem rows
+  // don't have one; backfilled from `size` in a follow-up data migration.
+  sizeLabel String?
   quantity  Int     @default(1)
   price     Int // snapshot of unit price at order time
   costPrice Int @default(0) // snapshot of unit cost price at order time, for profit reporting

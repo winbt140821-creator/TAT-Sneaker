@@ -9,6 +9,7 @@ import {
   getQuantityForSize,
   hasRealStockForSize,
   IN_STOCK_LEAD_TIME,
+  type Department,
 } from "@/lib/inventory";
 import { trackAddToCart } from "@/lib/meta-pixel";
 import { BagIcon } from "@/components/icons";
@@ -24,6 +25,7 @@ export function ProductActions({
   availability,
   leadTimeMinDays,
   leadTimeMaxDays,
+  department,
 }: {
   productId: string;
   productName: string;
@@ -32,24 +34,25 @@ export function ProductActions({
   availability: "IN_STOCK" | "PREORDER";
   leadTimeMinDays: number;
   leadTimeMaxDays: number;
+  department: Department;
 }) {
   const router = useRouter();
   const t = useTranslations("productActions");
   const tDetail = useTranslations("productDetail");
-  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; text: string } | null>(
     null
   );
 
   const availableQty = selectedSize != null ? getQuantityForSize(sizeQuantities, selectedSize) : null;
-  const carriedSizes = getCarriedSizes(sizeQuantities);
+  const carriedSizes = getCarriedSizes(sizeQuantities, department);
   // Preorder items keep every size orderable regardless of real stock (see
   // hasRealStockForSize) — only an IN_STOCK product's size can be truly sold
   // out (quantity 0).
   const selectedSizeHasRealStock = availableQty != null && hasRealStockForSize(availableQty);
 
-  function pickSize(size: number) {
+  function pickSize(size: string) {
     setSelectedSize(size);
     setQuantity(1);
     setFeedback(null);

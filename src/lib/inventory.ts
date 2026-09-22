@@ -1,25 +1,46 @@
 // Product.sizeQuantities is a JSON-encoded Record<string, number> — e.g.
-// {"36": 2, "37": 0, "40": 5}. A size key's presence means the product
-// carries that size at all (shown to customers, greyed out if sold out);
-// its value is how many pairs are currently in stock for that size.
+// {"36": 2, "37": 0, "40": 5} for shoes, {"S": 5, "M": 0, "L": 3} for
+// clothing. A size key's presence means the product carries that size at all
+// (shown to customers, greyed out if sold out); its value is how many units
+// are currently in stock for that size.
 export type SizeQuantities = Record<string, number>;
 
-export const ALL_SIZES = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47];
+export type Department = "SHOES" | "CLOTHING";
+
+// The selectable size options per storefront — shoes use numeric EU/VN
+// sizes, clothing uses letter sizes. A product can still carry a custom size
+// outside this list (see ProductForm's "add custom size" escape hatch); this
+// is just what's offered by default and what defines display order for known
+// sizes (getCarriedSizes below).
+export const SIZE_SETS: Record<Department, string[]> = {
+  SHOES: Array.from({ length: 47 - 36 + 1 }, (_, i) => String(36 + i)),
+  CLOTHING: ["S", "M", "L", "XL", "XXL"],
+};
 
 export function parseSizeQuantities(raw: string): SizeQuantities {
   return JSON.parse(raw) as SizeQuantities;
 }
 
-export function getCarriedSizes(sq: SizeQuantities): number[] {
-  return Object.keys(sq).map(Number).sort((a, b) => a - b);
+// Known sizes sort by their rank in SIZE_SETS (36 before 37, S before M...);
+// anything else (a custom size an admin typed in) sorts after, alphabetically.
+export function getCarriedSizes(sq: SizeQuantities, department: Department): string[] {
+  const rank = SIZE_SETS[department];
+  return Object.keys(sq).sort((a, b) => {
+    const ra = rank.indexOf(a);
+    const rb = rank.indexOf(b);
+    if (ra !== -1 && rb !== -1) return ra - rb;
+    if (ra !== -1) return -1;
+    if (rb !== -1) return 1;
+    return a.localeCompare(b);
+  });
 }
 
-export function getAvailableSizes(sq: SizeQuantities): number[] {
-  return getCarriedSizes(sq).filter((s) => (sq[String(s)] ?? 0) > 0);
+export function getAvailableSizes(sq: SizeQuantities, department: Department): string[] {
+  return getCarriedSizes(sq, department).filter((s) => (sq[s] ?? 0) > 0);
 }
 
-export function getQuantityForSize(sq: SizeQuantities, size: number): number {
-  return sq[String(size)] ?? 0;
+export function getQuantityForSize(sq: SizeQuantities, size: string): number {
+  return sq[size] ?? 0;
 }
 
 export function getTotalQuantity(sq: SizeQuantities): number {
@@ -62,11 +83,19 @@ export function hasRealStockAnywhere(sq: SizeQuantities): boolean {
  *  has since sold down to 0 stays visible (still tracked, just out of stock)
  *  so admin can restock it with the +/- steppers. IN_STOCK products don't
  *  use the sentinel at all, so every carried size is real. */
-export function getRealStockSizes(sq: SizeQuantities, isPreorder: boolean): number[] {
-  const sizes = getCarriedSizes(sq);
-  return isPreorder ? sizes.filter((s) => (sq[String(s)] ?? 0) !== PREORDER_DEFAULT_QTY) : sizes;
+export function getRealStockSizes(
+  sq: SizeQuantities,
+  isPreorder: boolean,
+  department: Department
+): string[] {
+  const sizes = getCarriedSizes(sq, department);
+  return isPreorder ? sizes.filter((s) => (sq[s] ?? 0) !== PREORDER_DEFAULT_QTY) : sizes;
 }
 
-export function getRealStockTotal(sq: SizeQuantities, isPreorder: boolean): number {
-  return getRealStockSizes(sq, isPreorder).reduce((sum, s) => sum + (sq[String(s)] ?? 0), 0);
+export function getRealStockTotal(
+  sq: SizeQuantities,
+  isPreorder: boolean,
+  department: Department
+): number {
+  return getRealStockSizes(sq, isPreorder, department).reduce((sum, s) => sum + (sq[s] ?? 0), 0);
 }

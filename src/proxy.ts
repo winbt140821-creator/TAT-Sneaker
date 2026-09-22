@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { SESSION_COOKIE_NAME } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
@@ -70,19 +69,47 @@ function captureAttribution(request: NextRequest, res: NextResponse) {
 // Admin is Vietnamese-only staff tooling, so it's checked first and never
 // touches next-intl's locale routing below — only customer-facing routes
 // get locale detection/redirects.
+// quanao.tatsneaker.vn is the clothing storefront; every other hostname
+// (including tatsneaker.vn and local dev) is the original shoe storefront.
+// Set unconditionally, even on the admin branch below — admin stays a single
+// shared panel regardless of department, but attaching the header there too
+// avoids a special case, and costs nothing.
+//
+// Reads the `Host` request header rather than request.nextUrl.hostname —
+// verified locally that nextUrl.hostname resolves to the server's own bind
+// address ("localhost") regardless of what Host the client actually sent,
+// while the raw header reflects the real requested hostname.
+function departmentFromHost(request: NextRequest): "SHOES" | "CLOTHING" {
+  const host = request.headers.get("host") ?? "";
+  return host.startsWith("quanao.") ? "CLOTHING" : "SHOES";
+}
+
+// Copies the incoming request's headers plus x-department — passed to
+// NextResponse.next()/rewrite()'s `request` option so Server Components can
+// read it via next/headers, and (separately, see proxy() below) rebuilt into
+// a NextRequest to feed next-intl's own middleware, which forwards whatever
+// headers the request it receives already carries into its own response.
+function departmentHeaders(request: NextRequest, department: string): Headers {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-department", department);
+  return requestHeaders;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const department = departmentFromHost(request);
+  const headersWithDepartment = departmentHeaders(request, department);
 
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login" || pathname === "/admin/google-callback") {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers: headersWithDepartment } });
     }
 
     if (!request.cookies.has(SESSION_COOKIE_NAME)) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
 
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: headersWithDepartment } });
   }
 
   if (!request.cookies.has("NEXT_LOCALE")) {
@@ -103,7 +130,12 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const res = intlMiddleware(request);
+  // next-intl's own middleware copies `request.headers` verbatim before
+  // adding its own locale header (see node_modules/next-intl/dist/esm/
+  // development/middleware/middleware.js), so x-department survives by
+  // feeding it a request that already carries it.
+  const requestWithDepartment = new NextRequest(request.nextUrl, { headers: headersWithDepartment });
+  const res = intlMiddleware(requestWithDepartment);
   captureAttribution(request, res);
   return res;
 }

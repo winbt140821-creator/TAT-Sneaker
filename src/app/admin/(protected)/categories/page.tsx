@@ -3,6 +3,12 @@ import { prisma } from "@/lib/db";
 import { deleteCategoryAction, moveCategoryAction } from "./actions";
 import { RowActions } from "@/components/admin/RowActions";
 import { ChevronDownIcon } from "@/components/icons";
+import type { Department } from "@/lib/inventory";
+
+const DEPARTMENT_TABS: { value: Department; label: string }[] = [
+  { value: "SHOES", label: "Giày" },
+  { value: "CLOTHING", label: "Quần áo" },
+];
 
 function MoveButtons({ id, disableUp, disableDown }: { id: string; disableUp: boolean; disableDown: boolean }) {
   return (
@@ -31,13 +37,20 @@ function MoveButtons({ id, disableUp, disableDown }: { id: string; disableUp: bo
   );
 }
 
-export default async function AdminCategoriesPage() {
+export default async function AdminCategoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const { department: departmentParam } = await searchParams;
+  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
+
   const categories = await prisma.category.findMany({
     include: {
       children: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
       _count: { select: { products: true } },
     },
-    where: { parentId: null },
+    where: { parentId: null, department },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
   });
 
@@ -46,11 +59,28 @@ export default async function AdminCategoriesPage() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl text-ink">Danh mục</h1>
         <Link
-          href="/admin/categories/new"
+          href={`/admin/categories/new?department=${department}`}
           className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
         >
           + Thêm danh mục
         </Link>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        {DEPARTMENT_TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={`/admin/categories?department=${tab.value}`}
+            className={
+              "die-cut-flat px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-wide transition-colors " +
+              (department === tab.value
+                ? "bg-ink text-paper"
+                : "bg-paper text-graphite hover:text-ink")
+            }
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
@@ -77,17 +107,19 @@ export default async function AdminCategoriesPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/admin/categories/new?parentId=${cat.id}`}
+                  href={`/admin/categories/new?parentId=${cat.id}&department=${cat.department}`}
                   className="font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
                 >
                   + Danh mục con
                 </Link>
-                <Link
-                  href={`/admin/categories/${cat.id}/size-chart`}
-                  className="font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
-                >
-                  Bảng size
-                </Link>
+                {cat.department === "SHOES" && (
+                  <Link
+                    href={`/admin/categories/${cat.id}/size-chart`}
+                    className="font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
+                  >
+                    Bảng size
+                  </Link>
+                )}
                 <RowActions
                   editHref={`/admin/categories/${cat.id}/edit`}
                   deleteAction={deleteCategoryAction.bind(null, cat.id)}
