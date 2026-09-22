@@ -2,9 +2,17 @@ import { cache } from "react";
 import { prisma } from "./db";
 
 // Cached per-request — Header, Footer, and page components each call this
-// independently, so dedupe to a single query per request.
-export const getSiteSettings = cache(() => {
-  return prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+// independently, so dedupe to a single query per request. Every caller
+// already treats the result as nullable, so on a DB outage we degrade to
+// null (site renders with defaults) instead of crashing the whole page via
+// the root layout, which awaits this before rendering anything.
+export const getSiteSettings = cache(async () => {
+  try {
+    return await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+  } catch (err) {
+    console.error("getSiteSettings failed, falling back to null:", err);
+    return null;
+  }
 });
 
 export async function getSocialLinks(onlyEnabled = true) {
