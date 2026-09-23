@@ -1,20 +1,7 @@
 import { createNavigation } from "next-intl/navigation";
 import { routing } from "./routing";
 
-// Link and useRouter are the store-aware versions (see store-navigation.tsx
-// and src/lib/store-path.ts): hrefs are written store-agnostic and resolve
-// to the store the page is being viewed in. redirect/getPathname stay plain
-// — server code that redirects passes storeHref(await getDepartment(), …)
-// itself, since the current store is only known asynchronously there.
-export {
-  Link,
-  GatewayLink,
-  useRouter,
-  useStoreUrl,
-  DepartmentProvider,
-  useStoreDepartment,
-} from "./store-navigation";
-export const { redirect, usePathname, getPathname } = createNavigation(routing);
+export const { Link, redirect, usePathname, useRouter, getPathname } = createNavigation(routing);
 
 // `redirect`'s return type is `never` structurally, but it's derived from a
 // heavily generic conditional type — TypeScript's control-flow analysis

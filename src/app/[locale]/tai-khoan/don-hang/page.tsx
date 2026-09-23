@@ -4,8 +4,6 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { AccountShell } from "@/components/account/AccountShell";
 import { Pagination } from "@/components/Pagination";
 import { Link, redirectGuard } from "@/i18n/navigation";
-import { getDepartment } from "@/lib/department";
-import { storeHref } from "@/lib/store-path";
 import { getCurrentCustomer } from "@/lib/account";
 import { prisma } from "@/lib/db";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
@@ -25,7 +23,7 @@ export default async function AccountOrdersPage({
     getLocale(),
     searchParams,
   ]);
-  if (!customer) redirectGuard({ href: storeHref(await getDepartment(), "/dang-nhap?callbackUrl=/tai-khoan"), locale });
+  if (!customer) redirectGuard({ href: "/dang-nhap?callbackUrl=/tai-khoan", locale });
 
   const page = Math.max(1, Number(pageParam) || 1);
 

@@ -1,45 +1,61 @@
 import type { MetadataRoute } from "next";
-import { connection } from "next/server";
 import { prisma } from "@/lib/db";
-import { localizedUrl, languageAlternates } from "@/lib/seo";
+import { siteUrlForDepartment, localizedUrl, languageAlternates } from "@/lib/seo";
 import { routing } from "@/i18n/routing";
-import type { Department } from "@/lib/inventory";
+import { getDepartment } from "@/lib/department";
 
-// One sitemap for the whole domain: the gateway, both stores' homepages,
-// categories and products (each under its own store's URL, see
-// src/lib/store-path.ts), and the shared content pages once.
-// connection() keeps it rendered per request, so it always reflects the
-// current catalog instead of whatever existed at build time.
+// Dynamic (calls getDepartment(), which reads next/headers) so
+// quanao.tatsneaker.vn/sitemap.xml and tatsneaker.vn/sitemap.xml — the same
+// deployment, two hostnames — each list only their own department's
+// products/categories under their own domain, instead of one sitemap
+// leaking the other department's URLs or 404ing on the second hostname.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  await connection();
+  const department = await getDepartment();
   const [products, categories, pages] = await Promise.all([
-    prisma.product.findMany({ where: { hidden: false }, select: { id: true, updatedAt: true, department: true } }),
-    prisma.category.findMany({ where: { parentId: null }, select: { slug: true, department: true } }),
+    prisma.product.findMany({ where: { department }, select: { id: true, updatedAt: true } }),
+    prisma.category.findMany({ where: { parentId: null, department }, select: { slug: true } }),
+    // Static content pages (policies, guides...) are shared business-wide —
+    // listed under both domains, since the same /trang/[slug] route exists
+    // on both storefronts.
     prisma.staticPage.findMany({ select: { slug: true, updatedAt: true } }),
   ]);
 
-  const entry = (
-    path: string,
-    department: Department | null,
-    extra: Omit<MetadataRoute.Sitemap[number], "url" | "alternates">
-  ) => ({
-    url: localizedUrl(path, routing.defaultLocale, department),
-    alternates: { languages: languageAlternates(path, department) },
-    ...extra,
-  });
-
   return [
-    entry("/", null, { lastModified: new Date(), changeFrequency: "weekly", priority: 1 }),
-    entry("/", "SHOES", { lastModified: new Date(), changeFrequency: "daily", priority: 1 }),
-    entry("/", "CLOTHING", { lastModified: new Date(), changeFrequency: "daily", priority: 1 }),
-    ...categories.map((c) =>
-      entry(`/?category=${encodeURIComponent(c.slug)}`, c.department, { changeFrequency: "daily", priority: 0.8 })
-    ),
-    ...products.map((p) =>
-      entry(`/san-pham/${p.id}`, p.department, { lastModified: p.updatedAt, changeFrequency: "weekly", priority: 0.7 })
-    ),
-    ...pages.map((p) =>
-      entry(`/trang/${p.slug}`, "SHOES", { lastModified: p.updatedAt, changeFrequency: "monthly", priority: 0.3 })
-    ),
+    {
+      url: siteUrlForDepartment(department),
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1,
+      alternates: { languages: languageAlternates("", department) },
+    },
+    ...categories.map((c) => {
+      const path = `/?category=${encodeURIComponent(c.slug)}`;
+      return {
+        url: localizedUrl(path, routing.defaultLocale, department),
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+        alternates: { languages: languageAlternates(path, department) },
+      };
+    }),
+    ...products.map((p) => {
+      const path = `/san-pham/${p.id}`;
+      return {
+        url: localizedUrl(path, routing.defaultLocale, department),
+        lastModified: p.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+        alternates: { languages: languageAlternates(path, department) },
+      };
+    }),
+    ...pages.map((p) => {
+      const path = `/trang/${p.slug}`;
+      return {
+        url: localizedUrl(path, routing.defaultLocale, department),
+        lastModified: p.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.3,
+        alternates: { languages: languageAlternates(path, department) },
+      };
+    }),
   ];
 }

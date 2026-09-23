@@ -6,8 +6,6 @@ import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { auth } from "@/auth";
 import { redirectGuard } from "@/i18n/navigation";
-import { getDepartment } from "@/lib/department";
-import { storeHref } from "@/lib/store-path";
 import { LoginButtons } from "./LoginButtons";
 
 export const metadata: Metadata = { robots: { index: false, follow: true } };
@@ -24,18 +22,8 @@ export default async function CustomerLoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
   const { callbackUrl, error } = await searchParams;
-  const [session, locale, t, department] = await Promise.all([
-    auth(),
-    getLocale(),
-    getTranslations("login"),
-    getDepartment(),
-  ]);
-  // Only same-site paths — "//evil.com" or "https://…" would otherwise turn
-  // this into an open redirect. The path is store-agnostic ("/tai-khoan")
-  // and lands back inside whichever store the shopper signed in from.
-  const safeCallback = callbackUrl && /^\/(?![/\\])/.test(callbackUrl) ? callbackUrl : "/";
-  const returnTo = storeHref(department, safeCallback);
-  if (session?.user) redirectGuard({ href: returnTo, locale });
+  const [session, locale, t] = await Promise.all([auth(), getLocale(), getTranslations("login")]);
+  if (session?.user) redirectGuard({ href: callbackUrl || "/", locale });
 
   return (
     <>
@@ -55,7 +43,7 @@ export default async function CustomerLoginPage({
             )}
 
             <LoginButtons
-              callbackUrl={returnTo}
+              callbackUrl={callbackUrl}
               showFacebook={FACEBOOK_LOGIN_ENABLED && Boolean(process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET)}
               withGoogleLabel={t("withGoogle")}
               withFacebookLabel={t("withFacebook")}

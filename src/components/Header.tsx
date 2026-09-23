@@ -14,7 +14,6 @@ import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
 import { ClothingCategoryNav } from "./ClothingCategoryNav";
 import { ClothingSearchToggle } from "./ClothingSearchToggle";
-import { StoreSwitch } from "./StoreSwitch";
 
 // AccountMenu reads useSearchParams() (to preserve query params when
 // switching language) — without a Suspense boundary around it, Next.js
@@ -50,8 +49,6 @@ export async function Header() {
     // three thin icons on the right, a hairline underneath. No search pill,
     // no filled icon circles, no second row.
     return (
-      <>
-      <StoreSwitch current="CLOTHING" />
       <header
         className="sticky top-0 z-40 border-b border-kraft-dark bg-paper text-ink"
         style={{ viewTransitionName: "site-header" }}
@@ -60,10 +57,7 @@ export async function Header() {
           <div className="-ml-2 lg:hidden">
             <MobileCategoryDrawer categories={categories} />
           </div>
-          <Link
-            href="/"
-            className="shrink-0 transition-opacity hover:opacity-60"
-          >
+          <Link href="/" className="shrink-0 transition-opacity hover:opacity-60">
             <Logo
               logoUrl={branding?.logoUrl}
               department="CLOTHING"
@@ -94,13 +88,10 @@ export async function Header() {
           </div>
         </div>
       </header>
-      </>
     );
   }
 
   return (
-    <>
-    <StoreSwitch current="SHOES" />
     <header
       className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
       style={{ viewTransitionName: "site-header" }}
@@ -111,10 +102,7 @@ export async function Header() {
           href="/"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80 sm:static sm:left-auto sm:top-auto sm:min-w-0 sm:flex-1 sm:translate-x-0 sm:translate-y-0"
         >
-          <Logo
-            logoUrl={branding?.logoUrl}
-            imageClassName="h-12 w-auto max-w-[170px] object-contain sm:h-16 sm:max-w-[220px]"
-          />
+          <Logo logoUrl={branding?.logoUrl} imageClassName="h-12 w-auto max-w-[170px] object-contain sm:h-16 sm:max-w-[220px]" />
         </Link>
 
         <div className="hidden max-w-md sm:block">
@@ -149,6 +137,5 @@ export async function Header() {
         />
       </div>
     </header>
-    </>
   );
 }

@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
+import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Noto_Serif_Display, Inter_Tight } from "next/font/google";
 import { site } from "@/lib/site-config";
 import { siteUrlForDepartment } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
 import { MetaPixel } from "@/components/MetaPixel";
-import { DepartmentProvider } from "@/i18n/navigation";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-display",
   subsets: ["latin", "vietnamese"],
-  // 300 is only used by the clothing store's light headings (globals.css);
-  // browsers only download the weights a page actually renders.
-  weight: ["300", "500", "600", "700", "800"],
+  weight: ["500", "600", "700", "800"],
 });
 
 const notoSans = Noto_Sans({
@@ -30,6 +27,30 @@ const permanentMarker = Permanent_Marker({
   variable: "--font-logo",
   subsets: ["latin"],
   weight: "400",
+});
+
+// Clothing storefront's own type system — see globals.css's
+// `[data-department="clothing"]` block, which re-points --font-display/
+// --font-body/--font-mono at these instead of the shoe fonts above.
+// Distinct variable names so both sets can be loaded side by side without
+// colliding; only the active department's classes are applied to <html>
+// below, so a given request's HTML never references the unused set.
+// Modeled on how COS/Zara actually set type: one neutral grotesque for
+// every piece of UI (nav, labels, prices, body), and a high-contrast Didone
+// used sparingly and light — only for the wordmark and editorial headlines.
+// (Bodoni Moda was the first pick but ships no Vietnamese subset — every
+// diacritic would fall back to a different font mid-word.)
+const notoSerifDisplay = Noto_Serif_Display({
+  variable: "--font-display-clothing",
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400"],
+  style: ["normal", "italic"],
+});
+
+const interTight = Inter_Tight({
+  variable: "--font-body-clothing",
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400", "500", "600"],
 });
 
 const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
@@ -86,10 +107,10 @@ export default async function RootLayout({
   // too, which forces this route to render per-request — so this second
   // call doesn't add any caching cost beyond what's already paid.
   const department = await getDepartment();
-  // Both stores share one type family (owner's call, Sept 2026) — the
-  // clothing store sets it lighter and more widely spaced instead (see the
-  // clothing block in globals.css).
-  const fontVariables = `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
+  const fontVariables =
+    department === "CLOTHING"
+      ? `${notoSerifDisplay.variable} ${interTight.variable}`
+      : `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
 
   return (
     // Deliberately hardcoded rather than getLocale() — that call falls back
@@ -107,7 +128,7 @@ export default async function RootLayout({
       className={`${fontVariables} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
-        <DepartmentProvider department={department}>{children}</DepartmentProvider>
+        {children}
         <OrganizationJsonLd />
         {settings?.metaPixelId && <MetaPixel pixelId={settings.metaPixelId} />}
       </body>

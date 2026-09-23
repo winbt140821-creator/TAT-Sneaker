@@ -337,22 +337,5 @@
     "notFound": "未找到订单，请检查订单编号和邮箱是否正确。",
     "loggedInHint": "已有账户？在",
     "loggedInHintLink": "您的账户"
-  },
-  "gateway": {
-    "title": "TAT — 球鞋与服装",
-    "description": "TAT 旗下两家店:正品球鞋与服装。请选择您要进入的店铺。",
-    "heading": "选择店铺",
-    "shoesKicker": "正品球鞋",
-    "shoes": "鞋履",
-    "shoesCta": "进入鞋履店",
-    "clothingKicker": "新系列",
-    "clothing": "服装",
-    "clothingCta": "进入服装店",
-    "enter": "进入"
-  },
-  "storeSwitch": {
-    "label": "店铺",
-    "shoes": "鞋履",
-    "clothing": "服装"
   }
 }

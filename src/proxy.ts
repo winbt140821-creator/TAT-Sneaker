@@ -2,8 +2,6 @@ import { NextResponse, NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { SESSION_COOKIE_NAME } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
-import { splitStorePrefix, STORE_PREFIX } from "@/lib/store-path";
-import type { Department } from "@/lib/inventory";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -54,140 +52,64 @@ function captureAttribution(request: NextRequest, res: NextResponse) {
   );
 }
 
+// First line of defense for page navigation only — every admin Server
+// Function must still call requireStaff()/requireAdmin() itself, since a
+// proxy matcher change could silently stop covering a route (see Next.js
+// proxy.js docs: "Always verify authentication ... inside each Server
+// Function rather than relying on Proxy alone").
+//
+// Only checks that the session cookie is present, not that it's actually
+// valid — that would mean a DB round trip on every single admin request.
+// The real (DB-backed) check already happens once more in the protected
+// layout (getCurrentStaff(), which redirects to login itself if the cookie
+// turns out to be missing/expired/tampered), so this only needs to catch
+// the common case — no cookie at all — cheaply. The ADMIN-only gate for
+// /admin/staff lives in that section's own pages now, for the same reason.
+//
+// Admin is Vietnamese-only staff tooling, so it's checked first and never
+// touches next-intl's locale routing below — only customer-facing routes
+// get locale detection/redirects.
+// quanao.tatsneaker.vn is the clothing storefront; every other hostname
+// (including tatsneaker.vn and local dev) is the original shoe storefront.
+// Set unconditionally, even on the admin branch below — admin stays a single
+// shared panel regardless of department, but attaching the header there too
+// avoids a special case, and costs nothing.
+//
+// Reads the `Host` request header rather than request.nextUrl.hostname —
+// verified locally that nextUrl.hostname resolves to the server's own bind
+// address ("localhost") regardless of what Host the client actually sent,
+// while the raw header reflects the real requested hostname.
+function departmentFromHost(request: NextRequest): "SHOES" | "CLOTHING" {
+  const host = request.headers.get("host") ?? "";
+  return host.startsWith("quanao.") ? "CLOTHING" : "SHOES";
+}
+
 // Copies the incoming request's headers plus x-department — passed to
 // NextResponse.next()/rewrite()'s `request` option so Server Components can
-// read it via next/headers (src/lib/department.ts), and fed to next-intl's
-// own middleware, which forwards whatever headers the request it receives
-// already carries.
-function departmentHeaders(request: NextRequest, department: Department): Headers {
+// read it via next/headers, and (separately, see proxy() below) rebuilt into
+// a NextRequest to feed next-intl's own middleware, which forwards whatever
+// headers the request it receives already carries into its own response.
+function departmentHeaders(request: NextRequest, department: string): Headers {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-department", department);
   return requestHeaders;
 }
 
-// Ad/campaign parameters only. A bare tatsneaker.vn link carrying just these
-// (e.g. an old Facebook ad) still lands on the gateway; any other parameter
-// on "/" is an old shoe-catalog link (?category=, ?q=, ?page=...) from
-// before the shoe homepage moved to /giay, and follows it there.
-const TRACKING_PARAM = /^(utm_\w+|fbclid|gclid|ttclid|_gl|ref)$/;
-
-// The gateway is served from its own internal route; "/" is its only public
-// address.
-const GATEWAY_ROUTE = "/cua-ngo";
-
-type StoreRoute = {
-  department: Department;
-  /** Path the route tree actually serves, e.g. "/en/san-pham/x" for "/en/quan-ao/san-pham/x". */
-  internal: string;
-  /** Puts a store-less path (as next-intl redirects to) back under this request's store. */
-  restore: (storeless: string) => string;
-};
-
-// Works out which store a customer URL belongs to — see src/lib/store-path.ts
-// for the URL scheme. Returns a Response instead when the URL itself should
-// change (old catalog links, non-canonical addresses).
-function routeStore(request: NextRequest): StoreRoute | NextResponse {
-  const { pathname, searchParams } = request.nextUrl;
-  const first = pathname.split("/")[1];
-  const localePrefix = (routing.locales as readonly string[]).includes(first) ? `/${first}` : "";
-  const rest = pathname.slice(localePrefix.length) || "/";
-  const join = (lp: string, p: string) => (lp + (p === "/" ? "" : p)) || "/";
-  const redirectTo = (path: string) => {
-    const url = request.nextUrl.clone();
-    url.pathname = path;
-    return NextResponse.redirect(url, 308);
-  };
-  const { department: prefixed, rest: inner } = splitStorePrefix(rest);
-
-  if (prefixed === "CLOTHING") {
-    return {
-      department: "CLOTHING",
-      internal: join(localePrefix, inner),
-      restore: (p) => {
-        const lp = localeOf(p);
-        const r = p.slice(lp.length) || "/";
-        return join(lp, STORE_PREFIX.CLOTHING + (r === "/" ? "" : r));
-      },
-    };
-  }
-
-  if (prefixed === "SHOES") {
-    // Only the shoe homepage lives under /giay; every other shoe page kept
-    // its original unprefixed URL, so /giay/san-pham/x is folded back onto
-    // /san-pham/x rather than serving the same page at two addresses.
-    if (inner !== "/") return redirectTo(join(localePrefix, inner));
-    return {
-      department: "SHOES",
-      internal: join(localePrefix, "/"),
-      restore: (p) => join(localeOf(p), STORE_PREFIX.SHOES),
-    };
-  }
-
-  if (rest === GATEWAY_ROUTE) return redirectTo(join(localePrefix, "/"));
-
-  if (rest === "/") {
-    const hasCatalogParams = [...searchParams.keys()].some((k) => !TRACKING_PARAM.test(k));
-    if (hasCatalogParams) return redirectTo(join(localePrefix, STORE_PREFIX.SHOES));
-    return {
-      department: "SHOES",
-      internal: join(localePrefix, GATEWAY_ROUTE),
-      restore: (p) => join(localeOf(p), "/"),
-    };
-  }
-
-  return { department: "SHOES", internal: pathname, restore: (p) => p };
-}
-
-function localeOf(path: string): string {
-  const first = path.split("/")[1];
-  return (routing.locales as readonly string[]).includes(first) ? `/${first}` : "";
-}
-
 export async function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
+  const department = departmentFromHost(request);
+  const headersWithDepartment = departmentHeaders(request, department);
 
-  // The clothing store briefly had its own subdomain before both stores
-  // moved under one domain — send anything still pointing there to its
-  // new address.
-  const host = request.headers.get("host") ?? "";
-  if (host.startsWith("quanao.")) {
-    const target = new URL(`https://${host.slice("quanao.".length)}`);
-    target.pathname = `${STORE_PREFIX.CLOTHING}${pathname === "/" ? "" : pathname}`;
-    target.search = search;
-    return NextResponse.redirect(target, 308);
-  }
-
-  // Admin, sitemap and robots aren't part of either store; they still get
-  // the header so anything reading getDepartment() there behaves as before.
-  const sharedHeaders = departmentHeaders(request, "SHOES");
-
-  // First line of defense for page navigation only — every admin Server
-  // Function must still call requireStaff()/requireAdmin() itself, since a
-  // proxy matcher change could silently stop covering a route (see Next.js
-  // proxy.js docs: "Always verify authentication ... inside each Server
-  // Function rather than relying on Proxy alone").
-  //
-  // Only checks that the session cookie is present, not that it's actually
-  // valid — that would mean a DB round trip on every single admin request.
-  // The real (DB-backed) check already happens once more in the protected
-  // layout (getCurrentStaff(), which redirects to login itself if the cookie
-  // turns out to be missing/expired/tampered), so this only needs to catch
-  // the common case — no cookie at all — cheaply. The ADMIN-only gate for
-  // /admin/staff lives in that section's own pages now, for the same reason.
-  //
-  // Admin is Vietnamese-only staff tooling, so it's checked first and never
-  // touches next-intl's locale routing below — only customer-facing routes
-  // get locale detection/redirects.
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login" || pathname === "/admin/google-callback") {
-      return NextResponse.next({ request: { headers: sharedHeaders } });
+      return NextResponse.next({ request: { headers: headersWithDepartment } });
     }
 
     if (!request.cookies.has(SESSION_COOKIE_NAME)) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
 
-    return NextResponse.next({ request: { headers: sharedHeaders } });
+    return NextResponse.next({ request: { headers: headersWithDepartment } });
   }
 
   // Not locale-prefixable routes — Next always serves these at the root
@@ -195,7 +117,7 @@ export async function proxy(request: NextRequest) {
   // logic below entirely (it would otherwise 404 a crawler by redirecting
   // it to e.g. /en/sitemap.xml, which doesn't exist).
   if (pathname === "/sitemap.xml" || pathname === "/robots.txt") {
-    return NextResponse.next({ request: { headers: sharedHeaders } });
+    return NextResponse.next({ request: { headers: headersWithDepartment } });
   }
 
   if (!request.cookies.has("NEXT_LOCALE")) {
@@ -216,39 +138,12 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const store = routeStore(request);
-  if (store instanceof NextResponse) {
-    captureAttribution(request, store);
-    return store;
-  }
-
-  // next-intl only ever sees the store-less path (e.g. "/en/san-pham/x"),
-  // so its locale handling works exactly as it did before the stores were
-  // merged; its answer is then mapped back onto the real URL:
-  // - a redirect: put the store prefix back into the target;
-  // - a rewrite: already points at the internal route, keep it;
-  // - a pass-through: only valid if the path didn't change, otherwise it
-  //   becomes a rewrite to the store-less path, carrying the same locale
-  //   header next-intl would have set.
-  const headersWithDepartment = departmentHeaders(request, store.department);
-  const internalUrl = new URL(store.internal + search, request.url);
-  const res = intlMiddleware(new NextRequest(internalUrl, { headers: headersWithDepartment }));
-
-  const location = res.headers.get("location");
-  if (location) {
-    const target = new URL(location, request.url);
-    target.pathname = store.restore(target.pathname);
-    res.headers.set("location", target.toString());
-  } else if (!res.headers.get("x-middleware-rewrite") && store.internal !== pathname) {
-    const locale = localeOf(store.internal).slice(1) || routing.defaultLocale;
-    const headers = new Headers(headersWithDepartment);
-    headers.set("X-NEXT-INTL-LOCALE", locale);
-    const rewritten = NextResponse.rewrite(internalUrl, { request: { headers } });
-    for (const cookie of res.cookies.getAll()) rewritten.cookies.set(cookie);
-    captureAttribution(request, rewritten);
-    return rewritten;
-  }
-
+  // next-intl's own middleware copies `request.headers` verbatim before
+  // adding its own locale header (see node_modules/next-intl/dist/esm/
+  // development/middleware/middleware.js), so x-department survives by
+  // feeding it a request that already carries it.
+  const requestWithDepartment = new NextRequest(request.nextUrl, { headers: headersWithDepartment });
+  const res = intlMiddleware(requestWithDepartment);
   captureAttribution(request, res);
   return res;
 }

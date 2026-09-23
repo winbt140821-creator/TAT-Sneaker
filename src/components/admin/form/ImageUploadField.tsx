@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { prepareImageForUpload } from "@/lib/image-prep";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB — mirrors src/lib/uploads.ts
 
@@ -71,19 +70,16 @@ export function ImageUploadField({
     onUploadingChange?.(next);
   }
 
-  async function handleFile(original: File | undefined) {
-    if (!original) return;
-    if (original.size > MAX_FILE_BYTES) {
-      setError(`"${original.name}" vượt quá 8MB.`);
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`"${file.name}" vượt quá 8MB.`);
       return;
     }
 
     setError(null);
     updateUploading(true);
     try {
-      // Single images (category covers, logo, QR...) never appear in a
-      // product grid, so only the web-size shrink applies, no thumbnail.
-      const { file } = await prepareImageForUpload(original);
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

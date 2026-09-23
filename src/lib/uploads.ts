@@ -3,7 +3,6 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { THUMB_SUFFIX } from "./image-url";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 export const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB
@@ -63,17 +62,7 @@ function r2Config() {
   return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl };
 }
 
-export type UploadTarget = {
-  uploadUrl: string;
-  publicUrl: string;
-  contentType: string;
-  // Only present when the file asked for one (see prepareImageForUpload in
-  // src/lib/image-prep.ts): where to PUT the small JPEG that product grids
-  // show instead of the full photo. Its key is always the main file's key
-  // with THUMB_SUFFIX in place of the extension, which is what lets
-  // thumbUrl() (src/lib/image-url.ts) derive it from the stored URL alone.
-  thumbUploadUrl?: string;
-};
+export type UploadTarget = { uploadUrl: string; publicUrl: string; contentType: string };
 
 /**
  * Generates one upload destination per requested file: a presigned R2 PUT
@@ -88,19 +77,17 @@ export type UploadTarget = {
  * ever reached our code.
  */
 export async function createUploadTargets(
-  files: { name: string; size: number; thumb?: boolean }[]
+  files: { name: string; size: number }[]
 ): Promise<UploadTarget[]> {
   const config = r2Config();
 
   return Promise.all(
-    files.map(async ({ name, size, thumb }) => {
+    files.map(async ({ name, size }) => {
       if (size > MAX_FILE_BYTES) throw new Error(`File quá lớn: ${name}`);
       const ext = path.extname(name).toLowerCase();
       if (!ALLOWED_EXTENSIONS.has(ext)) throw new Error(`Định dạng không hỗ trợ: ${name}`);
 
-      const id = randomUUID();
-      const filename = `${id}${ext}`;
-      const thumbFilename = `${id}${THUMB_SUFFIX}`;
+      const filename = `${randomUUID()}${ext}`;
       const contentType = CONTENT_TYPE_FOR_EXT[ext];
 
       if (!config) {
@@ -108,7 +95,6 @@ export async function createUploadTargets(
           uploadUrl: `/api/admin/uploads/local/${filename}`,
           publicUrl: `/uploads/${filename}`,
           contentType,
-          ...(thumb ? { thumbUploadUrl: `/api/admin/uploads/local/${thumbFilename}` } : {}),
         };
       }
 
@@ -117,19 +103,17 @@ export async function createUploadTargets(
         endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
         credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
       });
-      const presign = (key: string, type: string) =>
-        getSignedUrl(client, new PutObjectCommand({ Bucket: config.bucket, Key: key, ContentType: type }), {
-          expiresIn: 300,
-        });
-      const uploadUrl = await presign(filename, contentType);
-      const thumbUploadUrl = thumb ? await presign(thumbFilename, "image/jpeg") : undefined;
+      const uploadUrl = await getSignedUrl(
+        client,
+        new PutObjectCommand({
+          Bucket: config.bucket,
+          Key: filename,
+          ContentType: contentType,
+        }),
+        { expiresIn: 300 }
+      );
 
-      return {
-        uploadUrl,
-        publicUrl: `${config.publicUrl.replace(/\/$/, "")}/${filename}`,
-        contentType,
-        ...(thumbUploadUrl ? { thumbUploadUrl } : {}),
-      };
+      return { uploadUrl, publicUrl: `${config.publicUrl.replace(/\/$/, "")}/${filename}`, contentType };
     })
   );
 }

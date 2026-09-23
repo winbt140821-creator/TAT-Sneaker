@@ -27,7 +27,7 @@
   --font-mono: var(--font-display);
 }
 
-/* tatsneaker.vn/quan-ao (clothing) retheme.
+/* quanao.tatsneaker.vn (clothing) retheme.
    Direction: taken from the live COS and Zara storefronts rather than an
    invented concept — stark white page, black type, hairline grey rules,
    no accent colour at all (buttons are black), no drop shadows, and one
@@ -39,9 +39,10 @@
    retheme the whole site with zero component changes, since @theme inline
    below re-points every Tailwind utility at these same CSS variables
    rather than inlining a literal color at build time. data-department is
-   set on <html> in src/app/layout.tsx. Fonts are shared with the shoe
-   store; font-mono deliberately maps to the body face here so small
-   uppercase labels read as plain refined caps.
+   set on <html> in src/app/layout.tsx. font-display-clothing/
+   font-body-clothing are the Noto Serif Display/Inter Tight variables
+   loaded there; font-mono deliberately maps to the same grotesque as body
+   so small uppercase labels read as refined sans caps, not monospace.
    Deliberately `html[data-department=...]`, not `:root[data-department=...]`
    — verified that Tailwind v4's build pipeline silently drops a second
    `:root`-selector block of --color-* custom properties (only the plain
@@ -63,19 +64,17 @@ html[data-department="clothing"] {
   --shadow-card: none;
   --shadow-card-hover: none;
 
-  /* Same type family as the shoe store (owner's call: one brand, one set of
-     fonts). Clothing differs by how it's set, not by which font: the
-     display face runs light, and small labels use the plain body face
-     instead of the shoe store's bold display caps. */
-  --font-logo: var(--font-display);
-  --font-mono: var(--font-body);
+  --font-display: var(--font-display-clothing);
+  --font-body: var(--font-body-clothing);
+  --font-logo: var(--font-display-clothing);
+  --font-mono: var(--font-body-clothing);
 }
 
-/* The shoe store's .font-display defaults to bold; clothing headings run
-   light (Be Vietnam Pro 300, loaded in src/app/layout.tsx). */
+/* The shoe site's .font-display defaults to bold (its display face is a
+   heavy grotesque). The clothing Didone is only elegant light — bold
+   Didone reads as a tabloid masthead. */
 html[data-department="clothing"] .font-display {
   font-weight: 300;
-  letter-spacing: -0.01em;
 }
 
 /* Clothing drops the shoe site's rounded card chrome entirely — COS/Zara
