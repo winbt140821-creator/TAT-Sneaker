@@ -57,7 +57,11 @@ export async function Header() {
             href="/"
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
           >
-            <Logo logoUrl={branding?.logoUrl} imageClassName="h-10 w-auto max-w-[160px] object-contain sm:h-12 sm:max-w-[200px]" />
+            <Logo
+              logoUrl={branding?.logoUrl}
+              department="CLOTHING"
+              imageClassName="h-10 w-auto max-w-[160px] object-contain sm:h-12 sm:max-w-[200px]"
+            />
           </Link>
 
           <div className="hidden max-w-xs flex-1 lg:block">
