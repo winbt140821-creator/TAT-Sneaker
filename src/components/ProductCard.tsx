@@ -6,6 +6,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
 import { hasAnyStock, hasRealStockAnywhere, type Department } from "@/lib/inventory";
 import { SneakerArt, silhouetteFor } from "./SneakerArt";
+import { GarmentArt, garmentSilhouetteFor } from "./GarmentArt";
 
 export async function ProductCard({
   product,
@@ -61,6 +62,12 @@ export async function ProductCard({
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
             quality={90}
             className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+          />
+        ) : isClothing ? (
+          <GarmentArt
+            silhouette={garmentSilhouetteFor(index)}
+            accent={product.accent}
+            className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <SneakerArt

@@ -13,6 +13,7 @@ import {
 import { formatPriceForLocale } from "@/lib/currency";
 import { HeartIcon } from "@/components/icons";
 import { SneakerArt, silhouetteFor } from "@/components/SneakerArt";
+import { GarmentArt, garmentSilhouetteFor } from "@/components/GarmentArt";
 import { Skeleton } from "@/components/Skeleton";
 import { getWishlistProductsAction } from "./actions";
 import type { CatalogProduct } from "@/lib/catalog";
@@ -103,9 +104,20 @@ export function WishlistView({
             product.availability === "PREORDER"
               ? hasRealStockAnywhere(product.sizeQuantities)
               : hasAnyStock(product.sizeQuantities);
+          // Wishlist mixes items from both storefronts (see getProductsByIds
+          // — deliberately not department-filtered), so each card styles
+          // itself from its own product.department rather than a single
+          // page-level department the way ProductCard's caller does.
+          const isClothing = product.department === "CLOTHING";
+          const badgeClass = isClothing
+            ? "border border-ink bg-paper text-ink"
+            : "bg-forest text-paper";
 
           return (
-            <div key={product.id} className="die-cut hover-lift group flex flex-col bg-paper">
+            <div
+              key={product.id}
+              className={"hover-lift group flex flex-col bg-paper " + (isClothing ? "" : "die-cut")}
+            >
               <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
                 <Link href={`/san-pham/${product.id}`} className="absolute inset-0">
                   {product.images[0] ? (
@@ -117,6 +129,12 @@ export function WishlistView({
                       quality={90}
                       className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
                     />
+                  ) : isClothing ? (
+                    <GarmentArt
+                      silhouette={garmentSilhouetteFor(i)}
+                      accent={product.accent}
+                      className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+                    />
                   ) : (
                     <SneakerArt
                       silhouette={silhouetteFor(i)}
@@ -127,7 +145,9 @@ export function WishlistView({
                 </Link>
 
                 {discountPct && (
-                  <span className="pointer-events-none absolute left-2 top-2 bg-forest px-2 py-0.5 font-mono text-[10px] font-semibold text-paper">
+                  <span
+                    className={"pointer-events-none absolute left-2 top-2 px-2 py-0.5 font-mono text-[10px] font-semibold " + badgeClass}
+                  >
                     -{discountPct}%
                   </span>
                 )}
@@ -146,11 +166,16 @@ export function WishlistView({
                 <h3 className="font-body text-sm font-medium leading-snug text-ink">
                   {product.name}
                 </h3>
-                <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-forest">
+                <p
+                  className={
+                    "font-mono text-[11px] uppercase tracking-wide " +
+                    (isClothing ? "text-graphite" : "font-bold text-forest")
+                  }
+                >
                   {product.quality}
                 </p>
                 <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-2">
-                  <p className="font-mono text-lg font-bold text-forest">
+                  <p className={"font-mono text-lg font-bold " + (isClothing ? "text-ink" : "text-forest")}>
                     {formatPrice(product.price)}
                   </p>
                   {product.originalPrice && (
@@ -158,7 +183,7 @@ export function WishlistView({
                       <p className="font-mono text-xs text-graphite/60 line-through">
                         {formatPrice(product.originalPrice)}
                       </p>
-                      <span className="bg-forest px-1.5 py-0.5 font-mono text-[10px] font-bold text-paper">
+                      <span className={"px-1.5 py-0.5 font-mono text-[10px] font-bold " + badgeClass}>
                         -{discountPct}%
                       </span>
                     </>

@@ -103,6 +103,11 @@ const CATALOG_SELECT = {
   availability: true,
   leadTimeMinDays: true,
   leadTimeMaxDays: true,
+  // Wishlist/cart lookups (getProductsByIds) are deliberately not
+  // department-filtered — a customer can favorite items from both
+  // storefronts — so each item needs its own department to render with
+  // the right card styling (see WishlistView.tsx).
+  department: true,
 } as const;
 
 export const CATALOG_PAGE_SIZE = 24;

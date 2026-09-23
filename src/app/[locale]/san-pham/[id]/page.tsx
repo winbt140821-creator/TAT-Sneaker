@@ -155,6 +155,7 @@ export default async function ProductDetailPage({
               name={product.name}
               accent={product.accent}
               fallbackIndex={0}
+              department={department}
             />
 
             <div>
