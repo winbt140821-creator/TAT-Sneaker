@@ -109,7 +109,7 @@ export default async function Home({
       page: currentPage,
     });
     const trail = [
-      tCommon("sneakers"),
+      ...(department === "CLOTHING" ? [] : [tCommon("sneakers")]),
       ...(activeCategory ? [activeCategory.label] : []),
       ...(q ? [t("searchResultsFor", { query: q })] : []),
     ];
@@ -133,13 +133,21 @@ export default async function Home({
         <Header />
         <main className="flex-1">
           <Breadcrumb trail={trail} />
-          <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-            <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} department={department} />
-            <div className="min-w-0 flex-1">
+          {department === "CLOTHING" ? (
+            <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
               <Hero department={department} {...heroPropsFromSettings(branding)} />
             </div>
-          </div>
-          <TrustBar />
+          ) : (
+            <>
+              <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+                <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} department={department} />
+                <div className="min-w-0 flex-1">
+                  <Hero department={department} {...heroPropsFromSettings(branding)} />
+                </div>
+              </div>
+              <TrustBar />
+            </>
+          )}
 
           {pillCategories.length > 0 && (
             <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
@@ -196,14 +204,22 @@ export default async function Home({
     <>
       <Header />
       <main className="flex-1">
-        <Breadcrumb trail={[tCommon("sneakers")]} />
-        <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-          <CategorySidebar categories={navCategories} department={department} />
-          <div className="min-w-0 flex-1">
+        <Breadcrumb trail={department === "CLOTHING" ? [] : [tCommon("sneakers")]} />
+        {department === "CLOTHING" ? (
+          <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
             <Hero department={department} {...heroPropsFromSettings(branding)} />
           </div>
-        </div>
-        <TrustBar />
+        ) : (
+          <>
+            <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+              <CategorySidebar categories={navCategories} department={department} />
+              <div className="min-w-0 flex-1">
+                <Hero department={department} {...heroPropsFromSettings(branding)} />
+              </div>
+            </div>
+            <TrustBar />
+          </>
+        )}
 
         <CategorySection heading={t("latest")} products={latest} department={department} />
 
@@ -233,8 +249,12 @@ export default async function Home({
           />
         ))}
 
-        <NewsSection />
-        <TestimonialsSection />
+        {department !== "CLOTHING" && (
+          <>
+            <NewsSection />
+            <TestimonialsSection />
+          </>
+        )}
         <CategoryShowcase categories={showcaseCategories} />
       </main>
       <Footer />

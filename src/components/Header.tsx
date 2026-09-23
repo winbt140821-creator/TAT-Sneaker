@@ -12,6 +12,7 @@ import { AccountMenu } from "./AccountMenu";
 import { AdminLinkButton } from "./AdminLinkButton";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
+import { ClothingCategoryNav } from "./ClothingCategoryNav";
 
 // AccountMenu reads useSearchParams() (to preserve query params when
 // switching language) — without a Suspense boundary around it, Next.js
@@ -41,6 +42,62 @@ export async function Header() {
     getBranding(department),
     getLiveExchangeRates(),
   ]);
+
+  if (department === "CLOTHING") {
+    return (
+      <header
+        className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
+        style={{ viewTransitionName: "site-header" }}
+      >
+        <div className="relative mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:gap-6 sm:px-6">
+          <div className="flex flex-1 items-center lg:flex-none">
+            <MobileCategoryDrawer categories={categories} />
+          </div>
+          <Link
+            href="/"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
+          >
+            <Logo logoUrl={branding?.logoUrl} imageClassName="h-10 w-auto max-w-[160px] object-contain sm:h-12 sm:max-w-[200px]" />
+          </Link>
+
+          <div className="hidden max-w-xs flex-1 lg:block">
+            <SearchBar
+              id="search-desktop"
+              usdExchangeRate={rates.usdExchangeRate}
+              cnyExchangeRate={rates.cnyExchangeRate}
+            />
+          </div>
+
+          <div className="flex flex-1 items-center justify-end gap-1 lg:flex-none">
+            <AdminLinkButton />
+            <Link
+              href="/gio-hang"
+              aria-label={t("cartAria")}
+              className="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-ink transition-opacity hover:opacity-70"
+            >
+              <BagIcon className="h-5 w-5" />
+              <CartBadge />
+            </Link>
+            <Suspense fallback={<AccountMenuFallback />}>
+              <AccountMenu />
+            </Suspense>
+          </div>
+        </div>
+
+        <div className="hidden border-t border-kraft-dark lg:block">
+          <ClothingCategoryNav categories={categories} />
+        </div>
+
+        <div className="border-t border-kraft-dark px-4 py-2 lg:hidden">
+          <SearchBar
+            id="search-mobile"
+            usdExchangeRate={rates.usdExchangeRate}
+            cnyExchangeRate={rates.cnyExchangeRate}
+          />
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header

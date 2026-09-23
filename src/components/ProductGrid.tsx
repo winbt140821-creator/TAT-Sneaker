@@ -27,9 +27,18 @@ export function ProductGrid({
     );
   }
 
+  const isClothing = department === "CLOTHING";
+
   if (layout === "grid") {
     return (
-      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 sm:px-6 md:grid-cols-3 lg:grid-cols-4">
+      <div
+        className={
+          "mx-auto grid max-w-7xl px-4 sm:px-6 " +
+          (isClothing
+            ? "grid-cols-2 gap-6 sm:gap-8 md:grid-cols-3"
+            : "grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4")
+        }
+      >
         {products.map((p, i) => (
           <ProductCard key={p.id} product={p} index={i} department={department} />
         ))}
@@ -49,7 +58,7 @@ export function ProductGrid({
         </HorizontalScrollTrack>
       </div>
 
-      <div className="hidden lg:grid lg:grid-cols-4 lg:gap-4">
+      <div className={"hidden lg:grid " + (isClothing ? "lg:grid-cols-3 lg:gap-8" : "lg:grid-cols-4 lg:gap-4")}>
         {products.map((p, i) => (
           <ProductCard key={p.id} product={p} index={i} department={department} />
         ))}
