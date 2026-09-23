@@ -1,10 +1,31 @@
 import { getTranslations } from "next-intl/server";
 import { site } from "@/lib/site-config";
 import { HeroCarousel } from "./HeroCarousel";
+import type { Department } from "@/lib/inventory";
 
 export type HeroStat = { value: string; label: string };
 
+// Editorial line-art emblem shown behind the clothing hero's text until admin
+// uploads a real photo (coverImages) — three offset thin-stroke arcs in the
+// gold accent, evoking a fashion label's abstract mark rather than a stock
+// photo placeholder. Costs nothing (inline SVG, no image request) and reads
+// as deliberate rather than empty, unlike the shoe site's plain bg-paper.
+function ClothingHeroMotif() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 400 400"
+      className="pointer-events-none absolute -right-16 top-1/2 h-[280px] w-[280px] -translate-y-1/2 opacity-[0.14] sm:-right-10 sm:h-[420px] sm:w-[420px] lg:right-0"
+    >
+      <circle cx="200" cy="200" r="190" fill="none" stroke="var(--color-forest)" strokeWidth="1" />
+      <circle cx="150" cy="230" r="120" fill="none" stroke="var(--color-forest)" strokeWidth="1" />
+      <circle cx="250" cy="160" r="70" fill="none" stroke="var(--color-forest)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 export async function Hero({
+  department = "SHOES",
   coverImages,
   eyebrow,
   eyebrowEnabled = true,
@@ -15,6 +36,7 @@ export async function Hero({
   statsEnabled = true,
   stats,
 }: {
+  department?: Department;
   coverImages?: string[];
   eyebrow?: string | null;
   eyebrowEnabled?: boolean;
@@ -41,11 +63,14 @@ export async function Hero({
   const statsList = stats && stats.length > 0 ? stats : defaultStats;
 
   const showText = eyebrowEnabled || headingEnabled || descriptionEnabled;
+  const isClothing = department === "CLOTHING";
 
   return (
     <div
       className={
-        "die-cut relative h-full overflow-hidden bg-paper px-4 py-6 sm:px-10 sm:py-14 lg:min-h-[420px] " +
+        "die-cut relative h-full overflow-hidden bg-paper px-4 py-6 sm:px-10 lg:min-h-[420px] " +
+        (isClothing ? "sm:py-20" : "sm:py-14") +
+        " " +
         (hasCover ? "aspect-[4/3] sm:aspect-auto" : "")
       }
     >
@@ -55,6 +80,8 @@ export async function Hero({
             <div className="absolute inset-0 bg-ink/60" aria-hidden="true" />
           </>
         )}
+
+        {!hasCover && isClothing && <ClothingHeroMotif />}
 
         {showText && (
           <div className="relative max-w-2xl">

@@ -136,7 +136,7 @@ export default async function Home({
           <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
             <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} />
             <div className="min-w-0 flex-1">
-              <Hero {...heroPropsFromSettings(branding)} />
+              <Hero department={department} {...heroPropsFromSettings(branding)} />
             </div>
           </div>
           <TrustBar />
@@ -200,7 +200,7 @@ export default async function Home({
         <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
           <CategorySidebar categories={navCategories} />
           <div className="min-w-0 flex-1">
-            <Hero {...heroPropsFromSettings(branding)} />
+            <Hero department={department} {...heroPropsFromSettings(branding)} />
           </div>
         </div>
         <TrustBar />
