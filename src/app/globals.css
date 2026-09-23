@@ -270,6 +270,18 @@ a:focus-visible > .link-draw {
   opacity: 1;
 }
 
+/* Touch screens: anything that opens a page presses in slightly under the
+   finger, so the tap is acknowledged before the next page arrives. (Mouse
+   users get the hover effects instead.) */
+@media (hover: none) {
+  .press {
+    transition: transform 0.15s var(--ease-out-soft);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+}
+
 /* Bag count pops when something is added. */
 @keyframes cart-bump {
   40% {
@@ -285,7 +297,8 @@ a:focus-visible > .link-draw {
   .site-header,
   .reveal-in > *,
   .reveal-in img,
-  .label-swap > * {
+  .label-swap > *,
+  .press {
     transition: none !important;
   }
   .cart-bump {

@@ -34,7 +34,7 @@ export async function ProductCard({
     <Link
       href={`/san-pham/${product.id}`}
       store={product.department}
-      className="die-cut hover-lift group flex h-full flex-col bg-paper"
+      className="press die-cut hover-lift group flex h-full flex-col bg-paper"
     >
       <div data-product-photo className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
         {product.images[0] ? (

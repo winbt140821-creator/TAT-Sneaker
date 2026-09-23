@@ -18,7 +18,7 @@ export async function CategoryShowcase({ categories }: { categories: ShowcaseCat
           <Reveal key={c.id}>
           <Link
             href={`/?category=${encodeURIComponent(c.slug)}`}
-            className="die-cut hover-lift group relative flex aspect-[4/3] items-end overflow-hidden bg-kraft-dark/30"
+            className="press die-cut hover-lift group relative flex aspect-[4/3] items-end overflow-hidden bg-kraft-dark/30"
           >
             <Image
               src={c.showcaseImageUrl!}

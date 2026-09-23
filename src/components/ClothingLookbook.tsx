@@ -26,7 +26,7 @@ export function ClothingLookbook({ categories }: { categories: ShowcaseCategory[
       </h2>
       <div className={"grid grid-cols-2 gap-x-0.5 gap-y-8 " + (COLS[items.length] ?? "lg:grid-cols-4")}>
         {items.map((c) => (
-          <Link key={c.id} href={`/?category=${encodeURIComponent(c.slug)}`} className="group block">
+          <Link key={c.id} href={`/?category=${encodeURIComponent(c.slug)}`} className="press group block">
             <Reveal className="relative aspect-[3/4] overflow-hidden bg-kraft">
               <Image
                 src={c.showcaseImageUrl!}

@@ -474,6 +474,46 @@
     }
   }
 }
+/* Touch screens have no hover, so after opening the page would sit still.
+   Two things keep it alive there: the photos drift in very slowly (the
+   slow push-in fashion sites run on their covers), and once the opening is
+   done the seam leans toward each side once — a hint that both halves are
+   doors. Tapping a side stops the lean at once. */
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+  .ph img {
+    animation: gwDrift 14s ease-in-out 1.6s infinite alternate;
+  }
+  .gw {
+    animation:
+      gwOpen 1.15s var(--ease) 0.45s backwards,
+      gwNudge 2.4s var(--ease) 2.3s 1;
+  }
+  .gw[data-enter] {
+    animation: none;
+  }
+}
+@keyframes gwDrift {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+@keyframes gwNudge {
+  0% {
+    --split: 50;
+  }
+  30% {
+    --split: 56;
+  }
+  65% {
+    --split: 45;
+  }
+  100% {
+    --split: 50;
+  }
+}
 @keyframes gwOpen {
   from {
     --open: 0;

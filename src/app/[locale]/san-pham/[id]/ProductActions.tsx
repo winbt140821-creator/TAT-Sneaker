@@ -161,7 +161,7 @@ export function ProductActions({
             type="button"
             onClick={handleAddToCart}
             data-added={added}
-            className="flex h-12 w-full cursor-pointer items-center justify-center bg-ink text-[12px] font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-ink-soft"
+            className="press flex h-12 w-full cursor-pointer items-center justify-center bg-ink text-[12px] font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-ink-soft"
           >
             <span className="label-swap">
               <span>{t("addToCart")}</span>
@@ -171,7 +171,7 @@ export function ProductActions({
           <button
             type="button"
             onClick={handleBuyNow}
-            className="flex h-12 w-full cursor-pointer items-center justify-center border border-ink bg-paper text-[12px] font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:bg-kraft"
+            className="press flex h-12 w-full cursor-pointer items-center justify-center border border-ink bg-paper text-[12px] font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:bg-kraft"
           >
             {t("buyNow")}
           </button>
@@ -255,7 +255,7 @@ export function ProductActions({
         <button
           type="button"
           onClick={handleBuyNow}
-          className="die-cut-flat flex-1 cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark sm:flex-none"
+          className="press die-cut-flat flex-1 cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark sm:flex-none"
         >
           {t("buyNow")}
         </button>
@@ -263,7 +263,7 @@ export function ProductActions({
           type="button"
           onClick={handleAddToCart}
           data-added={added}
-          className="die-cut-flat flex flex-1 cursor-pointer items-center justify-center gap-2 bg-ink px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft sm:flex-none"
+          className="press die-cut-flat flex flex-1 cursor-pointer items-center justify-center gap-2 bg-ink px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft sm:flex-none"
         >
           <BagIcon className="h-4 w-4" />
           <span className="label-swap">

@@ -34,7 +34,7 @@ export async function ClothingProductCard({
   const [img0, img1] = product.images;
 
   return (
-    <Link href={`/san-pham/${product.id}`} store={product.department} className="group block">
+    <Link href={`/san-pham/${product.id}`} store={product.department} className="press group block">
       <div data-product-photo className="relative aspect-[3/4] overflow-hidden bg-kraft">
         {img0 ? (
           <>
