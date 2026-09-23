@@ -18,18 +18,33 @@
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -10px rgb(0 0 0 / 0.16);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 14px 28px -12px rgb(0 0 0 / 0.22);
+
+  /* Shoe site's font-mono utility has always literally been its display
+     font (bold uppercase sneaker-drop labels read fine that way). Declared
+     as its own custom property, rather than inlined directly in the
+     @theme block below, so the clothing scope below can independently
+     repoint it to a real monospace without touching this line. */
+  --font-mono: var(--font-display);
 }
 
-/* quanao.tatsneaker.vn (clothing) retheme — a distinct "quiet luxury"
-   palette (warm off-white, near-black ink, gold accent) and serif/sans
-   pairing instead of the shoe site's kraft-paper/mono-uppercase look.
+/* quanao.tatsneaker.vn (clothing) retheme.
+   Direction: "the inspection ledger" — not generic quiet-luxury (cream +
+   gold + serif is the templated AI-fashion-site default). TAT's actual
+   differentiator, on both storefronts, is that every product is tracked
+   and verified (SKU, 3-step inspection, exact stock count) — so the
+   clothing site leans into that as a real atelier/spec-sheet aesthetic
+   instead of decorating with an unrelated luxury cliché: raw-linen paper,
+   ink-stamp indigo (not gold) as the one accent, and a real monospace for
+   every data-like label (price, size, SKU, fabric spec) instead of
+   aliasing the display serif the way the shoe site's font-mono does.
    Every component still just uses bg-kraft/text-forest/font-display/etc.
    as before — overriding what those tokens resolve to here is enough to
    retheme the whole site with zero component changes, since @theme inline
    below re-points every Tailwind utility at these same CSS variables
    rather than inlining a literal color at build time. data-department is
    set on <html> in src/app/layout.tsx. font-display-clothing/
-   font-body-clothing are the Cormorant/Montserrat variables loaded there.
+   font-body-clothing/font-mono-clothing are the Fraunces/Montserrat/IBM
+   Plex Mono variables loaded there.
    Deliberately `html[data-department=...]`, not `:root[data-department=...]`
    — verified that Tailwind v4's build pipeline silently drops a second
    `:root`-selector block of --color-* custom properties (only the plain
@@ -38,21 +53,22 @@
    whatever dedup/theme-extraction step was doing that, while still
    targeting the exact same element. */
 html[data-department="clothing"] {
-  --color-kraft: #faf9f7;
-  --color-kraft-dark: #d6d3d1;
-  --color-ink: #1c1917;
-  --color-ink-soft: #44403c;
-  --color-forest: #a16207;
-  --color-forest-dark: #854d0e;
-  --color-stamp: #b91c1c;
-  --color-graphite: #78716c;
+  --color-kraft: #f4f2ec;
+  --color-kraft-dark: #d9d4c4;
+  --color-ink: #1a1a16;
+  --color-ink-soft: #3f3d34;
+  --color-forest: #2f3e5c;
+  --color-forest-dark: #232e44;
+  --color-stamp: #7a2e22;
+  --color-graphite: #6b6459;
 
-  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.05), 0 8px 20px -12px rgb(28 25 23 / 0.18);
-  --shadow-card-hover: 0 2px 4px rgb(28 25 23 / 0.07), 0 16px 32px -14px rgb(28 25 23 / 0.24);
+  --shadow-card: 0 1px 2px rgb(26 26 22 / 0.05), 0 8px 20px -12px rgb(26 26 22 / 0.18);
+  --shadow-card-hover: 0 2px 4px rgb(26 26 22 / 0.07), 0 16px 32px -14px rgb(26 26 22 / 0.24);
 
   --font-display: var(--font-display-clothing);
   --font-body: var(--font-body-clothing);
   --font-logo: var(--font-display-clothing);
+  --font-mono: var(--font-mono-clothing);
 }
 
 @theme inline {
@@ -68,7 +84,7 @@ html[data-department="clothing"] {
   --color-graphite: var(--color-graphite);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
-  --font-mono: var(--font-display);
+  --font-mono: var(--font-mono);
   --font-logo: var(--font-logo);
 }
 

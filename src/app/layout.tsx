@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Cormorant, Montserrat } from "next/font/google";
+import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Fraunces, Montserrat, IBM_Plex_Mono } from "next/font/google";
 import { site } from "@/lib/site-config";
 import { siteUrlForDepartment } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
@@ -29,20 +29,36 @@ const permanentMarker = Permanent_Marker({
   weight: "400",
 });
 
-// Clothing storefront's serif/sans pair (quiet-luxury retheme — see
-// globals.css's `[data-department="clothing"]` block, which re-points
-// --font-display/--font-body at these instead of the shoe fonts above).
-// Distinct variable names so both pairs can be loaded side by side without
+// Clothing storefront's own type system — see globals.css's
+// `[data-department="clothing"]` block, which re-points --font-display/
+// --font-body/--font-mono at these instead of the shoe fonts above.
+// Distinct variable names so all pairs can be loaded side by side without
 // colliding; only the active department's classes are applied to <html>
-// below, so a given request's HTML never references the unused pair.
-const cormorant = Cormorant({
+// below, so a given request's HTML never references the unused set.
+// Fraunces (soft-serif, wide weight range) carries the brand's personality
+// at display size — deliberately not a generic wedding-invitation serif.
+const fraunces = Fraunces({
   variable: "--font-display-clothing",
   subsets: ["latin", "vietnamese"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700", "900"],
+  style: ["normal", "italic"],
 });
 
 const montserrat = Montserrat({
   variable: "--font-body-clothing",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600"],
+});
+
+// "Spec sheet" utility face for prices, SKUs, sizes, stock counts — a real
+// monospace instead of aliasing the display serif (the shoe site's
+// font-mono utility literally IS its display font; that reads fine for
+// bold uppercase sneaker-drop labels, but serif-at-11px reads muddy for
+// small data-like text). Ties to the parent brand's actual differentiator
+// (every product page shows inspected/verified fabric+construction specs)
+// instead of decorating for its own sake.
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-mono-clothing",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600"],
 });
@@ -103,7 +119,7 @@ export default async function RootLayout({
   const department = await getDepartment();
   const fontVariables =
     department === "CLOTHING"
-      ? `${cormorant.variable} ${montserrat.variable}`
+      ? `${fraunces.variable} ${montserrat.variable} ${ibmPlexMono.variable}`
       : `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
 
   return (

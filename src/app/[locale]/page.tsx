@@ -11,6 +11,8 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { CategorySection } from "@/components/CategorySection";
 import { CategorySidebar } from "@/components/CategorySidebar";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { ClothingLookbook } from "@/components/ClothingLookbook";
+import { ClothingManifesto } from "@/components/ClothingManifesto";
 import { NewsSection } from "@/components/NewsSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { Pagination } from "@/components/Pagination";
@@ -206,9 +208,12 @@ export default async function Home({
       <main className="flex-1">
         <Breadcrumb trail={department === "CLOTHING" ? [] : [tCommon("sneakers")]} />
         {department === "CLOTHING" ? (
-          <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
-            <Hero department={department} {...heroPropsFromSettings(branding)} />
-          </div>
+          <>
+            <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
+              <Hero department={department} {...heroPropsFromSettings(branding)} />
+            </div>
+            <ClothingManifesto />
+          </>
         ) : (
           <>
             <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
@@ -249,13 +254,15 @@ export default async function Home({
           />
         ))}
 
-        {department !== "CLOTHING" && (
+        {department === "CLOTHING" ? (
+          <ClothingLookbook categories={showcaseCategories} />
+        ) : (
           <>
             <NewsSection />
             <TestimonialsSection />
+            <CategoryShowcase categories={showcaseCategories} />
           </>
         )}
-        <CategoryShowcase categories={showcaseCategories} />
       </main>
       <Footer />
       <FloatingActions />
