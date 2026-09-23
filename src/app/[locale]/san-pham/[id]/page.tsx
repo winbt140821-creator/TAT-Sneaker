@@ -33,20 +33,22 @@ function getBrandCategory(product: NonNullable<Awaited<ReturnType<typeof getProd
   );
 }
 
-// No ids pre-rendered at build time (dynamicParams defaults to true) — this
-// just makes the route ELIGIBLE for static caching at all; without it, Next
-// always classifies a dynamic segment as fully server-rendered-per-request
-// with no caching whatsoever.
-export async function generateStaticParams() {
-  return [];
-}
-
-// Price/stock here can change from several places that don't all revalidate
-// this specific page directly (sale campaigns can affect many products at
-// once, checkout decrements stock inside a transaction) — a short time-based
-// ceiling means any of those show up here within a minute regardless, rather
-// than needing every mutation path to enumerate every affected product page.
-export const revalidate = 60;
+// This route reads headers() (via getDepartment(), for the shoe/clothing
+// storefront split — see src/lib/department.ts) in both generateMetadata
+// and the page component below. That's a dynamic API, which this Next.js
+// version treats as a hard build/render error ("DYNAMIC_SERVER_USAGE")
+// when combined with any ISR/static caching config on the route — it
+// doesn't silently fall back to per-request rendering the way older Next
+// versions did. This route previously had `generateStaticParams` returning
+// [] plus `export const revalidate = 60` to get ISR-style caching, which
+// was fine before department-detection was added but has been hard-500ing
+// every single product page ever since (confirmed via Vercel's runtime
+// logs: digest "DYNAMIC_SERVER_USAGE" on every /san-pham/[id] request).
+// getProductById() below already does a live, uncached DB read on every
+// request regardless of this route's caching config, so dropping ISR here
+// costs nothing beyond what was already happening — this now renders
+// fully dynamically per request, same as the homepage and category pages,
+// which already do the identical getDepartment() call safely.
 
 export async function generateMetadata({
   params,
