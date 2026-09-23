@@ -19,27 +19,55 @@ export type LiveExchangeRates = {
   cnyExchangeRate: number | null; // VND per 1 CNY
 };
 
-async function fetchLatestUsdRates(): Promise<Record<string, number> | null> {
+async function fetchJson(url: string): Promise<unknown> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch("https://open.er-api.com/v6/latest/USD", {
+    const response = await fetch(url, {
       signal: controller.signal,
       next: { revalidate: REVALIDATE_SECONDS },
     });
+    return response.ok ? await response.json() : null;
+  } finally {
     clearTimeout(timeout);
-    if (!response.ok) return null;
-
-    const data = (await response.json()) as { result?: string; rates?: Record<string, number> };
-    if (data.result !== "success" || !data.rates) return null;
-    return data.rates;
-  } catch {
-    // Network hiccup, timeout, or malformed response — callers treat a null
-    // rate as "unavailable right now" rather than throwing, so a flaky
-    // third-party API degrades gracefully instead of breaking checkout or
-    // price display outright.
-    return null;
   }
+}
+
+async function fromOpenErApi(): Promise<Record<string, number> | null> {
+  const data = (await fetchJson("https://open.er-api.com/v6/latest/USD")) as {
+    result?: string;
+    rates?: Record<string, number>;
+  } | null;
+  return data?.result === "success" && data.rates ? data.rates : null;
+}
+
+// Second, independent source (fawazahmed0/exchange-api, served from the
+// jsDelivr CDN): used only when open.er-api.com fails. Without it, an
+// outage of that one API right after a deploy (empty fetch cache) meant
+// international/PayPal checkout couldn't be completed at all, since there
+// is no manual fallback rate. Keys come back lowercase ("vnd"), so they're
+// upper-cased to match the primary source's shape.
+async function fromCurrencyApi(): Promise<Record<string, number> | null> {
+  const data = (await fetchJson(
+    "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json"
+  )) as { usd?: Record<string, number> } | null;
+  if (!data?.usd) return null;
+  return Object.fromEntries(Object.entries(data.usd).map(([k, v]) => [k.toUpperCase(), v]));
+}
+
+async function fetchLatestUsdRates(): Promise<Record<string, number> | null> {
+  for (const source of [fromOpenErApi, fromCurrencyApi]) {
+    try {
+      const rates = await source();
+      if (rates && typeof rates.VND === "number" && rates.VND > 0) return rates;
+    } catch {
+      // Network hiccup, timeout, or malformed response — try the next
+      // source. Callers treat a null rate as "unavailable right now" rather
+      // than throwing, so a flaky third-party API degrades gracefully
+      // instead of breaking checkout or price display outright.
+    }
+  }
+  return null;
 }
 
 // Cached per request (React's cache(), same pattern as getSiteSettings()) so
