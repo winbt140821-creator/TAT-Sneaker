@@ -103,7 +103,9 @@ export function ProductActions({
                     (disabled
                       ? "cursor-not-allowed border-kraft-dark text-graphite/40 line-through"
                       : isSelected
-                        ? "cursor-pointer border-forest bg-forest text-paper"
+                        ? department === "CLOTHING"
+                          ? "cursor-pointer border-ink bg-ink text-paper"
+                          : "cursor-pointer border-forest bg-forest text-paper"
                         : "cursor-pointer border-kraft-dark text-ink hover:border-forest")
                   }
                 >
@@ -151,14 +153,24 @@ export function ProductActions({
         <button
           type="button"
           onClick={handleBuyNow}
-          className="die-cut-flat flex-1 cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark sm:flex-none"
+          className={
+            "die-cut-flat flex-1 cursor-pointer px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider transition-colors sm:flex-none " +
+            (department === "CLOTHING"
+              ? "bg-ink text-paper hover:bg-ink-soft"
+              : "bg-forest text-paper hover:bg-forest-dark")
+          }
         >
           {t("buyNow")}
         </button>
         <button
           type="button"
           onClick={handleAddToCart}
-          className="die-cut-flat flex flex-1 cursor-pointer items-center justify-center gap-2 bg-ink px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft sm:flex-none"
+          className={
+            "flex flex-1 cursor-pointer items-center justify-center gap-2 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider transition-colors sm:flex-none " +
+            (department === "CLOTHING"
+              ? "rounded-lg border border-ink bg-paper text-ink hover:bg-kraft"
+              : "die-cut-flat bg-ink text-paper hover:bg-ink-soft")
+          }
         >
           <BagIcon className="h-4 w-4" />
           {t("addToCart")}

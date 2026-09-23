@@ -134,7 +134,7 @@ export default async function Home({
         <main className="flex-1">
           <Breadcrumb trail={trail} />
           <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-            <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} />
+            <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} department={department} />
             <div className="min-w-0 flex-1">
               <Hero department={department} {...heroPropsFromSettings(branding)} />
             </div>
@@ -174,7 +174,7 @@ export default async function Home({
             total={totalCount}
             department={department}
           />
-          <ProductGrid products={products} />
+          <ProductGrid products={products} department={department} />
           <Pagination
             current={currentPage}
             totalPages={totalPages}
@@ -198,17 +198,17 @@ export default async function Home({
       <main className="flex-1">
         <Breadcrumb trail={[tCommon("sneakers")]} />
         <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-          <CategorySidebar categories={navCategories} />
+          <CategorySidebar categories={navCategories} department={department} />
           <div className="min-w-0 flex-1">
             <Hero department={department} {...heroPropsFromSettings(branding)} />
           </div>
         </div>
         <TrustBar />
 
-        <CategorySection heading={t("latest")} products={latest} />
+        <CategorySection heading={t("latest")} products={latest} department={department} />
 
         {bestSelling.length > 0 && (
-          <CategorySection heading={t("bestSelling")} products={bestSelling} />
+          <CategorySection heading={t("bestSelling")} products={bestSelling} department={department} />
         )}
 
         {sale.length > 0 && (
@@ -217,6 +217,7 @@ export default async function Home({
             viewAllHref="/?category=SALE"
             viewAllLabel={tProduct("viewAll")}
             products={sale}
+            department={department}
           />
         )}
 
@@ -228,6 +229,7 @@ export default async function Home({
             viewAllLabel={tProduct("viewAll")}
             pills={cat.children.map((c) => ({ slug: c.slug, label: c.label }))}
             products={products}
+            department={department}
           />
         ))}
 

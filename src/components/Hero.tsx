@@ -68,8 +68,8 @@ export async function Hero({
   return (
     <div
       className={
-        "die-cut relative h-full overflow-hidden bg-paper px-4 py-6 sm:px-10 lg:min-h-[420px] " +
-        (isClothing ? "sm:py-20" : "sm:py-14") +
+        "relative h-full overflow-hidden bg-paper px-4 py-6 sm:px-10 lg:min-h-[420px] " +
+        (isClothing ? "die-cut-flat sm:py-20" : "die-cut sm:py-14") +
         " " +
         (hasCover ? "aspect-[4/3] sm:aspect-auto" : "")
       }

@@ -1,10 +1,12 @@
 import type { CatalogProduct } from "@/lib/catalog";
+import type { Department } from "@/lib/inventory";
 import { ProductCard } from "./ProductCard";
 import { HorizontalScrollTrack } from "./HorizontalScrollTrack";
 
 export function ProductGrid({
   products,
   layout = "grid",
+  department = "SHOES",
 }: {
   products: CatalogProduct[];
   /** "scroll" = phone/tablet horizontal-scroll row (homepage brand teasers,
@@ -13,6 +15,7 @@ export function ProductGrid({
    *  pages with pagination, where "view all" must show everything, not a
    *  swipeable teaser). */
   layout?: "grid" | "scroll";
+  department?: Department;
 }) {
   if (products.length === 0) {
     return (
@@ -28,7 +31,7 @@ export function ProductGrid({
     return (
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 sm:px-6 md:grid-cols-3 lg:grid-cols-4">
         {products.map((p, i) => (
-          <ProductCard key={p.id} product={p} index={i} />
+          <ProductCard key={p.id} product={p} index={i} department={department} />
         ))}
       </div>
     );
@@ -40,7 +43,7 @@ export function ProductGrid({
         <HorizontalScrollTrack>
           {products.map((p, i) => (
             <div key={p.id} className="w-36 shrink-0 snap-start sm:w-40">
-              <ProductCard product={p} index={i} />
+              <ProductCard product={p} index={i} department={department} />
             </div>
           ))}
         </HorizontalScrollTrack>
@@ -48,7 +51,7 @@ export function ProductGrid({
 
       <div className="hidden lg:grid lg:grid-cols-4 lg:gap-4">
         {products.map((p, i) => (
-          <ProductCard key={p.id} product={p} index={i} />
+          <ProductCard key={p.id} product={p} index={i} department={department} />
         ))}
       </div>
     </div>

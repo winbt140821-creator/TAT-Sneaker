@@ -159,18 +159,37 @@ export default async function ProductDetailPage({
               <h1 className="font-display text-2xl leading-snug text-ink sm:text-3xl">
                 {product.name}
               </h1>
-              <p className="mt-1 font-mono text-sm font-bold uppercase tracking-wide text-forest">
+              <p
+                className={
+                  "mt-1 font-mono text-sm uppercase tracking-wide " +
+                  (department === "CLOTHING" ? "text-graphite" : "font-bold text-forest")
+                }
+              >
                 {product.quality}
               </p>
 
               <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                <p className="font-mono text-3xl font-bold text-forest">{price}</p>
+                <p
+                  className={
+                    "font-mono text-3xl font-bold " +
+                    (department === "CLOTHING" ? "text-ink" : "text-forest")
+                  }
+                >
+                  {price}
+                </p>
                 {originalPrice && (
                   <>
                     <p className="font-mono text-base text-graphite/60 line-through">
                       {originalPrice}
                     </p>
-                    <span className="bg-forest px-2 py-0.5 font-mono text-xs font-bold text-paper">
+                    <span
+                      className={
+                        "px-2 py-0.5 font-mono text-xs font-bold " +
+                        (department === "CLOTHING"
+                          ? "border border-ink text-ink"
+                          : "bg-forest text-paper")
+                      }
+                    >
                       -{discountPct}%
                     </span>
                   </>
@@ -181,7 +200,11 @@ export default async function ProductDetailPage({
                 <span
                   className={
                     "px-2 py-1 font-mono text-[11px] font-semibold uppercase tracking-wide " +
-                    (inStock ? "bg-forest text-paper" : "bg-stamp text-paper")
+                    (inStock
+                      ? department === "CLOTHING"
+                        ? "border border-ink text-ink"
+                        : "bg-forest text-paper"
+                      : "bg-stamp text-paper")
                   }
                 >
                   {inStock ? t("inStock") : product.availability === "PREORDER" ? t("preorder") : t("outOfStock")}
@@ -279,7 +302,7 @@ export default async function ProductDetailPage({
               </div>
             </div>
             <div className="mt-6">
-              <ProductGrid products={related} />
+              <ProductGrid products={related} department={department} />
             </div>
           </div>
         )}

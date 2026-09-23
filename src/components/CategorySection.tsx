@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { CatalogProduct } from "@/lib/catalog";
+import type { Department } from "@/lib/inventory";
 import { ProductGrid } from "./ProductGrid";
 
 // Not async, and takes the translated label as a prop instead of calling
@@ -13,12 +14,14 @@ export function CategorySection({
   viewAllLabel,
   pills,
   products,
+  department = "SHOES",
 }: {
   heading: string;
   viewAllHref?: string;
   viewAllLabel?: string;
   pills?: { slug: string; label: string }[];
   products: CatalogProduct[];
+  department?: Department;
 }) {
   return (
     <section className="pb-10">
@@ -51,7 +54,7 @@ export function CategorySection({
       </div>
 
       <div className="mt-6">
-        <ProductGrid products={products} layout="scroll" />
+        <ProductGrid products={products} layout="scroll" department={department} />
       </div>
     </section>
   );
