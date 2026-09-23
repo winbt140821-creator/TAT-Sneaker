@@ -36,16 +36,30 @@ export async function ProductCard({
       store={product.department}
       className="die-cut hover-lift group flex h-full flex-col bg-paper"
     >
-      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
+      <div data-product-photo className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
         {product.images[0] ? (
-          <ThumbImage
-            src={product.images[0]}
-            alt={product.name}
-            fill
-            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-            quality={90}
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
-          />
+          <>
+            <ThumbImage
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+              quality={90}
+              className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+            />
+            {/* Second angle fades in on hover. Desktop only: display:none
+                below lg keeps phones (no hover) from downloading it. */}
+            {product.images[1] && (
+              <ThumbImage
+                src={product.images[1]}
+                alt=""
+                fill
+                sizes="25vw"
+                quality={90}
+                className="hidden object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none lg:block"
+              />
+            )}
+          </>
         ) : (
           <SneakerArt
             silhouette={silhouetteFor(index)}

@@ -119,7 +119,8 @@
     "wishlistAdd": "Add to wishlist",
     "wishlistRemove": "Remove from wishlist",
     "share": "Share product",
-    "shareCopied": "Product link copied."
+    "shareCopied": "Product link copied.",
+    "added": "Added to bag"
   },
   "productDetail": {
     "promo1": "3-step inspection before listing",

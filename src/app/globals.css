@@ -185,11 +185,119 @@ body {
   animation: none;
 }
 
+/* The product photo tapped in a grid flies into place as the product
+   page's main photo (name set on click by ProductPhotoTransition, and on
+   the product page's first photo). Slightly slower than the page crossfade
+   so the eye can follow it. */
+::view-transition-group(product-photo) {
+  animation-duration: 0.55s;
+  animation-timing-function: var(--ease-out-soft);
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
+  }
+}
+
+/* ---------- Motion, both stores ----------
+   One rhythm everywhere: hover/press 200–450ms, reveals ~1s, all on the
+   same ease-out curve. Each effect tells the shopper something (this is a
+   link, the bag took the item, more is below) — none is decoration only.
+   All of it switches off when the device asks for reduced motion. */
+:root {
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Underline that draws in from the left on hover, leaves to the right. */
+.link-draw {
+  background: linear-gradient(currentColor, currentColor) right bottom / 0 1px no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.45s var(--ease-out-soft);
+}
+.link-draw:hover,
+.link-draw:focus-visible,
+a:hover > .link-draw,
+a:focus-visible > .link-draw {
+  background-position: left bottom;
+  background-size: 100% 1px;
+}
+
+/* The sticky header slides away while reading down the page and comes
+   back the moment the shopper scrolls up (see HeaderAutoHide). */
+.site-header {
+  transition: transform 0.35s var(--ease-out-soft);
+}
+.site-header[data-away="true"] {
+  transform: translateY(-100%);
+}
+
+/* Large photos below the fold open upward the first time they scroll into
+   view (see Reveal). Nothing is ever hidden before JavaScript runs. The
+   clip goes on the wrapper's children, never the wrapper itself: Chrome
+   treats a fully clipped element as not intersecting, so the observer on a
+   clipped wrapper would never fire and the photo would stay hidden. */
+.reveal-pending > * {
+  clip-path: inset(100% 0 0 0);
+}
+.reveal-pending img {
+  transform: scale(1.12);
+}
+.reveal-in > * {
+  clip-path: inset(0);
+  transition: clip-path 1s var(--ease-out-soft);
+}
+.reveal-in img {
+  transform: scale(1);
+  transition: transform 1.3s var(--ease-out-soft);
+}
+
+/* Add-to-cart button: its label slides up and "Added" slides in. */
+.label-swap {
+  display: inline-grid;
+  overflow: hidden;
+}
+.label-swap > * {
+  grid-area: 1 / 1;
+  transition:
+    transform 0.45s var(--ease-out-soft),
+    opacity 0.3s ease;
+}
+.label-swap > :last-child {
+  transform: translateY(110%);
+  opacity: 0;
+}
+[data-added="true"] .label-swap > :first-child {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+[data-added="true"] .label-swap > :last-child {
+  transform: none;
+  opacity: 1;
+}
+
+/* Bag count pops when something is added. */
+@keyframes cart-bump {
+  40% {
+    transform: scale(1.4);
+  }
+}
+.cart-bump {
+  animation: cart-bump 0.45s var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-draw,
+  .site-header,
+  .reveal-in > *,
+  .reveal-in img,
+  .label-swap > * {
+    transition: none !important;
+  }
+  .cart-bump {
+    animation: none;
   }
 }

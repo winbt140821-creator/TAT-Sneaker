@@ -6,12 +6,6 @@ export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 ).replace(/\/$/, "");
 
-// Both stores share one domain now (see src/lib/store-path.ts); kept as a
-// function so callers stay explicit about which store a URL belongs to.
-export function siteUrlForDepartment(_department: Department): string {
-  return SITE_URL;
-}
-
 /** Absolute URL of a store-agnostic path inside `department`'s store,
  *  e.g. ("/san-pham/x", "CLOTHING") → https://tatsneaker.vn/quan-ao/san-pham/x.
  *  Pass `null` for store-independent paths (the gateway, sitemap). */

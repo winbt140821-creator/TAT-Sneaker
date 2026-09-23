@@ -50,7 +50,7 @@ export function CategorySection({
           {viewAllHref && (
             <Link
               href={viewAllHref}
-              className="flex shrink-0 items-center gap-1 font-mono text-xs uppercase tracking-wide text-forest hover:underline"
+              className="link-draw flex shrink-0 items-center gap-1 font-mono text-xs uppercase tracking-wide text-forest"
             >
               {viewAllLabel}
             </Link>

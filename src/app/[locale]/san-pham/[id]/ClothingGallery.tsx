@@ -19,7 +19,11 @@ export function ClothingGallery({ images, name }: { images: string[]; name: stri
     <>
       <div className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
         {images.map((src, i) => (
-          <div key={src} className="relative aspect-[3/4] w-full shrink-0 snap-center bg-kraft">
+          <div
+            key={src}
+            className="relative aspect-[3/4] w-full shrink-0 snap-center bg-kraft"
+            style={i === 0 ? { viewTransitionName: "product-photo" } : undefined}
+          >
             <Image
               src={src}
               alt={i === 0 ? name : ""}
@@ -45,7 +49,11 @@ export function ClothingGallery({ images, name }: { images: string[]; name: stri
         {images.map((src, i) => {
           const full = images.length <= 2 || i === 0;
           return (
-            <div key={src} className={"relative aspect-[3/4] bg-kraft " + (images.length > 2 && i === 0 ? "lg:col-span-2" : "")}>
+            <div
+              key={src}
+              className={"relative aspect-[3/4] bg-kraft " + (images.length > 2 && i === 0 ? "lg:col-span-2" : "")}
+              style={i === 0 ? { viewTransitionName: "product-photo" } : undefined}
+            >
               <Image
                 src={src}
                 alt={i === 0 ? name : ""}

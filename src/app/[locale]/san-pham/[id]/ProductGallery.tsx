@@ -47,6 +47,7 @@ export function ProductGallery({
     <div>
       <div
         className="die-cut group relative aspect-square cursor-zoom-in overflow-hidden bg-kraft-dark/30"
+        style={{ viewTransitionName: "product-photo" }}
         onMouseMove={handleMouseMove}
         onClick={() => setZoomOpen(true)}
       >

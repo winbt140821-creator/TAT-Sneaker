@@ -98,7 +98,7 @@ export async function Footer() {
     const clothingColumns = columns.map((col, i) =>
       i === 2 ? { ...col, title: "Về chúng tôi" } : col
     );
-    const linkClass = "font-body text-[13px] text-graphite transition-colors hover:text-ink";
+    const linkClass = "link-draw font-body text-[13px] text-graphite transition-colors hover:text-ink";
     const titleClass = "text-[11px] font-medium uppercase tracking-[0.14em] text-ink";
 
     return (
@@ -234,7 +234,7 @@ export async function Footer() {
                   <li key={l.slug}>
                     <Link
                       href={`/trang/${l.slug}`}
-                      className="flex items-center gap-1 font-body text-sm text-kraft hover:text-paper hover:underline"
+                      className="link-draw flex items-center gap-1 font-body text-sm text-kraft hover:text-paper"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-forest sm:hidden" />
                       {l.label}
@@ -245,7 +245,7 @@ export async function Footer() {
                   <li>
                     <Link
                       href="/tra-cuu-don-hang"
-                      className="flex items-center gap-1 font-body text-sm text-kraft hover:text-paper hover:underline"
+                      className="link-draw flex items-center gap-1 font-body text-sm text-kraft hover:text-paper"
                     >
                       <ChevronRightIcon className="h-3.5 w-3.5 shrink-0 text-forest sm:hidden" />
                       {t("supportOrderLookup")}

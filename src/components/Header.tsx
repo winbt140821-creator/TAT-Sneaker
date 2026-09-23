@@ -15,6 +15,7 @@ import { SearchBar } from "./SearchBar";
 import { ClothingCategoryNav } from "./ClothingCategoryNav";
 import { ClothingSearchToggle } from "./ClothingSearchToggle";
 import { StoreSwitch } from "./StoreSwitch";
+import { HeaderAutoHide } from "./motion/HeaderAutoHide";
 
 // AccountMenu reads useSearchParams() (to preserve query params when
 // switching language) — without a Suspense boundary around it, Next.js
@@ -53,9 +54,10 @@ export async function Header() {
       <>
       <StoreSwitch current="CLOTHING" />
       <header
-        className="sticky top-0 z-40 border-b border-kraft-dark bg-paper text-ink"
+        className="site-header sticky top-0 z-40 border-b border-kraft-dark bg-paper text-ink"
         style={{ viewTransitionName: "site-header" }}
       >
+        <HeaderAutoHide />
         <div className="relative flex h-14 items-center gap-6 px-4 sm:px-6 lg:h-[60px] lg:gap-10 lg:px-8">
           <div className="-ml-2 lg:hidden">
             <MobileCategoryDrawer categories={categories} />
@@ -102,9 +104,10 @@ export async function Header() {
     <>
     <StoreSwitch current="SHOES" />
     <header
-      className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
+      className="site-header sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
       style={{ viewTransitionName: "site-header" }}
     >
+      <HeaderAutoHide />
       <div className="relative mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
         <MobileCategoryDrawer categories={categories} />
         <Link

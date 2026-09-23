@@ -15,18 +15,18 @@ export function ClothingCategoryNav({ categories }: { categories: Cat[] }) {
         <li>
           <Link
             href="/?sort=newest"
-            className="block py-5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink transition-opacity hover:opacity-60"
+            className="block py-5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink"
           >
-            Mới về
+            <span className="link-draw">Mới về</span>
           </Link>
         </li>
         {categories.map((c) => (
           <li key={c.id} className="group/cat relative">
             <Link
               href={`/?category=${encodeURIComponent(c.slug)}`}
-              className="block py-5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink transition-opacity hover:opacity-60"
+              className="block py-5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink"
             >
-              {c.label}
+              <span className="link-draw">{c.label}</span>
             </Link>
 
             {c.children.length > 0 && (

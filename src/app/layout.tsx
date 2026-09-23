@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
 import { site } from "@/lib/site-config";
-import { siteUrlForDepartment } from "@/lib/seo";
+import { SITE_URL } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
@@ -45,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
     ? JSON.parse(branding.heroImages)[0]
     : undefined;
   const ogImage = firstHeroImage || branding?.heroImageUrl || branding?.logoUrl || undefined;
-  const siteUrl = siteUrlForDepartment(department);
+  const siteUrl = SITE_URL;
 
   return {
     metadataBase: new URL(siteUrl),

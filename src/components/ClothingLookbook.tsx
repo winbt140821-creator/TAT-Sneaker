@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
+import { Reveal } from "./motion/Reveal";
 
 type ShowcaseCategory = { id: string; slug: string; label: string; showcaseImageUrl: string | null };
 
@@ -26,7 +27,7 @@ export function ClothingLookbook({ categories }: { categories: ShowcaseCategory[
       <div className={"grid grid-cols-2 gap-x-0.5 gap-y-8 " + (COLS[items.length] ?? "lg:grid-cols-4")}>
         {items.map((c) => (
           <Link key={c.id} href={`/?category=${encodeURIComponent(c.slug)}`} className="group block">
-            <div className="relative aspect-[3/4] overflow-hidden bg-kraft">
+            <Reveal className="relative aspect-[3/4] overflow-hidden bg-kraft">
               <Image
                 src={c.showcaseImageUrl!}
                 alt={c.label}
@@ -35,7 +36,7 @@ export function ClothingLookbook({ categories }: { categories: ShowcaseCategory[
                 quality={90}
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02] motion-reduce:transition-none"
               />
-            </div>
+            </Reveal>
             <p className="px-3 pt-3 text-[12px] font-medium uppercase tracking-[0.14em] text-ink sm:px-4">
               {c.label}
             </p>

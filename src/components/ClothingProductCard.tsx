@@ -35,7 +35,7 @@ export async function ClothingProductCard({
 
   return (
     <Link href={`/san-pham/${product.id}`} store={product.department} className="group block">
-      <div className="relative aspect-[3/4] overflow-hidden bg-kraft">
+      <div data-product-photo className="relative aspect-[3/4] overflow-hidden bg-kraft">
         {img0 ? (
           <>
             <ThumbImage
@@ -47,7 +47,7 @@ export async function ClothingProductCard({
               quality={90}
               className={
                 "object-cover transition-opacity duration-500 ease-out motion-reduce:transition-none " +
-                (img1 ? "group-hover:opacity-0" : "")
+                (img1 ? "lg:group-hover:opacity-0" : "")
               }
             />
             {img1 && (
@@ -57,7 +57,7 @@ export async function ClothingProductCard({
                 fill
                 sizes="(min-width: 1024px) 25vw, 50vw"
                 quality={90}
-                className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none"
+                className="hidden object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none lg:block"
               />
             )}
           </>

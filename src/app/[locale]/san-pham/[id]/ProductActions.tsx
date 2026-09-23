@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { addToCart } from "@/lib/cart-storage";
@@ -44,6 +44,11 @@ export function ProductActions({
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; text: string } | null>(
     null
   );
+  // Briefly swaps the add-to-cart label for "Added" (.label-swap in
+  // globals.css) so the tap is acknowledged right on the button.
+  const [added, setAdded] = useState(false);
+  const addedTimer = useRef<number>(undefined);
+  useEffect(() => () => window.clearTimeout(addedTimer.current), []);
 
   const availableQty = selectedSize != null ? getQuantityForSize(sizeQuantities, selectedSize) : null;
   const carriedSizes = getCarriedSizes(sizeQuantities, department);
@@ -72,6 +77,9 @@ export function ProductActions({
     trackAddToCart({ id: productId, name: productName, price, quantity });
     const suffix = quantity > 1 ? ` (+${quantity})` : "";
     setFeedback({ type: "success", text: t("addedToCart", { size: selectedSize }) + suffix });
+    setAdded(true);
+    window.clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setAdded(false), 1800);
   }
 
   function handleBuyNow() {
@@ -152,9 +160,13 @@ export function ProductActions({
           <button
             type="button"
             onClick={handleAddToCart}
+            data-added={added}
             className="flex h-12 w-full cursor-pointer items-center justify-center bg-ink text-[12px] font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-ink-soft"
           >
-            {t("addToCart")}
+            <span className="label-swap">
+              <span>{t("addToCart")}</span>
+              <span aria-hidden="true">{t("added")} ✓</span>
+            </span>
           </button>
           <button
             type="button"
@@ -250,10 +262,14 @@ export function ProductActions({
         <button
           type="button"
           onClick={handleAddToCart}
+          data-added={added}
           className="die-cut-flat flex flex-1 cursor-pointer items-center justify-center gap-2 bg-ink px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft sm:flex-none"
         >
           <BagIcon className="h-4 w-4" />
-          {t("addToCart")}
+          <span className="label-swap">
+            <span>{t("addToCart")}</span>
+            <span aria-hidden="true">{t("added")} ✓</span>
+          </span>
         </button>
         <WishlistButton productId={productId} />
         <ShareButton productName={productName} />
