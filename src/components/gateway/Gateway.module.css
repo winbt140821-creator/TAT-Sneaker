@@ -1,6 +1,5 @@
 /* The tatsneaker.vn gateway: one screen split between the two stores, with
-   the TAT wordmark cut in two by the seam — the same Didone both stores use,
-   bold on the shoe side and hairline-light on the clothing side.
+   the TAT wordmark centred on the seam, in the Didone both stores use.
    Hovering a side slides the seam toward the other; choosing one opens it
    to full screen before the store loads.
    Desktop: shoes left, clothing right. Phone (and any narrow window):
@@ -194,15 +193,21 @@
   width: 0.8em;
   text-align: center;
 }
+/* Both halves are set identically (same weight, spacing, cell width) so
+   every stroke lines up exactly across the seam — a heavier and a lighter
+   cut of the same letter never meet cleanly. The halves only change colour
+   when the background does: dark type over the plain clothing panel,
+   white over photos. */
+.mark {
+  font-weight: 400;
+}
 .markShoe {
   clip-path: inset(0 calc(100% - var(--split) * 1%) 0 0);
-  font-weight: 700;
   color: #fff;
 }
 .markCloth {
   clip-path: inset(0 0 0 calc(var(--split) * 1%));
-  font-weight: 300;
-  color: #f6f1e7;
+  color: #fff;
 }
 .gw[data-plain="true"] .markCloth {
   color: #111;
