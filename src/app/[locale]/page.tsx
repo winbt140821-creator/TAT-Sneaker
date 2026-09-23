@@ -54,19 +54,25 @@ export async function generateMetadata({
     };
   }
 
+  const department = await getDepartment();
+
   if (category) {
-    const activeCategory = await getCategoryBySlug(category, await getDepartment());
+    const activeCategory = await getCategoryBySlug(category, department);
     if (activeCategory) {
       const path = `/?category=${encodeURIComponent(activeCategory.slug)}`;
+      const title =
+        department === "CLOTHING"
+          ? `${activeCategory.label} chính hãng`
+          : `Giày ${activeCategory.label} chính hãng`;
       return {
-        title: `Giày ${activeCategory.label} chính hãng`,
-        description: `Giày ${activeCategory.label} chính hãng, đã qua kiểm định 3 bước. Giao hàng toàn quốc, thanh toán khi nhận hàng.`,
-        alternates: { canonical: path, languages: languageAlternates(path) },
+        title,
+        description: `${title}, đã qua kiểm định 3 bước. Giao hàng toàn quốc, thanh toán khi nhận hàng.`,
+        alternates: { canonical: path, languages: languageAlternates(path, department) },
       };
     }
   }
 
-  return { alternates: { canonical: "/", languages: languageAlternates("") } };
+  return { alternates: { canonical: "/", languages: languageAlternates("", department) } };
 }
 
 export default async function Home({

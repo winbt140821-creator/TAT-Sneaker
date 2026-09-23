@@ -71,11 +71,11 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: path, languages: languageAlternates(path) },
+    alternates: { canonical: path, languages: languageAlternates(path, department) },
     openGraph: {
       title,
       description,
-      url: absoluteUrl(`/san-pham/${product.id}`),
+      url: absoluteUrl(`/san-pham/${product.id}`, department),
       ...(image ? { images: [{ url: image }] } : {}),
     },
   };

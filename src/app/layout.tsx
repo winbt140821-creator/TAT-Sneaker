@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
 import { site } from "@/lib/site-config";
-import { SITE_URL } from "@/lib/seo";
-import { getSiteSettings } from "@/lib/settings";
+import { siteUrlForDepartment } from "@/lib/seo";
+import { getSiteSettings, getBranding } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { OrganizationJsonLd } from "@/components/OrganizationJsonLd";
 import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
@@ -35,14 +36,16 @@ const DEFAULT_DESCRIPTION = site.tagline;
 // default share image (og:image) — otherwise every non-product page (home,
 // static pages, category listings) shares with no image at all.
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
-  const firstHeroImage: string | undefined = settings?.heroImages
-    ? JSON.parse(settings.heroImages)[0]
+  const department = await getDepartment();
+  const branding = await getBranding(department);
+  const firstHeroImage: string | undefined = branding?.heroImages
+    ? JSON.parse(branding.heroImages)[0]
     : undefined;
-  const ogImage = firstHeroImage || settings?.heroImageUrl || settings?.logoUrl || undefined;
+  const ogImage = firstHeroImage || branding?.heroImageUrl || branding?.logoUrl || undefined;
+  const siteUrl = siteUrlForDepartment(department);
 
   return {
-    metadataBase: new URL(SITE_URL),
+    metadataBase: new URL(siteUrl),
     title: {
       template: `%s | ${site.name}`,
       default: DEFAULT_TITLE,
@@ -58,7 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: site.name,
       title: DEFAULT_TITLE,
       description: DEFAULT_DESCRIPTION,
-      url: SITE_URL,
+      url: siteUrl,
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
     twitter: {

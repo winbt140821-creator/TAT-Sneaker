@@ -112,6 +112,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request: { headers: headersWithDepartment } });
   }
 
+  // Not locale-prefixable routes — Next always serves these at the root
+  // regardless of visitor locale, so they must skip the locale-redirect
+  // logic below entirely (it would otherwise 404 a crawler by redirecting
+  // it to e.g. /en/sitemap.xml, which doesn't exist).
+  if (pathname === "/sitemap.xml" || pathname === "/robots.txt") {
+    return NextResponse.next({ request: { headers: headersWithDepartment } });
+  }
+
   if (!request.cookies.has("NEXT_LOCALE")) {
     const country = request.headers.get("x-vercel-ip-country");
     const detected = detectLocaleFromCountry(country);
@@ -143,5 +151,10 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Runs on every request except static assets/API routes/admin (admin is
   // handled inline above, matched here too since it needs the auth check).
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  // The negative lookahead excludes any path with a dot (static files like
+  // .js/.css/.png) — sitemap.xml and robots.txt are Next's own generated
+  // routes, not static files, but their paths also contain a dot, so they'd
+  // silently never get the x-department header without being listed here
+  // explicitly (see src/app/sitemap.ts, src/app/robots.ts).
+  matcher: ["/((?!api|_next|.*\\..*).*)", "/sitemap.xml", "/robots.txt"],
 };
