@@ -2,6 +2,7 @@
 
 import { useState, type DragEvent } from "react";
 import Image from "next/image";
+import { prepareImageForUpload } from "@/lib/image-prep";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB — mirrors src/lib/uploads.ts
 // Uploading dozens of photos as one unbounded Promise.all() burst overwhelms
@@ -15,10 +16,27 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function uploadWithRetry(
-  file: File,
-  target: { uploadUrl: string; publicUrl: string; contentType?: string }
-): Promise<string> {
+type UploadTarget = { uploadUrl: string; publicUrl: string; contentType?: string; thumbUploadUrl?: string };
+
+// The grid thumbnail is best-effort: if it fails after retries the photo
+// still counts as uploaded, and ThumbImage falls back to the full photo.
+async function uploadThumb(thumb: Blob, url: string) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: thumb });
+      if (res.ok) return;
+    } catch {}
+    if (attempt < MAX_ATTEMPTS) await delay(attempt * 800);
+  }
+}
+
+async function uploadWithRetry(file: File, target: UploadTarget, thumb: Blob | null = null): Promise<string> {
+  const url = await uploadFileWithRetry(file, target);
+  if (thumb && target.thumbUploadUrl) await uploadThumb(thumb, target.thumbUploadUrl);
+  return url;
+}
+
+async function uploadFileWithRetry(file: File, target: UploadTarget): Promise<string> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
@@ -105,9 +123,9 @@ export function ImageUploadFieldMulti({
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
-    const files = Array.from(fileList);
+    const originals = Array.from(fileList);
 
-    const tooBig = files.find((f) => f.size > MAX_FILE_BYTES);
+    const tooBig = originals.find((f) => f.size > MAX_FILE_BYTES);
     if (tooBig) {
       setError(`"${tooBig.name}" vượt quá 8MB.`);
       return;
@@ -116,15 +134,22 @@ export function ImageUploadFieldMulti({
     setError(null);
     updateUploading(true);
     try {
+      // Shrunk to web size (plus a grid thumbnail) in the browser before
+      // anything is sent — see src/lib/image-prep.ts.
+      const prepared = await Promise.all(originals.map(prepareImageForUpload));
+      const files = prepared.map((p) => p.file);
+
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: files.map((f) => ({ name: f.name, size: f.size })) }),
+        body: JSON.stringify({
+          files: prepared.map((p) => ({ name: p.file.name, size: p.file.size, thumb: Boolean(p.thumb) })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload thất bại");
 
-      const targets: { uploadUrl: string; publicUrl: string; contentType?: string }[] = data.targets;
+      const targets: UploadTarget[] = data.targets;
 
       // Uploaded in small batches rather than one giant Promise.all() burst,
       // each file retries a couple of times on its own before being counted
@@ -136,7 +161,7 @@ export function ImageUploadFieldMulti({
       for (let start = 0; start < files.length; start += UPLOAD_CONCURRENCY) {
         const batch = files.slice(start, start + UPLOAD_CONCURRENCY);
         const results = await Promise.allSettled(
-          batch.map((file, i) => uploadWithRetry(file, targets[start + i]))
+          batch.map((file, i) => uploadWithRetry(file, targets[start + i], prepared[start + i].thumb))
         );
         results.forEach((r, i) => {
           if (r.status === "fulfilled") succeeded.push(r.value);

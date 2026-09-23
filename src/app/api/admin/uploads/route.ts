@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { files } = (await request.json()) as { files?: { name: string; size: number }[] };
+  const { files } = (await request.json()) as { files?: { name: string; size: number; thumb?: boolean }[] };
   if (!Array.isArray(files) || files.length === 0) {
     return NextResponse.json({ error: "No files" }, { status: 400 });
   }
