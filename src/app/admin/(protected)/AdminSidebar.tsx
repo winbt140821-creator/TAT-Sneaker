@@ -20,11 +20,16 @@ export function AdminSidebar({
   staffName,
   staffRoleLabel,
   logoUrl,
+  storeSwitcher,
+  storeAccent,
 }: {
   navGroups: NavGroup[];
   staffName: string;
   staffRoleLabel: string;
   logoUrl?: string | null;
+  storeSwitcher: React.ReactNode;
+  /** border colour class marking the store being managed */
+  storeAccent: string;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -40,23 +45,27 @@ export function AdminSidebar({
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b-4 border-forest bg-ink px-4 py-3 sm:hidden">
-        <Link href="/" className="inline-block">
-          <Logo
-            logoUrl={logoUrl}
-            imageClassName="h-8 w-auto max-w-[140px] object-contain"
-            brandVariant="light"
-          />
-        </Link>
-        <button
-          type="button"
-          aria-label={open ? "Đóng menu quản trị" : "Mở menu quản trị"}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center text-paper"
-        >
-          {open ? <XMarkIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
-        </button>
+      <div className={`sticky top-0 z-30 border-b-4 bg-ink sm:hidden ${storeAccent}`}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link href="/" className="inline-block">
+            <Logo
+              logoUrl={logoUrl}
+              imageClassName="h-8 w-auto max-w-[140px] object-contain"
+              brandVariant="light"
+            />
+          </Link>
+          <button
+            type="button"
+            aria-label={open ? "Đóng menu quản trị" : "Mở menu quản trị"}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-11 w-11 cursor-pointer items-center justify-center text-paper"
+          >
+            {open ? <XMarkIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+          </button>
+        </div>
+        {/* Store switch stays pinned with the bar on phones, within thumb reach. */}
+        <div className="border-t border-graphite/40 px-4 py-2">{storeSwitcher}</div>
       </div>
 
       {open && (

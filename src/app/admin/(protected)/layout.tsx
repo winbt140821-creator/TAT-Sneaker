@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentStaff } from "@/lib/auth";
 import { getBranding } from "@/lib/settings";
+import { getAdminStore } from "@/lib/admin-store";
+import { AdminStoreSwitcher } from "@/components/admin/AdminStoreSwitcher";
 import { AdminSidebar } from "./AdminSidebar";
 
 // Defense in depth alongside robots.ts's /admin disallow — a layout-level
@@ -59,13 +61,23 @@ export default async function AdminLayout({
   // validated and sent to login if it doesn't check out.
   // Admin is one shared back office for both storefronts — always shows the
   // shoe brand's logo, same reasoning as the login page above.
-  const [staff, branding] = await Promise.all([getCurrentStaff(), getBranding("SHOES")]);
+  const [staff, branding, store] = await Promise.all([
+    getCurrentStaff(),
+    getBranding("SHOES"),
+    getAdminStore(),
+  ]);
   if (!staff) redirect("/admin/login");
 
   const navGroups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.adminOnly || staff.role === "ADMIN"),
   })).filter((group) => group.items.length > 0);
+
+  // The rule under the store switch takes the colour of the store being
+  // managed (red shoes, white clothing, grey both) — visible on every page.
+  const storeAccent =
+    store === "SHOES" ? "border-forest" : store === "CLOTHING" ? "border-paper" : "border-graphite";
+  const switcher = <AdminStoreSwitcher store={store} />;
 
   return (
     <div className="flex min-h-dvh flex-col bg-kraft sm:flex-row">
@@ -74,9 +86,16 @@ export default async function AdminLayout({
         staffName={staff.name}
         staffRoleLabel={staff.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
         logoUrl={branding?.logoUrl}
+        storeSwitcher={switcher}
+        storeAccent={storeAccent}
       />
 
-      <main className="min-w-0 flex-1 p-4 sm:p-8">{children}</main>
+      <main className="min-w-0 flex-1">
+        <div className={`sticky top-0 z-20 hidden border-b-4 bg-ink px-8 py-2.5 sm:block ${storeAccent}`}>
+          {switcher}
+        </div>
+        <div className="p-4 sm:p-8">{children}</div>
+      </main>
     </div>
   );
 }

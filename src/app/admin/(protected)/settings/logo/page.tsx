@@ -1,4 +1,5 @@
 import { getBranding } from "@/lib/settings";
+import { editingStore, getAdminStore } from "@/lib/admin-store";
 import { SingleImageUploadForm } from "@/components/admin/form/SingleImageUploadForm";
 import { DepartmentTabs } from "@/components/admin/DepartmentTabs";
 import { updateLogoAction } from "../actions";
@@ -10,7 +11,8 @@ export default async function AdminSettingsLogoPage({
   searchParams: Promise<{ department?: string }>;
 }) {
   const { department: departmentParam } = await searchParams;
-  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
+  // An explicit tab (?department=) wins; otherwise follow the admin store switch.
+  const department: Department = editingStore(departmentParam, await getAdminStore());
   const branding = await getBranding(department);
 
   return (

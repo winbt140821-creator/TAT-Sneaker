@@ -15,7 +15,7 @@ export async function getCartProductsAction(ids: string[]) {
     id: p.id,
     sku: p.sku,
     name: p.name,
-    price: salePriceFor(p.id, p.price, campaigns).price,
+    price: salePriceFor(p, p.price, campaigns).price,
     images: JSON.parse(p.images) as string[],
     sizeQuantities: JSON.parse(p.sizeQuantities) as Record<string, number>,
     depositRequired: p.depositRequired,

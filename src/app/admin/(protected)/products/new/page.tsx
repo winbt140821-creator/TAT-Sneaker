@@ -3,7 +3,14 @@ import { getLiveExchangeRates } from "@/lib/fx";
 import { createProductAction } from "../actions";
 import { ProductForm } from "../ProductForm";
 
-export default async function NewProductPage() {
+// Opened from the products list with ?department= when the admin store
+// switch is on one store, so the form starts on that store and its sizes.
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const { department } = await searchParams;
   const [categories, rates] = await Promise.all([
     prisma.category.findMany({
       where: { parentId: null },
@@ -21,6 +28,7 @@ export default async function NewProductPage() {
           action={createProductAction}
           categories={categories}
           submitLabel="Tạo sản phẩm"
+          defaultValues={department === "CLOTHING" || department === "SHOES" ? { department } : undefined}
           usdExchangeRate={rates.usdExchangeRate}
           cnyExchangeRate={rates.cnyExchangeRate}
         />

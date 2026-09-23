@@ -5,6 +5,8 @@ import { adjustSizeQuantityAction, setSizeQuantityAction } from "./actions";
 import { SearchIcon } from "@/components/icons";
 import { getCarriedSizes, getRealStockSizes, getRealStockTotal } from "@/lib/inventory";
 import { getStockSummary } from "@/lib/stock-summary";
+import { getAdminStore, storeWhere } from "@/lib/admin-store";
+import { StoreBadge } from "@/components/admin/StoreBadge";
 
 // Rendering every product's size grid is a lot of DOM (a handful of forms
 // per size, times every carried size, times every product) — capping the
@@ -18,10 +20,13 @@ export default async function AdminInventoryPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { q, page: pageParam } = await searchParams;
+  const [{ q, page: pageParam }, store] = await Promise.all([searchParams, getAdminStore()]);
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
-  const where = query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {};
+  const where = {
+    ...storeWhere(store),
+    ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
+  };
 
   const [products, totalCount, { grandTotal }] = await Promise.all([
     prisma.product.findMany({
@@ -40,7 +45,7 @@ export default async function AdminInventoryPage({
       take: PAGE_SIZE,
     }),
     prisma.product.count({ where }),
-    getStockSummary(),
+    getStockSummary(store === "ALL" ? null : store),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -61,7 +66,7 @@ export default async function AdminInventoryPage({
       <div className="die-cut mt-4 inline-block bg-forest px-5 py-3">
         <p className="font-display text-2xl text-paper">{grandTotal}</p>
         <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-paper/80">
-          Tổng số đôi toàn kho
+          {store === "SHOES" ? "Tổng số đôi trong kho giày" : store === "CLOTHING" ? "Tổng số món trong kho quần áo" : "Tổng số sản phẩm trong kho (cả hai cửa hàng)"}
         </p>
       </div>
 
@@ -119,7 +124,10 @@ export default async function AdminInventoryPage({
                 </div>
 
                 <div className="w-48 shrink-0">
-                  <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
+                  <p className="flex items-center gap-2 font-mono text-[11px] tracking-widest text-graphite">
+                    {store === "ALL" && <StoreBadge department={p.department} />}
+                    {p.sku}
+                  </p>
                   <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
                 </div>
 
@@ -188,7 +196,7 @@ export default async function AdminInventoryPage({
                 </ul>
 
                 <p className="ml-auto shrink-0 font-mono text-sm font-semibold text-ink">
-                  Tổng: <span className="text-forest">{productTotal}</span> đôi
+                  Tổng: <span className="text-forest">{productTotal}</span> {p.department === "CLOTHING" ? "món" : "đôi"}
                 </p>
               </div>
 

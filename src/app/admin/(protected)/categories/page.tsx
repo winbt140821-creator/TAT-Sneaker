@@ -1,4 +1,5 @@
 import { AdminLink as Link } from "@/components/admin/AdminLink";
+import { editingStore, getAdminStore } from "@/lib/admin-store";
 import { prisma } from "@/lib/db";
 import { deleteCategoryAction, moveCategoryAction } from "./actions";
 import { RowActions } from "@/components/admin/RowActions";
@@ -43,7 +44,8 @@ export default async function AdminCategoriesPage({
   searchParams: Promise<{ department?: string }>;
 }) {
   const { department: departmentParam } = await searchParams;
-  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
+  // An explicit tab (?department=) wins; otherwise follow the admin store switch.
+  const department: Department = editingStore(departmentParam, await getAdminStore());
 
   const categories = await prisma.category.findMany({
     include: {

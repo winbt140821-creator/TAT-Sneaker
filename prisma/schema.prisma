@@ -178,6 +178,10 @@ model SaleCampaign {
   discountPercent Int
   active          Boolean   @default(false)
   appliesToAll    Boolean   @default(true)
+  // Which store an "applies to all" campaign covers. Null = both stores
+  // (every campaign created before the stores were merged). Campaigns with
+  // a hand-picked product list ignore this — the picked products decide.
+  department      Department?
   products        Product[] @relation("SaleCampaignProducts")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

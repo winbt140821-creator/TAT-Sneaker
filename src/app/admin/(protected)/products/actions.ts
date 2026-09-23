@@ -233,12 +233,15 @@ export async function moveProductAction(id: string, direction: "up" | "down", ca
 
   const product = await prisma.product.findUnique({
     where: { id },
-    select: { id: true, sortOrder: true },
+    select: { id: true, sortOrder: true, department: true },
   });
   if (!product) return;
 
+  // Each store orders its own products: swapping with the other store's
+  // neighbour would look like nothing happened.
   const sibling = await prisma.product.findFirst({
     where: {
+      department: product.department,
       ...(direction === "up"
         ? { sortOrder: { lt: product.sortOrder } }
         : { sortOrder: { gt: product.sortOrder } }),

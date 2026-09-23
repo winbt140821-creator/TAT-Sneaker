@@ -146,7 +146,7 @@ export async function getProducts({
   const safePage = Number.isFinite(page) && page! > 0 ? Math.floor(page!) : 1;
 
   const campaigns = await getActiveCampaigns();
-  const saleIds = categorySlug === "SALE" ? saleProductIds(campaigns) : null;
+  const saleIds = categorySlug === "SALE" ? saleProductIds(campaigns, department) : null;
 
   const where = {
     hidden: false,
@@ -177,7 +177,7 @@ export async function getProducts({
     const filtered = allMatching
       .map(parseProduct)
       .filter((p) => (p.sizeQuantities[safeSize] ?? 0) > 0)
-      .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+      .map((p) => ({ ...p, ...salePriceFor(p, p.price, campaigns) }));
     const totalCount = filtered.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / CATALOG_PAGE_SIZE));
     const products = filtered.slice(
@@ -200,7 +200,7 @@ export async function getProducts({
   const totalPages = Math.max(1, Math.ceil(totalCount / CATALOG_PAGE_SIZE));
   const parsed = products
     .map(parseProduct)
-    .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+    .map((p) => ({ ...p, ...salePriceFor(p, p.price, campaigns) }));
 
   return { products: parsed, totalCount, totalPages };
 }
@@ -217,7 +217,7 @@ export const getProductById = cache(async (id: string, department: Department) =
   ]);
   if (!product || product.hidden) return null;
   const parsed = parseProduct(product);
-  return { ...parsed, ...salePriceFor(parsed.id, parsed.price, campaigns) };
+  return { ...parsed, ...salePriceFor(parsed, parsed.price, campaigns) };
 });
 
 // Which store a visible product belongs to (null if missing/hidden). Lets a
@@ -245,7 +245,7 @@ export async function getProductsByIds(ids: string[]) {
   ]);
   return products
     .map(parseProduct)
-    .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+    .map((p) => ({ ...p, ...salePriceFor(p, p.price, campaigns) }));
 }
 
 export async function getRelatedProducts(
@@ -269,7 +269,7 @@ export async function getRelatedProducts(
   ]);
   return products
     .map(parseProduct)
-    .map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+    .map((p) => ({ ...p, ...salePriceFor(p, p.price, campaigns) }));
 }
 
 const HOME_SECTION_SIZE = 8;
@@ -283,7 +283,7 @@ const HOME_CATEGORY_SECTION_COUNT = 5;
  *  and a separate sale section. */
 export async function getHomeSections(department: Department) {
   const campaigns = await getActiveCampaigns();
-  const saleIds = saleProductIds(campaigns);
+  const saleIds = saleProductIds(campaigns, department);
 
   const [latest, categories, sale, bestSellingGroups] = await Promise.all([
     prisma.product.findMany({
@@ -317,8 +317,8 @@ export async function getHomeSections(department: Department) {
     }),
   ]);
 
-  const withSale = <T extends { id: string; price: number }>(products: T[]) =>
-    products.map((p) => ({ ...p, ...salePriceFor(p.id, p.price, campaigns) }));
+  const withSale = <T extends { id: string; price: number; department: Department }>(products: T[]) =>
+    products.map((p) => ({ ...p, ...salePriceFor(p, p.price, campaigns) }));
 
   // One query for every section's products instead of one query per
   // category (was N+1 — each of the ~10 brand rows ran its own findMany).

@@ -1,5 +1,15 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
+import type { Department } from "@/lib/inventory";
+
+// Every figure below can be narrowed to one store (the admin store switch):
+// only order lines whose product belongs to that store are counted. The two
+// stores share one cart, so a single order can contribute to both.
+function storeFilter(department?: Department | null) {
+  return department
+    ? Prisma.sql`AND oi."productId" IN (SELECT id FROM "Product" WHERE department = ${department})`
+    : Prisma.empty;
+}
 
 export type RevenueBucket = "day" | "week" | "month" | "year";
 
@@ -29,7 +39,7 @@ export interface RevenueBucketRow {
   orderCount: number;
 }
 
-function revenueForStatuses(statuses: readonly string[], from: Date, to: Date) {
+function revenueForStatuses(statuses: readonly string[], from: Date, to: Date, department?: Department | null) {
   return prisma.$queryRaw<{ revenue: number | null }[]>(
     Prisma.sql`
       SELECT SUM(oi.price * oi.quantity) as revenue
@@ -38,15 +48,16 @@ function revenueForStatuses(statuses: readonly string[], from: Date, to: Date) {
       WHERE o."createdAt" >= ${from.toISOString()}
         AND o."createdAt" <= ${to.toISOString()}
         AND o.status IN (${Prisma.join(statuses)})
+        ${storeFilter(department)}
     `,
   );
 }
 
-export async function getRevenueTotals(from: Date, to: Date): Promise<RevenueTotals> {
+export async function getRevenueTotals(from: Date, to: Date, department?: Department | null): Promise<RevenueTotals> {
   const [done, processing, pending] = await Promise.all([
-    revenueForStatuses(REVENUE_STATUS_GROUPS.done, from, to),
-    revenueForStatuses(REVENUE_STATUS_GROUPS.processing, from, to),
-    revenueForStatuses(REVENUE_STATUS_GROUPS.pending, from, to),
+    revenueForStatuses(REVENUE_STATUS_GROUPS.done, from, to, department),
+    revenueForStatuses(REVENUE_STATUS_GROUPS.processing, from, to, department),
+    revenueForStatuses(REVENUE_STATUS_GROUPS.pending, from, to, department),
   ]);
 
   return {
@@ -62,6 +73,7 @@ export async function getRevenueByBucket(
   bucket: RevenueBucket,
   from: Date,
   to: Date,
+  department?: Department | null,
 ): Promise<RevenueBucketRow[]> {
   const fmt = STRFTIME_FORMAT[bucket];
   // createdAt is stored in UTC; shift by Vietnam's fixed UTC+7 offset before
@@ -78,6 +90,7 @@ export async function getRevenueByBucket(
       WHERE o."createdAt" >= ${from.toISOString()}
         AND o."createdAt" <= ${to.toISOString()}
         AND o.status IN (${Prisma.join(REVENUE_STATUS_GROUPS.done)})
+        ${storeFilter(department)}
       GROUP BY period
       ORDER BY period ASC
     `,
@@ -92,7 +105,7 @@ export async function getRevenueByBucket(
 
 // Profit for the "done" group only — revenue minus cost price, matching the
 // same status scope as the trend above.
-export async function getProfitTotal(from: Date, to: Date): Promise<number> {
+export async function getProfitTotal(from: Date, to: Date, department?: Department | null): Promise<number> {
   const rows = await prisma.$queryRaw<{ profit: number | null }[]>(
     Prisma.sql`
       SELECT SUM((oi.price - oi."costPrice") * oi.quantity) as profit
@@ -101,6 +114,7 @@ export async function getProfitTotal(from: Date, to: Date): Promise<number> {
       WHERE o."createdAt" >= ${from.toISOString()}
         AND o."createdAt" <= ${to.toISOString()}
         AND o.status IN (${Prisma.join(REVENUE_STATUS_GROUPS.done)})
+        ${storeFilter(department)}
     `,
   );
   return rows[0]?.profit ?? 0;
@@ -115,7 +129,12 @@ export interface TopProductRow {
 
 // Best-selling products (by quantity) for the "done" group, so staff can see
 // which items to restock/promote.
-export async function getTopProducts(from: Date, to: Date, limit = 10): Promise<TopProductRow[]> {
+export async function getTopProducts(
+  from: Date,
+  to: Date,
+  limit = 10,
+  department?: Department | null,
+): Promise<TopProductRow[]> {
   const rows = await prisma.$queryRaw<
     { productId: string; name: string; quantity: number; revenue: number | null }[]
   >(
@@ -129,6 +148,7 @@ export async function getTopProducts(from: Date, to: Date, limit = 10): Promise<
       WHERE o."createdAt" >= ${from.toISOString()}
         AND o."createdAt" <= ${to.toISOString()}
         AND o.status IN (${Prisma.join(REVENUE_STATUS_GROUPS.done)})
+        ${storeFilter(department)}
       GROUP BY oi."productId", p.name
       ORDER BY quantity DESC
       LIMIT ${limit}

@@ -55,6 +55,8 @@ export async function Footer() {
   const phone = settings?.phone || site.hotline;
   const email = settings?.email || defaultContactEmail;
 
+  // Slugs mirror FOOTER_PAGES (src/lib/footer-pages.ts), which admin uses to
+  // flag pages that haven't been created yet.
   const columns: { title: string; links: { label: string; slug: string }[] }[] = [
     {
       title: t("policyTitle"),

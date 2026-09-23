@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
+import type { Department } from "@/lib/inventory";
 
 export type SaleFormState = { error?: string };
 
@@ -12,7 +13,9 @@ function readSaleForm(formData: FormData) {
   const discountPercent = Math.round(Number(formData.get("discountPercent") ?? 0));
   const appliesToAll = formData.get("appliesToAll") === "on";
   const productIds = formData.getAll("productIds").map(String);
-  return { name, discountPercent, appliesToAll, productIds };
+  const store = String(formData.get("department") ?? "");
+  const department: Department | null = store === "SHOES" || store === "CLOTHING" ? store : null;
+  return { name, discountPercent, appliesToAll, productIds, department };
 }
 
 export async function createSaleCampaignAction(
@@ -35,6 +38,7 @@ export async function createSaleCampaignAction(
       name: data.name,
       discountPercent: data.discountPercent,
       appliesToAll: data.appliesToAll,
+      department: data.department,
       products: data.appliesToAll ? undefined : { connect: data.productIds.map((id) => ({ id })) },
     },
   });

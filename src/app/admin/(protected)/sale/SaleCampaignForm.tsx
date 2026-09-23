@@ -7,6 +7,7 @@ import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { SearchIcon } from "@/components/icons";
 import { createSaleCampaignAction, type SaleFormState } from "./actions";
+import type { Department } from "@/lib/inventory";
 
 const initialState: SaleFormState = {};
 
@@ -15,11 +16,25 @@ type ProductOption = {
   sku: string;
   name: string;
   image: string | null;
+  department: Department;
   categories: { id: string; label: string }[];
 };
 
-export function SaleCampaignForm({ products }: { products: ProductOption[] }) {
+// defaultStore: the store the admin switch is on, so a sale created while
+// managing one store only discounts that store unless changed here.
+export function SaleCampaignForm({
+  products: allProducts,
+  defaultStore,
+}: {
+  products: ProductOption[];
+  defaultStore: Department | null;
+}) {
   const [state, formAction] = useActionState(createSaleCampaignAction, initialState);
+  const [store, setStore] = useState<Department | "">(defaultStore ?? "");
+  const products = useMemo(
+    () => (store ? allProducts.filter((p) => p.department === store) : allProducts),
+    [allProducts, store]
+  );
   const [appliesToAll, setAppliesToAll] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -66,6 +81,29 @@ export function SaleCampaignForm({ products }: { products: ProductOption[] }) {
         />
       </div>
 
+      <label className="flex flex-col gap-1 font-mono text-xs uppercase tracking-wide text-graphite">
+        Cửa hàng áp dụng
+        <select
+          name="department"
+          value={store}
+          onChange={(e) => {
+            const next = e.target.value as Department | "";
+            setStore(next);
+            setCategoryId(null);
+            // Picked products from the other store no longer apply.
+            if (next) {
+              const keep = new Set(allProducts.filter((p) => p.department === next).map((p) => p.id));
+              setSelected((prev) => new Set([...prev].filter((id) => keep.has(id))));
+            }
+          }}
+          className="max-w-xs border border-graphite bg-paper px-3 py-2 font-body text-sm normal-case tracking-normal text-ink"
+        >
+          <option value="">Cả hai cửa hàng</option>
+          <option value="SHOES">Chỉ cửa hàng giày</option>
+          <option value="CLOTHING">Chỉ cửa hàng quần áo</option>
+        </select>
+      </label>
+
       <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-graphite">
         <input
           type="checkbox"
@@ -73,7 +111,11 @@ export function SaleCampaignForm({ products }: { products: ProductOption[] }) {
           checked={appliesToAll}
           onChange={(e) => setAppliesToAll(e.target.checked)}
         />
-        Áp dụng cho toàn bộ sản phẩm
+        {store === "SHOES"
+          ? "Áp dụng cho toàn bộ sản phẩm giày"
+          : store === "CLOTHING"
+            ? "Áp dụng cho toàn bộ sản phẩm quần áo"
+            : "Áp dụng cho toàn bộ sản phẩm (cả hai cửa hàng)"}
       </label>
 
       {!appliesToAll && (
@@ -136,7 +178,6 @@ export function SaleCampaignForm({ products }: { products: ProductOption[] }) {
                   >
                     <input
                       type="checkbox"
-                      name="productIds"
                       value={p.id}
                       checked={checked}
                       onChange={() => toggle(p.id)}
@@ -168,6 +209,10 @@ export function SaleCampaignForm({ products }: { products: ProductOption[] }) {
           </div>
         </fieldset>
       )}
+
+      {/* Every picked product is submitted from here, including ones the
+          current search or folder filter is hiding. */}
+      {!appliesToAll && [...selected].map((id) => <input key={id} type="hidden" name="productIds" value={id} />)}
 
       <FormError message={state.error} />
       <SubmitButton>Tạo đợt giảm giá</SubmitButton>

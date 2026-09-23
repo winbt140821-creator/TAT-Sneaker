@@ -1,14 +1,16 @@
 import { cache } from "react";
 import { prisma } from "./db";
-import { getCarriedSizes, getRealStockTotal, hasAnyStock, type SizeQuantities } from "./inventory";
+import { getCarriedSizes, getRealStockTotal, hasAnyStock, type Department, type SizeQuantities } from "./inventory";
 
 // Both the admin dashboard ("Sản phẩm hết hàng" card) and the inventory page
 // ("Tổng số đôi toàn kho") independently ran their own full-table
 // product.findMany just to derive one number each from the same
 // sizeQuantities/availability columns — same scan, same per-row JSON parse,
 // duplicated in two places. One shared, cache()-wrapped pass computes both.
-export const getStockSummary = cache(async () => {
+// Pass a department to count one store only (the admin store switch).
+export const getStockSummary = cache(async (department?: Department | null) => {
   const products = await prisma.product.findMany({
+    where: department ? { department } : {},
     select: { sizeQuantities: true, availability: true, department: true },
   });
 

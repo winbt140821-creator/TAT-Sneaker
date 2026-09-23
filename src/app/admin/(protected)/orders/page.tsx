@@ -7,6 +7,8 @@ import { attributionLabel } from "@/lib/order-attribution";
 import { OrderStatus } from "@/generated/prisma/client";
 import { deleteOrderAction } from "./actions";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
+import { StoreBadge } from "@/components/admin/StoreBadge";
+import { getAdminStore, orderStoreWhere } from "@/lib/admin-store";
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   COD: "COD",
@@ -29,7 +31,7 @@ const ORDER_LIST_SELECT = {
   utmSource: true,
   utmCampaign: true,
   fbclid: true,
-  items: { select: { price: true, quantity: true } },
+  items: { select: { price: true, quantity: true, product: { select: { department: true } } } },
 } as const;
 
 type OrderListRow = { depositAmount: number; items: { price: number; quantity: number }[] };
@@ -66,7 +68,11 @@ export default async function AdminOrdersPage({
   // same tradeoff note in src/app/admin/(protected)/page.tsx.
   const cleanupPromise = autoCancelStaleOrders();
 
-  const { status, q, page: pageParam, zaloDeposit } = await searchParams;
+  const [{ status, q, page: pageParam, zaloDeposit }, store] = await Promise.all([searchParams, getAdminStore()]);
+  // Orders holding at least one item from the store being managed (the
+  // admin store switch) — an order with both shoes and clothing shows
+  // under either.
+  const storeScope = orderStoreWhere(store);
   const activeStatus = Object.values(OrderStatus).includes(status as OrderStatus)
     ? (status as OrderStatus)
     : undefined;
@@ -85,15 +91,15 @@ export default async function AdminOrdersPage({
         ],
       }
     : {};
-  const where = { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere };
+  const where = { ...(activeStatus ? { status: activeStatus } : {}), ...searchWhere, ...storeScope };
 
   // The global count badge on the quick-filter button always reflects every
   // pending Zalo-deposit order, independent of the status/search filters
   // currently applied to the main list below.
   const [, allZaloDepositCandidates, counts] = await Promise.all([
     cleanupPromise,
-    prisma.order.findMany({ where: PENDING_ZALO_DEPOSIT_CANDIDATE_WHERE, select: ORDER_LIST_SELECT }),
-    prisma.order.groupBy({ by: ["status"], _count: true }),
+    prisma.order.findMany({ where: { ...PENDING_ZALO_DEPOSIT_CANDIDATE_WHERE, ...storeScope }, select: ORDER_LIST_SELECT }),
+    prisma.order.groupBy({ by: ["status"], where: storeScope, _count: true }),
   ]);
   const pendingZaloDepositCount = allZaloDepositCandidates.filter((o) => !isFullPaymentOrder(o)).length;
 
@@ -199,12 +205,17 @@ export default async function AdminOrdersPage({
               className="die-cut flex flex-col gap-2 bg-paper p-4 transition-colors hover:bg-kraft-dark/10"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Link
-                  href={`/admin/orders/${order.id}`}
-                  className="font-mono text-sm font-semibold text-ink hover:underline"
-                >
-                  {order.code}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="font-mono text-sm font-semibold text-ink hover:underline"
+                  >
+                    {order.code}
+                  </Link>
+                  {[...new Set(order.items.map((i) => i.product.department))].map((d) => (
+                    <StoreBadge key={d} department={d} />
+                  ))}
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="shrink-0 font-mono text-xs text-graphite">
                     {order.items.length} sản phẩm

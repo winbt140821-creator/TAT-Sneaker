@@ -96,7 +96,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   ]);
   const byId = new Map(products.map((p) => [p.id, p]));
   const priceFor = (productId: string, basePrice: number) =>
-    salePriceFor(productId, basePrice, campaigns).price;
+    salePriceFor({ id: productId, department: byId.get(productId)?.department ?? "SHOES" }, basePrice, campaigns).price;
 
   for (const item of input.items) {
     const product = byId.get(item.productId);

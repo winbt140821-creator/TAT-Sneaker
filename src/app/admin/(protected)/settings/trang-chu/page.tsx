@@ -1,4 +1,5 @@
 import { getBranding } from "@/lib/settings";
+import { editingStore, getAdminStore } from "@/lib/admin-store";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { MultiImageUploadForm } from "@/components/admin/form/MultiImageUploadForm";
 import { DepartmentTabs } from "@/components/admin/DepartmentTabs";
@@ -11,7 +12,8 @@ export default async function AdminSettingsHomePage({
   searchParams: Promise<{ department?: string }>;
 }) {
   const { department: departmentParam } = await searchParams;
-  const department: Department = departmentParam === "CLOTHING" ? "CLOTHING" : "SHOES";
+  // An explicit tab (?department=) wins; otherwise follow the admin store switch.
+  const department: Department = editingStore(departmentParam, await getAdminStore());
   const settings = await getBranding(department);
   const heroImages: string[] = settings?.heroImages
     ? JSON.parse(settings.heroImages)

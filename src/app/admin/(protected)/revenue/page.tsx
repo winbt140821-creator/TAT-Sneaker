@@ -7,6 +7,8 @@ import {
   getTopProducts,
   type RevenueBucket,
 } from "@/lib/revenue";
+import { getAdminStore, STORE_LABEL } from "@/lib/admin-store";
+import { StoreBadge } from "@/components/admin/StoreBadge";
 
 const BUCKET_LABEL: Record<RevenueBucket, string> = {
   day: "Theo ngày",
@@ -42,7 +44,9 @@ export default async function AdminRevenuePage({
 }: {
   searchParams: Promise<{ bucket?: string; range?: string; from?: string; to?: string }>;
 }) {
-  const params = await searchParams;
+  const [params, store] = await Promise.all([searchParams, getAdminStore()]);
+  // The admin store switch narrows every figure to one store's order lines.
+  const department = store === "ALL" ? null : store;
   const bucket: RevenueBucket = isBucket(params.bucket) ? params.bucket : "day";
   const rangeKey: RangeKey = isRangeKey(params.range) ? params.range : "30d";
   const hasCustomRange = isDateString(params.from) && isDateString(params.to);
@@ -66,11 +70,21 @@ export default async function AdminRevenuePage({
   // active when only the bucket selector changes.
   const rangeQuery = hasCustomRange ? `from=${params.from}&to=${params.to}` : `range=${rangeKey}`;
 
-  const [totals, buckets, profit, topProducts] = await Promise.all([
-    getRevenueTotals(from, to),
-    getRevenueByBucket(bucket, from, to),
-    getProfitTotal(from, to),
-    getTopProducts(from, to),
+  const [totals, buckets, profit, topProducts, split] = await Promise.all([
+    getRevenueTotals(from, to, department),
+    getRevenueByBucket(bucket, from, to, department),
+    getProfitTotal(from, to, department),
+    getTopProducts(from, to, 10, department),
+    // Viewing both stores: how the completed revenue divides between them.
+    store === "ALL"
+      ? Promise.all(
+          (["SHOES", "CLOTHING"] as const).map(async (d) => ({
+            department: d,
+            done: (await getRevenueTotals(from, to, d)).done,
+            profit: await getProfitTotal(from, to, d),
+          }))
+        )
+      : Promise.resolve(null),
   ]);
 
   const cards = [
@@ -137,6 +151,32 @@ export default async function AdminRevenuePage({
           Xem
         </button>
       </form>
+
+      {split && (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {split.map((row) => {
+            const share = totals.done > 0 ? Math.round((row.done / totals.done) * 100) : 0;
+            return (
+              <div key={row.department} className="die-cut bg-paper p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <StoreBadge department={row.department} />
+                  <span className="font-mono text-xs text-graphite">{share}% doanh thu hoàn tất</span>
+                </div>
+                <p className="mt-3 font-display text-2xl text-ink">{formatPrice(row.done)}</p>
+                <p className="mt-1 font-mono text-xs uppercase tracking-wide text-graphite">
+                  Cửa hàng {STORE_LABEL[row.department].toLowerCase()} · lãi {formatPrice(row.profit)}
+                </p>
+                <div className="mt-3 h-1.5 bg-kraft-dark/40" aria-hidden="true">
+                  <div
+                    className={row.department === "SHOES" ? "h-full bg-forest" : "h-full bg-ink"}
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {cards.map((c) => (

@@ -12,6 +12,7 @@ import {
   syncShippingStatusAction,
 } from "../actions";
 import { CopyShipmentInfoButton } from "./CopyShipmentInfoButton";
+import { StoreBadge } from "@/components/admin/StoreBadge";
 
 const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
   VNPAY: "VNPay",
@@ -56,7 +57,7 @@ export default async function AdminOrderDetailPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: { include: { product: { select: { name: true, sku: true } } } },
+      items: { include: { product: { select: { name: true, sku: true, department: true } } } },
       payments: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -64,6 +65,11 @@ export default async function AdminOrderDetailPage({
   if (!order) notFound();
 
   const total = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  // The two stores share one cart, so an order can hold both — its lines
+  // are listed per store, each with its own subtotal.
+  const storeGroups = (["SHOES", "CLOTHING"] as const)
+    .map((department) => ({ department, items: order.items.filter((i) => i.product.department === department) }))
+    .filter((g) => g.items.length > 0);
   const isFullPayment = order.paymentMethod !== "COD" && order.depositAmount >= total && total > 0;
   const paymentMethodLabel = PAYMENT_METHOD_LABEL[order.paymentMethod] ?? PAYMENT_METHOD_LABEL.COD;
   const fullAddress = order.province && order.ward
@@ -95,7 +101,12 @@ export default async function AdminOrderDetailPage({
         ← Tất cả đơn hàng
       </Link>
 
-      <h1 className="mt-2 font-display text-2xl text-ink">Đơn hàng {order.code}</h1>
+      <h1 className="mt-2 flex flex-wrap items-center gap-2 font-display text-2xl text-ink">
+        Đơn hàng {order.code}
+        {storeGroups.map((g) => (
+          <StoreBadge key={g.department} department={g.department} />
+        ))}
+      </h1>
       <p className="font-mono text-xs text-graphite">
         Đặt lúc {order.createdAt.toLocaleString("vi-VN")}
       </p>
@@ -103,17 +114,29 @@ export default async function AdminOrderDetailPage({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="die-cut flex flex-col gap-3 bg-paper p-4">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 border-b border-kraft-dark pb-3 last:border-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="font-body text-sm font-medium text-ink">{item.product.name}</p>
-                  <p className="font-mono text-xs text-graphite">
-                    SKU {item.product.sku} · Size {item.sizeLabel ?? item.size} × {item.quantity}
-                  </p>
-                </div>
-                <p className="shrink-0 font-mono text-sm font-semibold text-forest">
-                  {formatPrice(item.price * item.quantity)}
-                </p>
+            {storeGroups.map((group) => (
+              <div key={group.department} className="flex flex-col gap-3">
+                {storeGroups.length > 1 && (
+                  <div className="flex items-center justify-between gap-3 bg-kraft px-3 py-2">
+                    <StoreBadge department={group.department} />
+                    <span className="font-mono text-xs text-graphite">
+                      {formatPrice(group.items.reduce((sum, i) => sum + i.price * i.quantity, 0))}
+                    </span>
+                  </div>
+                )}
+                {group.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 border-b border-kraft-dark pb-3 last:border-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="font-body text-sm font-medium text-ink">{item.product.name}</p>
+                      <p className="font-mono text-xs text-graphite">
+                        SKU {item.product.sku} · Size {item.sizeLabel ?? item.size} × {item.quantity}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-mono text-sm font-semibold text-forest">
+                      {formatPrice(item.price * item.quantity)}
+                    </p>
+                  </div>
+                ))}
               </div>
             ))}
             <div className="flex items-center justify-between border-t border-kraft-dark pt-3">

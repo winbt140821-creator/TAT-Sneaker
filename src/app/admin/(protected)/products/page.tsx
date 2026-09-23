@@ -5,6 +5,9 @@ import { formatPrice } from "@/lib/products";
 import { deleteProductAction, moveProductAction, toggleProductHiddenAction } from "./actions";
 import { RowActions } from "@/components/admin/RowActions";
 import { SearchIcon, ChevronDownIcon } from "@/components/icons";
+import { StoreBadge } from "@/components/admin/StoreBadge";
+import { getAdminStore, storeWhere, type AdminStore } from "@/lib/admin-store";
+import type { Department } from "@/lib/inventory";
 
 // Only fetch the fields this list actually renders — the full Product row
 // also carries images/sizeQuantities/description/costPrice JSON blobs that
@@ -19,6 +22,7 @@ type ProductListItem = {
   images: string;
   hidden: boolean;
   sortOrder: number;
+  department: Department;
   categories: { id: string; label: string }[];
 };
 
@@ -95,6 +99,7 @@ function ProductRow({
           <p className="font-mono text-[11px] tracking-widest text-graphite">{p.sku}</p>
           <p className="truncate font-body text-sm font-medium text-ink">{p.name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1">
+            <StoreBadge department={p.department} />
             {p.hidden && (
               <span className="bg-stamp/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-stamp">
                 Đã ẩn
@@ -147,10 +152,25 @@ function ViewTabs({ active }: { active: "all" | "folder" }) {
   );
 }
 
-async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: string }) {
+async function AllProductsView({
+  q,
+  pageParam,
+  store,
+  noImage,
+}: {
+  q?: string;
+  pageParam?: string;
+  store: AdminStore;
+  noImage: boolean;
+}) {
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
-  const where = query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {};
+  const where = {
+    ...storeWhere(store),
+    // "Sản phẩm chưa có ảnh" — linked from the dashboard's to-do list.
+    ...(noImage ? { images: "[]" } : {}),
+    ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
+  };
 
   const [products, totalCount, sortOrderBounds] = await Promise.all([
     prisma.product.findMany({
@@ -163,6 +183,7 @@ async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: strin
         images: true,
         hidden: true,
         sortOrder: true,
+        department: true,
         categories: { select: { id: true, label: true } },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -170,10 +191,11 @@ async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: strin
       take: PAGE_SIZE,
     }),
     prisma.product.count({ where }),
-    // Display order is global, not scoped to this page's search/filter, so
+    // Display order isn't scoped to this page's search/filter, so
     // "first"/"last" (for disabling the move buttons) has to be checked
-    // against the whole table's sortOrder range, not just this page.
-    prisma.product.aggregate({ _min: { sortOrder: true }, _max: { sortOrder: true } }),
+    // against the whole store's sortOrder range, not just this page. (Each
+    // store orders its own products — see moveProductAction.)
+    prisma.product.aggregate({ where: storeWhere(store), _min: { sortOrder: true }, _max: { sortOrder: true } }),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const minSortOrder = sortOrderBounds._min.sortOrder ?? 0;
@@ -210,6 +232,14 @@ async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: strin
           </Link>
         </p>
       )}
+      {noImage && (
+        <p className="mt-2 font-mono text-xs text-graphite">
+          Đang xem {totalCount} sản phẩm chưa có ảnh.{" "}
+          <Link href="/admin/products" className="text-forest hover:underline">
+            Bỏ lọc
+          </Link>
+        </p>
+      )}
 
       <div className="mt-6 flex flex-col gap-3">
         {query && products.length === 0 && (
@@ -225,7 +255,7 @@ async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: strin
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/admin/products?${new URLSearchParams({ ...(query ? { q: query } : {}), page: String(p) })}`}
+              href={`/admin/products?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(noImage ? { noImage: "1" } : {}), page: String(p) })}`}
               aria-current={p === page ? "page" : undefined}
               className={
                 "die-cut-flat flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm " +
@@ -241,9 +271,9 @@ async function AllProductsView({ q, pageParam }: { q?: string; pageParam?: strin
   );
 }
 
-async function FolderPicker() {
+async function FolderPicker({ store }: { store: AdminStore }) {
   const categories = await prisma.category.findMany({
-    where: { parentId: null },
+    where: { parentId: null, ...storeWhere(store) },
     include: {
       children: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }], include: { _count: { select: { products: true } } } },
       _count: { select: { products: true } },
@@ -262,7 +292,10 @@ async function FolderPicker() {
             href={`/admin/products?view=folder&category=${cat.id}`}
             className="flex items-center justify-between gap-3 font-body text-base font-medium text-ink hover:text-forest"
           >
-            <span>{cat.label}</span>
+            <span className="flex items-center gap-2">
+              {store === "ALL" && <StoreBadge department={cat.department} />}
+              {cat.label}
+            </span>
             <span className="font-mono text-xs text-graphite">{cat._count.products} sản phẩm →</span>
           </Link>
           {cat.children.length > 0 && (
@@ -324,6 +357,7 @@ async function FolderProductsView({
         images: true,
         hidden: true,
         sortOrder: true,
+        department: true,
         categories: { select: { id: true, label: true } },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -431,9 +465,12 @@ async function FolderProductsView({
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; view?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; view?: string; category?: string; noImage?: string }>;
 }) {
-  const { q, page: pageParam, view, category: categoryId } = await searchParams;
+  const [{ q, page: pageParam, view, category: categoryId, noImage }, store] = await Promise.all([
+    searchParams,
+    getAdminStore(),
+  ]);
   const isFolderView = view === "folder";
 
   return (
@@ -441,7 +478,7 @@ export default async function AdminProductsPage({
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl text-ink">Sản phẩm</h1>
         <Link
-          href="/admin/products/new"
+          href={store === "ALL" ? "/admin/products/new" : `/admin/products/new?department=${store}`}
           className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
         >
           + Thêm sản phẩm
@@ -454,10 +491,10 @@ export default async function AdminProductsPage({
         categoryId ? (
           <FolderProductsView categoryId={categoryId} q={q} pageParam={pageParam} />
         ) : (
-          <FolderPicker />
+          <FolderPicker store={store} />
         )
       ) : (
-        <AllProductsView q={q} pageParam={pageParam} />
+        <AllProductsView q={q} pageParam={pageParam} store={store} noImage={noImage === "1"} />
       )}
     </div>
   );
