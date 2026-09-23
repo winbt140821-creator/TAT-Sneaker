@@ -1,4 +1,5 @@
 import { getSocialLinks } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { MessengerIcon, ZaloIcon } from "./icons";
 import { ScrollToTopButton } from "./ScrollToTopButton";
 
@@ -8,6 +9,11 @@ const QUICK_CONTACT: { platform: string; Icon: typeof MessengerIcon; className: 
 ];
 
 export async function FloatingActions() {
+  // None of the fashion houses this storefront is modelled on float anything
+  // over the page — no chat bubbles, no scroll-to-top disc. Clothing keeps
+  // Messenger/Zalo reachable from the footer's contact column instead.
+  if ((await getDepartment()) === "CLOTHING") return null;
+
   const links = await getSocialLinks();
   const byPlatform = new Map(links.map((l) => [l.platform.toLowerCase(), l]));
 

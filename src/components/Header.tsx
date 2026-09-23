@@ -13,6 +13,7 @@ import { AdminLinkButton } from "./AdminLinkButton";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
 import { ClothingCategoryNav } from "./ClothingCategoryNav";
+import { ClothingSearchToggle } from "./ClothingSearchToggle";
 
 // AccountMenu reads useSearchParams() (to preserve query params when
 // switching language) — without a Suspense boundary around it, Next.js
@@ -44,60 +45,47 @@ export async function Header() {
   ]);
 
   if (department === "CLOTHING") {
+    // One slim bar, COS-style: wordmark and category text links on the left,
+    // three thin icons on the right, a hairline underneath. No search pill,
+    // no filled icon circles, no second row.
     return (
       <header
-        className="sticky top-0 z-40 bg-paper text-ink shadow-[0_1px_0_var(--color-kraft-dark)]"
+        className="sticky top-0 z-40 border-b border-kraft-dark bg-paper text-ink"
         style={{ viewTransitionName: "site-header" }}
       >
-        <div className="relative mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:gap-6 sm:px-6">
-          <div className="flex flex-1 items-center lg:flex-none">
+        <div className="relative flex h-14 items-center gap-6 px-4 sm:px-6 lg:h-[60px] lg:gap-10 lg:px-8">
+          <div className="-ml-2 lg:hidden">
             <MobileCategoryDrawer categories={categories} />
           </div>
-          <Link
-            href="/"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity hover:opacity-80"
-          >
+          <Link href="/" className="shrink-0 transition-opacity hover:opacity-60">
             <Logo
               logoUrl={branding?.logoUrl}
               department="CLOTHING"
-              imageClassName="h-10 w-auto max-w-[160px] object-contain sm:h-12 sm:max-w-[200px]"
+              imageClassName="h-5 w-auto max-w-[140px] object-contain sm:h-6"
             />
           </Link>
 
-          <div className="hidden max-w-xs flex-1 lg:block">
-            <SearchBar
-              id="search-desktop"
+          <ClothingCategoryNav categories={categories} />
+
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <ClothingSearchToggle
+              label={t("searchAria")}
               usdExchangeRate={rates.usdExchangeRate}
               cnyExchangeRate={rates.cnyExchangeRate}
             />
-          </div>
-
-          <div className="flex flex-1 items-center justify-end gap-1 lg:flex-none">
             <AdminLinkButton />
-            <Link
-              href="/gio-hang"
-              aria-label={t("cartAria")}
-              className="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-ink transition-opacity hover:opacity-70"
-            >
-              <BagIcon className="h-5 w-5" />
-              <CartBadge />
-            </Link>
             <Suspense fallback={<AccountMenuFallback />}>
               <AccountMenu />
             </Suspense>
+            <Link
+              href="/gio-hang"
+              aria-label={t("cartAria")}
+              className="relative flex h-10 w-8 shrink-0 cursor-pointer items-center justify-center text-ink transition-opacity hover:opacity-60"
+            >
+              <BagIcon className="h-[18px] w-[18px]" />
+              <CartBadge />
+            </Link>
           </div>
-        </div>
-
-        <div className="hidden border-t border-kraft-dark lg:block">
-          <ClothingCategoryNav categories={categories} />
-        </div>
-
-        <div className="border-t border-kraft-dark px-4 py-2 lg:hidden">
-          <SearchBar
-            id="search-mobile"
-            usdExchangeRate={rates.usdExchangeRate}
-            cnyExchangeRate={rates.cnyExchangeRate}
-          />
         </div>
       </header>
     );

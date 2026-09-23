@@ -28,23 +28,21 @@
 }
 
 /* quanao.tatsneaker.vn (clothing) retheme.
-   Direction: "the inspection ledger" — not generic quiet-luxury (cream +
-   gold + serif is the templated AI-fashion-site default). TAT's actual
-   differentiator, on both storefronts, is that every product is tracked
-   and verified (SKU, 3-step inspection, exact stock count) — so the
-   clothing site leans into that as a real atelier/spec-sheet aesthetic
-   instead of decorating with an unrelated luxury cliché: raw-linen paper,
-   ink-stamp indigo (not gold) as the one accent, and a real monospace for
-   every data-like label (price, size, SKU, fabric spec) instead of
-   aliasing the display serif the way the shoe site's font-mono does.
+   Direction: taken from the live COS and Zara storefronts rather than an
+   invented concept — stark white page, black type, hairline grey rules,
+   no accent colour at all (buttons are black), no drop shadows, and one
+   neutral grotesque for every piece of UI. Photography carries the brand;
+   the chrome around it stays out of the way. Red is kept only for sale
+   prices and genuine alerts, which is also what those sites do.
    Every component still just uses bg-kraft/text-forest/font-display/etc.
    as before — overriding what those tokens resolve to here is enough to
    retheme the whole site with zero component changes, since @theme inline
    below re-points every Tailwind utility at these same CSS variables
    rather than inlining a literal color at build time. data-department is
    set on <html> in src/app/layout.tsx. font-display-clothing/
-   font-body-clothing/font-mono-clothing are the Fraunces/Montserrat/IBM
-   Plex Mono variables loaded there.
+   font-body-clothing are the Noto Serif Display/Inter Tight variables
+   loaded there; font-mono deliberately maps to the same grotesque as body
+   so small uppercase labels read as refined sans caps, not monospace.
    Deliberately `html[data-department=...]`, not `:root[data-department=...]`
    — verified that Tailwind v4's build pipeline silently drops a second
    `:root`-selector block of --color-* custom properties (only the plain
@@ -53,22 +51,50 @@
    whatever dedup/theme-extraction step was doing that, while still
    targeting the exact same element. */
 html[data-department="clothing"] {
-  --color-kraft: #f4f2ec;
-  --color-kraft-dark: #d9d4c4;
-  --color-ink: #1a1a16;
-  --color-ink-soft: #3f3d34;
-  --color-forest: #2f3e5c;
-  --color-forest-dark: #232e44;
-  --color-stamp: #7a2e22;
-  --color-graphite: #6b6459;
+  --color-kraft: #f4f4f4;
+  --color-kraft-dark: #e6e6e6;
+  --color-ink: #111111;
+  --color-ink-soft: #3a3a3a;
+  --color-paper: #ffffff;
+  --color-forest: #111111;
+  --color-forest-dark: #000000;
+  --color-stamp: #b3261e;
+  --color-graphite: #6f6f6f;
 
-  --shadow-card: 0 1px 2px rgb(26 26 22 / 0.05), 0 8px 20px -12px rgb(26 26 22 / 0.18);
-  --shadow-card-hover: 0 2px 4px rgb(26 26 22 / 0.07), 0 16px 32px -14px rgb(26 26 22 / 0.24);
+  --shadow-card: none;
+  --shadow-card-hover: none;
 
   --font-display: var(--font-display-clothing);
   --font-body: var(--font-body-clothing);
   --font-logo: var(--font-display-clothing);
-  --font-mono: var(--font-mono-clothing);
+  --font-mono: var(--font-body-clothing);
+}
+
+/* The shoe site's .font-display defaults to bold (its display face is a
+   heavy grotesque). The clothing Didone is only elegant light — bold
+   Didone reads as a tabloid masthead. */
+html[data-department="clothing"] .font-display {
+  font-weight: 300;
+}
+
+/* Clothing drops the shoe site's rounded card chrome entirely — COS/Zara
+   use square edges and hairlines everywhere. These two classes are shared
+   by dozens of components (cart, checkout, account, toolbar), so squaring
+   them off here reaches every one of those without touching them. */
+html[data-department="clothing"] .die-cut,
+html[data-department="clothing"] .die-cut-flat {
+  border-radius: 0;
+  box-shadow: none;
+}
+html[data-department="clothing"] .hover-lift:hover {
+  transform: none;
+}
+/* The clothing search field is a bare hairline; its focus state is the
+   hairline thickening (see SearchBar's underline variant) rather than the
+   global outline box, which clashes with a borderless field. */
+html[data-department="clothing"] input[type="search"]:focus-visible {
+  outline: none;
+  border-bottom-width: 2px;
 }
 
 @theme inline {

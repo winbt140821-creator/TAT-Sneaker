@@ -23,6 +23,25 @@ export function CategorySection({
   products: CatalogProduct[];
   department?: Department;
 }) {
+  if (department === "CLOTHING") {
+    return (
+      <section className="pb-16 pt-14 lg:pb-20 lg:pt-16">
+        <div className="mb-6 flex items-baseline justify-between px-4 sm:px-6 lg:px-8">
+          <h2 className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink">{heading}</h2>
+          {viewAllHref && (
+            <Link
+              href={viewAllHref}
+              className="border-b border-ink pb-0.5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink transition-opacity hover:opacity-60"
+            >
+              {viewAllLabel}
+            </Link>
+          )}
+        </div>
+        <ProductGrid products={products} department={department} />
+      </section>
+    );
+  }
+
   return (
     <section className="pb-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">

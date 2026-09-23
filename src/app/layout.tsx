@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Fraunces, Montserrat, IBM_Plex_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Noto_Serif_Display, Inter_Tight } from "next/font/google";
 import { site } from "@/lib/site-config";
 import { siteUrlForDepartment } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
@@ -32,35 +32,25 @@ const permanentMarker = Permanent_Marker({
 // Clothing storefront's own type system — see globals.css's
 // `[data-department="clothing"]` block, which re-points --font-display/
 // --font-body/--font-mono at these instead of the shoe fonts above.
-// Distinct variable names so all pairs can be loaded side by side without
+// Distinct variable names so both sets can be loaded side by side without
 // colliding; only the active department's classes are applied to <html>
 // below, so a given request's HTML never references the unused set.
-// Fraunces (soft-serif, wide weight range) carries the brand's personality
-// at display size — deliberately not a generic wedding-invitation serif.
-const fraunces = Fraunces({
+// Modeled on how COS/Zara actually set type: one neutral grotesque for
+// every piece of UI (nav, labels, prices, body), and a high-contrast Didone
+// used sparingly and light — only for the wordmark and editorial headlines.
+// (Bodoni Moda was the first pick but ships no Vietnamese subset — every
+// diacritic would fall back to a different font mid-word.)
+const notoSerifDisplay = Noto_Serif_Display({
   variable: "--font-display-clothing",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "900"],
+  weight: ["300", "400"],
   style: ["normal", "italic"],
 });
 
-const montserrat = Montserrat({
+const interTight = Inter_Tight({
   variable: "--font-body-clothing",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
-});
-
-// "Spec sheet" utility face for prices, SKUs, sizes, stock counts — a real
-// monospace instead of aliasing the display serif (the shoe site's
-// font-mono utility literally IS its display font; that reads fine for
-// bold uppercase sneaker-drop labels, but serif-at-11px reads muddy for
-// small data-like text). Ties to the parent brand's actual differentiator
-// (every product page shows inspected/verified fabric+construction specs)
-// instead of decorating for its own sake.
-const ibmPlexMono = IBM_Plex_Mono({
-  variable: "--font-mono-clothing",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600"],
 });
 
 const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
@@ -119,7 +109,7 @@ export default async function RootLayout({
   const department = await getDepartment();
   const fontVariables =
     department === "CLOTHING"
-      ? `${fraunces.variable} ${montserrat.variable} ${ibmPlexMono.variable}`
+      ? `${notoSerifDisplay.variable} ${interTight.variable}`
       : `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
 
   return (

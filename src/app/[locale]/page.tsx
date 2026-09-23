@@ -13,6 +13,7 @@ import { CategorySidebar } from "@/components/CategorySidebar";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
 import { ClothingLookbook } from "@/components/ClothingLookbook";
 import { ClothingManifesto } from "@/components/ClothingManifesto";
+import { ClothingHero } from "@/components/ClothingHero";
 import { NewsSection } from "@/components/NewsSection";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { Pagination } from "@/components/Pagination";
@@ -125,6 +126,85 @@ export default async function Home({
         : (activeCategory.parent?.children ?? [])
       : [];
 
+    if (department === "CLOTHING") {
+      // Listing page as COS sets it: small breadcrumb, a plain uppercase
+      // title, the category's sub-sections as text tabs, then straight into
+      // the edge-to-edge grid — no hero banner above a product list.
+      const tabs = pillCategories.length > 0 ? pillCategories : navCategories;
+      const title = activeCategory?.label ?? (q ? t("searchResultsFor", { query: q }) : "Tất cả sản phẩm");
+      return (
+        <>
+          {activeCategory && (
+            <BreadcrumbJsonLd
+              items={[{ name: activeCategory.label, path: `/?category=${encodeURIComponent(activeCategory.slug)}` }]}
+            />
+          )}
+          <Header />
+          <main className="flex-1">
+            <div className="px-4 pb-2 pt-6 sm:px-6 lg:px-8 lg:pt-8">
+              <nav aria-label="Breadcrumb" className="text-[12px] text-graphite">
+                <Link href="/" className="hover:text-ink">
+                  {tCommon("home")}
+                </Link>
+                {activeCategory?.parent && (
+                  <>
+                    {" / "}
+                    <Link
+                      href={`/?category=${encodeURIComponent(activeCategory.parent.slug)}`}
+                      className="hover:text-ink"
+                    >
+                      {activeCategory.parent.label}
+                    </Link>
+                  </>
+                )}
+                {" / "}
+                <span className="text-ink">{title}</span>
+              </nav>
+              <h1 className="mt-4 text-[15px] font-medium uppercase tracking-[0.14em] text-ink">{title}</h1>
+
+              {tabs.length > 0 && (
+                <div className="mt-6 flex gap-6 overflow-x-auto border-b border-kraft-dark [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {tabs.map((p) => {
+                    const active = p.slug === activeCategory?.slug;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/?category=${encodeURIComponent(p.slug)}`}
+                        aria-current={active ? "page" : undefined}
+                        className={
+                          "-mb-px shrink-0 whitespace-nowrap border-b pb-3 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors " +
+                          (active ? "border-ink text-ink" : "border-transparent text-graphite hover:text-ink")
+                        }
+                      >
+                        {p.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <Toolbar
+              from={products.length ? (currentPage - 1) * CATALOG_PAGE_SIZE + 1 : 0}
+              to={(currentPage - 1) * CATALOG_PAGE_SIZE + products.length}
+              total={totalCount}
+              department={department}
+            />
+            <ProductGrid products={products} department={department} priorityCount={4} />
+            <div className="py-10">
+              <Pagination
+                current={currentPage}
+                totalPages={totalPages}
+                searchParams={{ category, q, sort, minPrice, maxPrice, size, availability }}
+              />
+            </div>
+          </main>
+          <Footer />
+          <FloatingActions />
+        </>
+      );
+    }
+
     return (
       <>
         {activeCategory && (
@@ -135,21 +215,13 @@ export default async function Home({
         <Header />
         <main className="flex-1">
           <Breadcrumb trail={trail} />
-          {department === "CLOTHING" ? (
-            <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
-              <Hero department={department} {...heroPropsFromSettings(branding)} />
+          <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+            <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} />
+            <div className="min-w-0 flex-1">
+              <Hero {...heroPropsFromSettings(branding)} />
             </div>
-          ) : (
-            <>
-              <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-                <CategorySidebar categories={navCategories} activeSlug={activeCategory?.slug} department={department} />
-                <div className="min-w-0 flex-1">
-                  <Hero department={department} {...heroPropsFromSettings(branding)} />
-                </div>
-              </div>
-              <TrustBar />
-            </>
-          )}
+          </div>
+          <TrustBar />
 
           {pillCategories.length > 0 && (
             <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
@@ -202,29 +274,62 @@ export default async function Home({
     getShowcaseCategories(department),
   ]);
 
+  if (department === "CLOTHING") {
+    // Editorial homepage in the COS/Zara mould: campaign imagery first, one
+    // product edit, departments as photographs, a single line of brand
+    // voice. Per-category product rails (the shoe homepage's backbone) are
+    // left to the category pages — repeating them here reads as a catalogue
+    // dump, not a brand.
+    const hero = heroPropsFromSettings(branding);
+    return (
+      <>
+        <Header />
+        <main className="flex-1">
+          <ClothingHero
+            images={hero.coverImages ?? []}
+            eyebrow={hero.eyebrowEnabled === false ? null : (hero.eyebrow ?? "Bộ sưu tập mới")}
+            heading={hero.headingEnabled === false ? null : (hero.heading ?? "Mặc ít hơn,\nmặc tốt hơn")}
+          />
+          <CategorySection
+            heading="Hàng mới về"
+            viewAllHref="/?sort=newest"
+            viewAllLabel={tProduct("viewAll")}
+            products={latest}
+            department={department}
+          />
+          <ClothingLookbook categories={showcaseCategories} />
+          {sale.length > 0 && (
+            <CategorySection
+              heading={t("onSale")}
+              viewAllHref="/?category=SALE"
+              viewAllLabel={tProduct("viewAll")}
+              products={sale}
+              department={department}
+            />
+          )}
+          {bestSelling.length >= 4 && (
+            <CategorySection heading={t("bestSelling")} products={bestSelling} department={department} />
+          )}
+          <ClothingManifesto />
+        </main>
+        <Footer />
+        <FloatingActions />
+      </>
+    );
+  }
+
   return (
     <>
       <Header />
       <main className="flex-1">
-        <Breadcrumb trail={department === "CLOTHING" ? [] : [tCommon("sneakers")]} />
-        {department === "CLOTHING" ? (
-          <>
-            <div className="mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6">
-              <Hero department={department} {...heroPropsFromSettings(branding)} />
-            </div>
-            <ClothingManifesto />
-          </>
-        ) : (
-          <>
-            <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
-              <CategorySidebar categories={navCategories} department={department} />
-              <div className="min-w-0 flex-1">
-                <Hero department={department} {...heroPropsFromSettings(branding)} />
-              </div>
-            </div>
-            <TrustBar />
-          </>
-        )}
+        <Breadcrumb trail={[tCommon("sneakers")]} />
+        <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 pb-8 pt-2 sm:px-6">
+          <CategorySidebar categories={navCategories} />
+          <div className="min-w-0 flex-1">
+            <Hero {...heroPropsFromSettings(branding)} />
+          </div>
+        </div>
+        <TrustBar />
 
         <CategorySection heading={t("latest")} products={latest} department={department} />
 
@@ -254,15 +359,9 @@ export default async function Home({
           />
         ))}
 
-        {department === "CLOTHING" ? (
-          <ClothingLookbook categories={showcaseCategories} />
-        ) : (
-          <>
-            <NewsSection />
-            <TestimonialsSection />
-            <CategoryShowcase categories={showcaseCategories} />
-          </>
-        )}
+        <NewsSection />
+        <TestimonialsSection />
+        <CategoryShowcase categories={showcaseCategories} />
       </main>
       <Footer />
       <FloatingActions />

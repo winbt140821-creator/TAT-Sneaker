@@ -81,6 +81,98 @@ export function ProductActions({
     router.push("/thanh-toan");
   }
 
+  if (department === "CLOTHING") {
+    // Purchase block as COS/Zara lay it out: wide square size boxes, one
+    // full-width black "add to bag" as the primary action, the secondary
+    // one outlined underneath — no side-by-side button cluster.
+    return (
+      <div className="mt-8 flex flex-col gap-6">
+        <fieldset>
+          <legend className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink">{t("chooseSize")}</legend>
+          <ul className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5" aria-label={t("chooseSize")}>
+            {carriedSizes.map((s) => {
+              const disabled = availability === "IN_STOCK" && getQuantityForSize(sizeQuantities, s) <= 0;
+              const isSelected = selectedSize === s;
+              return (
+                <li key={s}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => pickSize(s)}
+                    aria-pressed={isSelected}
+                    className={
+                      "flex h-11 w-full items-center justify-center border text-[13px] transition-colors " +
+                      (disabled
+                        ? "cursor-not-allowed border-kraft-dark text-graphite/50 line-through"
+                        : isSelected
+                          ? "cursor-pointer border-ink bg-ink text-paper"
+                          : "cursor-pointer border-kraft-dark text-ink hover:border-ink")
+                    }
+                  >
+                    {s}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {availableQty != null && (
+            <p className="mt-3 text-[12px] text-graphite">
+              {availability === "PREORDER"
+                ? selectedSizeHasRealStock
+                  ? `${tDetail("inStock")} — ${tDetail("leadTime", IN_STOCK_LEAD_TIME)}`
+                  : `${tDetail("preorder")} — ${tDetail("leadTime", { min: leadTimeMinDays, max: leadTimeMaxDays })}`
+                : t("stockLeftGeneric", { count: availableQty })}
+            </p>
+          )}
+        </fieldset>
+
+        <div className="flex items-center gap-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink">{t("quantity")}</p>
+          <QuantityStepper
+            size="md"
+            quantity={quantity}
+            decreaseLabel={t("decreaseQty")}
+            increaseLabel={t("increaseQty")}
+            onDecrease={() => setQuantity((q) => Math.max(1, q - 1))}
+            increaseDisabled={availableQty != null && quantity >= availableQty}
+            onIncrease={() => setQuantity((q) => (availableQty != null ? Math.min(availableQty, q + 1) : q + 1))}
+          />
+        </div>
+
+        {feedback && (
+          <p
+            role={feedback.type === "error" ? "alert" : "status"}
+            className={`text-[12px] ${feedback.type === "error" ? "text-stamp" : "text-ink"}`}
+          >
+            {feedback.text}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="flex h-12 w-full cursor-pointer items-center justify-center bg-ink text-[12px] font-medium uppercase tracking-[0.16em] text-paper transition-colors hover:bg-ink-soft"
+          >
+            {t("addToCart")}
+          </button>
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            className="flex h-12 w-full cursor-pointer items-center justify-center border border-ink bg-paper text-[12px] font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:bg-kraft"
+          >
+            {t("buyNow")}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <WishlistButton productId={productId} />
+          <ShareButton productName={productName} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 flex flex-col gap-4">
       <fieldset>
@@ -103,9 +195,7 @@ export function ProductActions({
                     (disabled
                       ? "cursor-not-allowed border-kraft-dark text-graphite/40 line-through"
                       : isSelected
-                        ? department === "CLOTHING"
-                          ? "cursor-pointer border-ink bg-ink text-paper"
-                          : "cursor-pointer border-forest bg-forest text-paper"
+                        ? "cursor-pointer border-forest bg-forest text-paper"
                         : "cursor-pointer border-kraft-dark text-ink hover:border-forest")
                   }
                 >
@@ -136,9 +226,7 @@ export function ProductActions({
                 : `${tDetail("preorder")} — ${tDetail("leadTime", { min: leadTimeMinDays, max: leadTimeMaxDays })}`}
             </p>
           ) : (
-            <p className="font-mono text-xs text-graphite">
-              {t(department === "CLOTHING" ? "stockLeftGeneric" : "stockLeft", { count: availableQty })}
-            </p>
+            <p className="font-mono text-xs text-graphite">{t("stockLeft", { count: availableQty })}</p>
           ))}
       </div>
 
@@ -155,24 +243,14 @@ export function ProductActions({
         <button
           type="button"
           onClick={handleBuyNow}
-          className={
-            "die-cut-flat flex-1 cursor-pointer px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider transition-colors sm:flex-none " +
-            (department === "CLOTHING"
-              ? "bg-ink text-paper hover:bg-ink-soft"
-              : "bg-forest text-paper hover:bg-forest-dark")
-          }
+          className="die-cut-flat flex-1 cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark sm:flex-none"
         >
           {t("buyNow")}
         </button>
         <button
           type="button"
           onClick={handleAddToCart}
-          className={
-            "flex flex-1 cursor-pointer items-center justify-center gap-2 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider transition-colors sm:flex-none " +
-            (department === "CLOTHING"
-              ? "rounded-lg border border-ink bg-paper text-ink hover:bg-kraft"
-              : "die-cut-flat bg-ink text-paper hover:bg-ink-soft")
-          }
+          className="die-cut-flat flex flex-1 cursor-pointer items-center justify-center gap-2 bg-ink px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft sm:flex-none"
         >
           <BagIcon className="h-4 w-4" />
           {t("addToCart")}

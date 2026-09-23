@@ -3,6 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { site, defaultContactEmail } from "@/lib/site-config";
 import { getSiteSettings, getSocialLinks } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
+import { ClothingWordmark } from "./ClothingWordmark";
 import {
   ChevronRightIcon,
   FacebookIcon,
@@ -85,6 +87,78 @@ export async function Footer() {
   const tiktokLink = byPlatform.get("tiktok");
   const zaloLink = byPlatform.get("zalo");
   const facebookLink = byPlatform.get("facebook");
+
+  if ((await getDepartment()) === "CLOTHING") {
+    // COS/Zara footers are plain text on a quiet ground: small uppercase
+    // column titles, links in grey, social channels as words rather than
+    // coloured brand bubbles, no embedded Facebook widget and no fixed
+    // contact bar. Contact channels (Messenger/Zalo) stay reachable from
+    // the "Liên hệ" column instead. Shared copy that's written for the
+    // shoe shop (footerAbout, "Về TAT Sneaker") is left out here.
+    const clothingColumns = columns.map((col, i) =>
+      i === 2 ? { ...col, title: "Về chúng tôi" } : col
+    );
+    const linkClass = "font-body text-[13px] text-graphite transition-colors hover:text-ink";
+    const titleClass = "text-[11px] font-medium uppercase tracking-[0.14em] text-ink";
+
+    return (
+      <footer className="mt-auto border-t border-kraft-dark bg-paper text-ink">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-12 px-4 py-14 sm:px-6 lg:grid-cols-4 lg:px-8 lg:py-20">
+          {clothingColumns.map((col, i) => (
+            <div key={col.title}>
+              <p className={titleClass}>{col.title}</p>
+              <ul className="mt-5 space-y-2.5">
+                {col.links.map((l) => (
+                  <li key={l.slug}>
+                    <Link href={`/trang/${l.slug}`} className={linkClass}>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+                {i === 1 && (
+                  <li>
+                    <Link href="/tra-cuu-don-hang" className={linkClass}>
+                      {t("supportOrderLookup")}
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+
+          <div>
+            <p className={titleClass}>{t("aboutContact")}</p>
+            <ul className="mt-5 space-y-2.5">
+              <li>
+                <a href={`tel:${phone}`} className={linkClass}>
+                  {phone}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${email}`} className={linkClass}>
+                  {email}
+                </a>
+              </li>
+              {socialLinks.map((link) => (
+                <li key={link.id}>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                    {link.platform}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 border-t border-kraft-dark px-4 py-8 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8">
+          <ClothingWordmark className="h-6 w-auto" />
+          <p className="font-body text-[11px] text-graphite">
+            © {new Date().getFullYear()} TAT. {t("rights")}
+          </p>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <>

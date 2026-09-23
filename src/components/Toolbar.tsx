@@ -51,7 +51,14 @@ export function Toolbar({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-4 pt-2 sm:px-6" id="products">
+    <div
+      className={
+        department === "CLOTHING"
+          ? "px-4 pb-6 pt-4 sm:px-6 lg:px-8"
+          : "mx-auto max-w-7xl px-4 pb-4 pt-2 sm:px-6"
+      }
+      id="products"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-xs text-graphite">
           {t("showing")} <span className="font-semibold text-ink">{from}–{to}</span> {t("of")} {total} {t("results")}

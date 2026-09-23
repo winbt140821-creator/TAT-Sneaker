@@ -17,11 +17,17 @@ export function SearchBar({
   id,
   usdExchangeRate,
   cnyExchangeRate,
+  variant = "pill",
+  autoFocus = false,
 }: {
   id: string;
   usdExchangeRate?: number | null;
   cnyExchangeRate?: number | null;
+  /** "underline" = the clothing storefront's bare hairline field (no pill, no filled button). */
+  variant?: "pill" | "underline";
+  autoFocus?: boolean;
 }) {
+  const isUnderline = variant === "underline";
   const t = useTranslations("header");
   const locale = useLocale();
   const router = useRouter();
@@ -95,20 +101,34 @@ export function SearchBar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
+          autoFocus={autoFocus}
           placeholder={t("searchPlaceholder")}
-          className="w-full rounded-full border border-kraft-dark bg-kraft py-2 pl-4 pr-11 font-body text-sm text-ink placeholder:text-graphite focus:border-forest focus:bg-paper"
+          className={
+            isUnderline
+              ? "w-full border-0 border-b border-ink bg-transparent py-1.5 pl-0 pr-8 font-body text-sm text-ink placeholder:text-graphite focus:outline-none"
+              : "w-full rounded-full border border-kraft-dark bg-kraft py-2 pl-4 pr-11 font-body text-sm text-ink placeholder:text-graphite focus:border-forest focus:bg-paper"
+          }
         />
         <button
           type="submit"
           aria-label={t("searchAria")}
-          className="absolute right-1 top-1 flex h-[calc(100%-0.5rem)] w-9 cursor-pointer items-center justify-center rounded-full bg-ink text-paper transition-colors hover:bg-ink-soft"
+          className={
+            isUnderline
+              ? "absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-end text-ink transition-opacity hover:opacity-60"
+              : "absolute right-1 top-1 flex h-[calc(100%-0.5rem)] w-9 cursor-pointer items-center justify-center rounded-full bg-ink text-paper transition-colors hover:bg-ink-soft"
+          }
         >
           <SearchIcon className="h-4 w-4" />
         </button>
       </form>
 
       {showDropdown && (
-        <div className="die-cut absolute left-0 right-0 top-full z-50 mt-1.5 max-h-96 overflow-y-auto bg-paper py-1.5 shadow-lg">
+        <div
+          className={
+            (isUnderline ? "border border-kraft-dark" : "die-cut shadow-lg") +
+            " absolute left-0 right-0 top-full z-50 mt-1.5 max-h-96 overflow-y-auto bg-paper py-1.5"
+          }
+        >
           {results === null && (
             <p className="px-4 py-3 font-mono text-xs text-graphite">…</p>
           )}

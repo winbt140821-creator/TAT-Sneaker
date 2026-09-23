@@ -4,18 +4,15 @@ import { Link } from "@/i18n/navigation";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
 import type { CatalogProduct } from "@/lib/catalog";
 import { getDiscountPct } from "@/lib/pricing";
-import { hasAnyStock, hasRealStockAnywhere, type Department } from "@/lib/inventory";
+import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { SneakerArt, silhouetteFor } from "./SneakerArt";
-import { GarmentArt, garmentSilhouetteFor } from "./GarmentArt";
 
 export async function ProductCard({
   product,
   index,
-  department = "SHOES",
 }: {
   product: CatalogProduct;
   index: number;
-  department?: Department;
 }) {
   const [t, tDetail, price, originalPrice] = await Promise.all([
     getTranslations("product"),
@@ -32,26 +29,11 @@ export async function ProductCard({
       ? hasRealStockAnywhere(product.sizeQuantities)
       : hasAnyStock(product.sizeQuantities);
   const showPreorderBadge = product.availability === "PREORDER" && !inStock;
-  const isClothing = department === "CLOTHING";
-
-  // Reference-matched (COS/Uniqlo) for clothing: the image bleeds straight
-  // into the page — no bordered/shadowed box — and price/quality read as
-  // plain monochrome text instead of a bold accent-colored tag. Real fashion
-  // e-commerce sites reserve color for genuine alerts, not decoration; the
-  // shoe site's bordered die-cut card + gold price stays unchanged.
-  const badgeClass = isClothing
-    ? "border border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-semibold text-ink"
-    : "bg-forest px-2 py-0.5 font-mono text-[10px] font-semibold text-paper";
-  const preorderBadgeClass = isClothing
-    ? "border border-graphite bg-paper px-2 py-0.5 font-mono text-[10px] font-semibold text-graphite"
-    : "bg-stamp px-2 py-0.5 font-mono text-[10px] font-semibold text-paper";
 
   return (
     <Link
       href={`/san-pham/${product.id}`}
-      className={
-        "hover-lift group flex h-full flex-col bg-paper " + (isClothing ? "" : "die-cut")
-      }
+      className="die-cut hover-lift group flex h-full flex-col bg-paper"
     >
       <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
         {product.images[0] ? (
@@ -63,12 +45,6 @@ export async function ProductCard({
             quality={90}
             className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
-        ) : isClothing ? (
-          <GarmentArt
-            silhouette={garmentSilhouetteFor(index)}
-            accent={product.accent}
-            className="h-full w-full transition-transform duration-300 ease-out group-hover:scale-[1.04]"
-          />
         ) : (
           <SneakerArt
             silhouette={silhouetteFor(index)}
@@ -78,11 +54,15 @@ export async function ProductCard({
         )}
 
         {discountPct && (
-          <span className={"absolute left-2 top-2 " + badgeClass}>-{discountPct}%</span>
+          <span className="absolute left-2 top-2 bg-forest px-2 py-0.5 font-mono text-[10px] font-semibold text-paper">
+            -{discountPct}%
+          </span>
         )}
 
         {showPreorderBadge && (
-          <span className={"absolute right-2 top-2 " + preorderBadgeClass}>{t("preorder")}</span>
+          <span className="absolute right-2 top-2 bg-stamp px-2 py-0.5 font-mono text-[10px] font-semibold text-paper">
+            {t("preorder")}
+          </span>
         )}
       </div>
 
@@ -93,12 +73,7 @@ export async function ProductCard({
 
         <div className="mt-auto flex flex-col gap-1 pt-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <p
-              className={
-                "font-mono text-[11px] uppercase tracking-wide " +
-                (isClothing ? "text-graphite" : "font-bold text-forest")
-              }
-            >
+            <p className="font-mono text-[11px] font-bold uppercase tracking-wide text-forest">
               {product.quality}
             </p>
             <p
@@ -115,13 +90,13 @@ export async function ProductCard({
           </div>
 
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <p className={"font-mono text-lg font-bold " + (isClothing ? "text-ink" : "text-forest")}>
-              {price}
-            </p>
+            <p className="font-mono text-lg font-bold text-forest">{price}</p>
             {originalPrice && (
               <>
                 <p className="font-mono text-xs text-graphite/60 line-through">{originalPrice}</p>
-                <span className={badgeClass}>-{discountPct}%</span>
+                <span className="bg-forest px-1.5 py-0.5 font-mono text-[10px] font-bold text-paper">
+                  -{discountPct}%
+                </span>
               </>
             )}
           </div>

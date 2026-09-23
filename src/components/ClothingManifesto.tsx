@@ -1,20 +1,14 @@
-// A short brand-voice statement between the hero and the product rail —
-// real fashion homepages give the story a beat before the grid starts.
-// The copy itself is the parent brand's own real tagline ("Không rẻ nhất,
-// nhưng đáng tiền nhất" — see src/lib/site-config.ts) translated into a
-// garment-longevity claim, not generic aspirational filler.
+// One quiet line of brand voice between the product grid and the footer —
+// a single light Didone sentence on white, the way COS and The Row let a
+// short statement sit on an otherwise empty band, instead of a busy block.
 export function ClothingManifesto() {
   return (
-    <section className="mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 sm:py-20">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-graphite">Tuyên ngôn</p>
-      <p className="mx-auto mt-6 max-w-2xl font-display text-3xl italic leading-snug text-ink sm:text-5xl">
-        Không phải kiểu rẻ nhất.
-        <br />
-        <span className="text-forest">Là kiểu còn mặc được sau mười năm.</span>
+    <section className="border-t border-kraft-dark px-6 py-24 text-center sm:py-32">
+      <p className="mx-auto max-w-3xl font-display text-3xl leading-[1.2] text-ink sm:text-5xl">
+        Được chọn để ở lại lâu trong tủ đồ của bạn.
       </p>
-      <p className="mx-auto mt-6 max-w-md font-body text-sm text-graphite">
-        Từng đường may, chất vải và form dáng đều được kiểm tra trước khi lên kệ —
-        cùng một tiêu chuẩn kiểm định chúng tôi áp dụng cho mỗi đôi giày.
+      <p className="mx-auto mt-6 max-w-md font-body text-[13px] leading-relaxed text-graphite">
+        Chất liệu, đường may và phom dáng của từng món đều được kiểm tra kỹ trước khi đến tay bạn.
       </p>
     </section>
   );

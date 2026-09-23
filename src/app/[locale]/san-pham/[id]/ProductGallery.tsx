@@ -5,21 +5,18 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from "@/components/icons";
 import { SneakerArt, silhouetteFor } from "@/components/SneakerArt";
-import { GarmentArt, garmentSilhouetteFor } from "@/components/GarmentArt";
-import type { Department } from "@/lib/inventory";
 
+// Shoe PDP gallery. The clothing PDP uses ClothingGallery instead.
 export function ProductGallery({
   images,
   name,
   accent,
   fallbackIndex,
-  department = "SHOES",
 }: {
   images: string[];
   name: string;
   accent: string;
   fallbackIndex: number;
-  department?: Department;
 }) {
   const t = useTranslations("productDetail");
   const [active, setActive] = useState(0);
@@ -29,19 +26,11 @@ export function ProductGallery({
   if (images.length === 0) {
     return (
       <div className="die-cut flex aspect-square items-center justify-center bg-kraft-dark/30 p-10">
-        {department === "CLOTHING" ? (
-          <GarmentArt
-            silhouette={garmentSilhouetteFor(fallbackIndex)}
-            accent={accent}
-            className="h-full w-full"
-          />
-        ) : (
-          <SneakerArt
-            silhouette={silhouetteFor(fallbackIndex)}
-            accent={accent}
-            className="h-full w-full"
-          />
-        )}
+        <SneakerArt
+          silhouette={silhouetteFor(fallbackIndex)}
+          accent={accent}
+          className="h-full w-full"
+        />
       </div>
     );
   }
