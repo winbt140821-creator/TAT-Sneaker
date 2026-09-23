@@ -113,6 +113,7 @@
     "decreaseQty": "减少数量",
     "increaseQty": "增加数量",
     "stockLeft": "剩余 {count} 双",
+    "stockLeftGeneric": "剩余 {count} 件",
     "buyNow": "立即购买",
     "addToCart": "加入购物车",
     "wishlistAdd": "加入收藏",

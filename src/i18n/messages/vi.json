@@ -113,6 +113,7 @@
     "decreaseQty": "Giảm số lượng",
     "increaseQty": "Tăng số lượng",
     "stockLeft": "Còn lại {count} đôi",
+    "stockLeftGeneric": "Còn lại {count} sản phẩm",
     "buyNow": "Mua ngay",
     "addToCart": "Thêm vào giỏ hàng",
     "wishlistAdd": "Thêm vào yêu thích",

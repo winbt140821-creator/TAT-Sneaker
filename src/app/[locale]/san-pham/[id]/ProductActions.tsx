@@ -136,7 +136,9 @@ export function ProductActions({
                 : `${tDetail("preorder")} — ${tDetail("leadTime", { min: leadTimeMinDays, max: leadTimeMaxDays })}`}
             </p>
           ) : (
-            <p className="font-mono text-xs text-graphite">{t("stockLeft", { count: availableQty })}</p>
+            <p className="font-mono text-xs text-graphite">
+              {t(department === "CLOTHING" ? "stockLeftGeneric" : "stockLeft", { count: availableQty })}
+            </p>
           ))}
       </div>
 

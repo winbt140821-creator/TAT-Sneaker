@@ -113,6 +113,7 @@
     "decreaseQty": "Decrease quantity",
     "increaseQty": "Increase quantity",
     "stockLeft": "{count} pairs left",
+    "stockLeftGeneric": "{count} left in stock",
     "buyNow": "Buy now",
     "addToCart": "Add to cart",
     "wishlistAdd": "Add to wishlist",
