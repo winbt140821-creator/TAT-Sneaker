@@ -54,16 +54,14 @@ function renderContent(content: string) {
   });
 }
 
-// No slugs pre-rendered at build time (dynamicParams defaults to true) —
-// this just makes the route ELIGIBLE for static caching at all. Without
-// generateStaticParams defined, Next.js always classifies a dynamic segment
-// as fully server-rendered-per-request ("ƒ") with no caching whatsoever;
-// with it (even returning []), the first request for a given slug renders
-// once and is served from cache after that, same as every other static
-// page here.
-export async function generateStaticParams() {
-  return [];
-}
+// Deliberately NO generateStaticParams here. It used to return [] to make
+// this route static/ISR-eligible, but Header/Footer read headers() (via
+// getDepartment(), for the shoe/clothing storefront split) — and in this
+// Next.js version a static-eligible route that touches headers() fails
+// every request with DYNAMIC_SERVER_USAGE instead of quietly falling back
+// to dynamic rendering. That silently 500'd every policy page linked from
+// the footer (đổi trả, bảo mật, giới thiệu, liên hệ...) — the same failure
+// that took down /san-pham/[id]; see the comment there.
 
 export async function generateMetadata({
   params,
