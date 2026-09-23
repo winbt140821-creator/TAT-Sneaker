@@ -220,6 +220,15 @@ export const getProductById = cache(async (id: string, department: Department) =
   return { ...parsed, ...salePriceFor(parsed.id, parsed.price, campaigns) };
 });
 
+// Which store a visible product belongs to (null if missing/hidden). Lets a
+// product page opened under the wrong store — an old link, or a cart line
+// followed from the other store — redirect to the right address instead of
+// 404ing.
+export async function getProductDepartment(id: string): Promise<Department | null> {
+  const row = await prisma.product.findUnique({ where: { id }, select: { department: true, hidden: true } });
+  return row && !row.hidden ? row.department : null;
+}
+
 // The full row (all columns, e.g. sku) — distinct from CatalogProduct, which
 // is narrowed to only what a catalog-listing card renders.
 export type ProductDetail = NonNullable<Awaited<ReturnType<typeof getProductById>>>;

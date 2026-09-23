@@ -337,5 +337,22 @@
     "notFound": "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại mã đơn và email.",
     "loggedInHint": "Đã đăng nhập? Xem đơn hàng trong",
     "loggedInHintLink": "tài khoản của bạn"
+  },
+  "gateway": {
+    "title": "TAT — Giày sneaker và quần áo",
+    "description": "Hai cửa hàng của TAT: giày sneaker chính hãng và quần áo. Chọn cửa hàng bạn muốn ghé.",
+    "heading": "Chọn cửa hàng",
+    "shoesKicker": "Sneaker chính hãng",
+    "shoes": "Giày",
+    "shoesCta": "Vào cửa hàng giày",
+    "clothingKicker": "Bộ sưu tập mới",
+    "clothing": "Quần áo",
+    "clothingCta": "Vào cửa hàng quần áo",
+    "enter": "Vào"
+  },
+  "storeSwitch": {
+    "label": "Cửa hàng",
+    "shoes": "Giày",
+    "clothing": "Quần áo"
   }
 }

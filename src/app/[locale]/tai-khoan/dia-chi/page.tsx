@@ -3,6 +3,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { AccountShell } from "@/components/account/AccountShell";
 import { redirectGuard } from "@/i18n/navigation";
+import { getDepartment } from "@/lib/department";
+import { storeHref } from "@/lib/store-path";
 import { getCurrentCustomer } from "@/lib/account";
 import { prisma } from "@/lib/db";
 import { AddressBookView } from "./AddressBookView";
@@ -11,7 +13,7 @@ export const metadata: Metadata = { robots: { index: false, follow: true } };
 
 export default async function AccountAddressesPage() {
   const [customer, locale] = await Promise.all([getCurrentCustomer(), getLocale()]);
-  if (!customer) redirectGuard({ href: "/dang-nhap?callbackUrl=/tai-khoan", locale });
+  if (!customer) redirectGuard({ href: storeHref(await getDepartment(), "/dang-nhap?callbackUrl=/tai-khoan"), locale });
 
   const [t, addresses] = await Promise.all([
     getTranslations("account"),

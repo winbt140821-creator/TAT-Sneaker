@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ThumbImage } from "./ThumbImage";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
@@ -34,11 +34,11 @@ export async function ClothingProductCard({
   const [img0, img1] = product.images;
 
   return (
-    <Link href={`/san-pham/${product.id}`} className="group block">
+    <Link href={`/san-pham/${product.id}`} store={product.department} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden bg-kraft">
         {img0 ? (
           <>
-            <Image
+            <ThumbImage
               src={img0}
               alt={product.name}
               fill
@@ -51,7 +51,7 @@ export async function ClothingProductCard({
               }
             />
             {img1 && (
-              <Image
+              <ThumbImage
                 src={img1}
                 alt=""
                 fill

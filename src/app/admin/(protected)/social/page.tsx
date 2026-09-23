@@ -41,6 +41,7 @@ export default async function AdminSocialPage({
         name: true,
         images: true,
         price: true,
+        department: true,
         categories: { select: { id: true } },
       },
       orderBy: { name: "asc" },
@@ -58,7 +59,7 @@ export default async function AdminSocialPage({
     name: p.name,
     priceLabel: formatPrice(p.price),
     images: JSON.parse(p.images || "[]") as string[],
-    link: absoluteUrl(`/san-pham/${p.id}`),
+    link: absoluteUrl(`/san-pham/${p.id}`, p.department),
     categoryIds: p.categories.map((c) => c.id),
   }));
 

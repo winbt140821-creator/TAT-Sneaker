@@ -119,7 +119,7 @@ export function WishlistView({
               className={"hover-lift group flex flex-col bg-paper " + (isClothing ? "" : "die-cut")}
             >
               <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
-                <Link href={`/san-pham/${product.id}`} className="absolute inset-0">
+                <Link href={`/san-pham/${product.id}`} store={product.department} className="absolute inset-0">
                   {product.images[0] ? (
                     <Image
                       src={product.images[0]}
@@ -162,7 +162,7 @@ export function WishlistView({
                 </button>
               </div>
 
-              <Link href={`/san-pham/${product.id}`} className="flex flex-1 flex-col gap-2 p-3">
+              <Link href={`/san-pham/${product.id}`} store={product.department} className="flex flex-1 flex-col gap-2 p-3">
                 <h3 className="font-body text-sm font-medium leading-snug text-ink">
                   {product.name}
                 </h3>

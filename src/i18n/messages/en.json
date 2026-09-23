@@ -337,5 +337,22 @@
     "notFound": "Order not found. Please check your order code and email.",
     "loggedInHint": "Already have an account? View your orders in",
     "loggedInHintLink": "your account"
+  },
+  "gateway": {
+    "title": "TAT — Sneakers and clothing",
+    "description": "TAT's two stores: authentic sneakers and clothing. Choose where you'd like to shop.",
+    "heading": "Choose a store",
+    "shoesKicker": "Authentic sneakers",
+    "shoes": "Shoes",
+    "shoesCta": "Shop shoes",
+    "clothingKicker": "New collection",
+    "clothing": "Clothing",
+    "clothingCta": "Shop clothing",
+    "enter": "Enter"
+  },
+  "storeSwitch": {
+    "label": "Stores",
+    "shoes": "Shoes",
+    "clothing": "Clothing"
   }
 }

@@ -7,8 +7,9 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { ProductGrid } from "@/components/ProductGrid";
-import { Link } from "@/i18n/navigation";
-import { getProductById, getRelatedProducts } from "@/lib/catalog";
+import { Link, redirectGuard } from "@/i18n/navigation";
+import { getProductById, getProductDepartment, getRelatedProducts } from "@/lib/catalog";
+import { storeHref } from "@/lib/store-path";
 import { getSiteSettings } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { getDiscountPct } from "@/lib/pricing";
@@ -75,7 +76,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: path, languages: languageAlternates(path, department) },
+    alternates: { canonical: storeHref(department, path), languages: languageAlternates(path, department) },
     openGraph: {
       title,
       description,
@@ -90,7 +91,7 @@ export default async function ProductDetailPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
-  const { id } = await params;
+  const { id, locale } = await params;
   const department = await getDepartment();
   const [product, t, tProduct] = await Promise.all([
     getProductById(id, department),
@@ -98,7 +99,11 @@ export default async function ProductDetailPage({
     getTranslations("product"),
   ]);
 
-  if (!product) notFound();
+  if (!product) {
+    const actual = await getProductDepartment(id);
+    if (actual && actual !== department) redirectGuard({ href: storeHref(actual, `/san-pham/${id}`), locale });
+    notFound();
+  }
 
   const brandCategory = getBrandCategory(product);
 

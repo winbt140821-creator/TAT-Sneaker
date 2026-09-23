@@ -10,7 +10,7 @@ export function ProductJsonLd({
   product: ProductDetail;
   brandLabel?: string;
 }) {
-  const url = absoluteUrl(`/san-pham/${product.id}`);
+  const url = absoluteUrl(`/san-pham/${product.id}`, product.department);
   // A PREORDER product with real stock on at least one size (see
   // hasRealStockForSize) is functionally in stock, not just preorderable.
   const hasStock =
@@ -30,7 +30,7 @@ export function ProductJsonLd({
     name: product.name,
     sku: product.sku,
     url,
-    ...(product.images.length > 0 ? { image: product.images.map((i) => absoluteUrl(i)) } : {}),
+    ...(product.images.length > 0 ? { image: product.images.map((i) => (i.startsWith("http") ? i : absoluteUrl(i, null))) } : {}),
     ...(brandLabel ? { brand: { "@type": "Brand", name: brandLabel } } : {}),
     offers: {
       "@type": "Offer",

@@ -31,6 +31,7 @@ import {
 import { getBranding, heroPropsFromSettings } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { languageAlternates } from "@/lib/seo";
+import { storeHref } from "@/lib/store-path";
 
 type ListingSearchParams = {
   category?: string;
@@ -70,12 +71,12 @@ export async function generateMetadata({
       return {
         title,
         description: `${title}, đã qua kiểm định 3 bước. Giao hàng toàn quốc, thanh toán khi nhận hàng.`,
-        alternates: { canonical: path, languages: languageAlternates(path, department) },
+        alternates: { canonical: storeHref(department, path), languages: languageAlternates(path, department) },
       };
     }
   }
 
-  return { alternates: { canonical: "/", languages: languageAlternates("", department) } };
+  return { alternates: { canonical: storeHref(department, "/"), languages: languageAlternates("/", department) } };
 }
 
 export default async function Home({

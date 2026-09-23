@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ThumbImage } from "./ThumbImage";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { formatPriceForCurrentLocale } from "@/lib/currency.server";
@@ -33,11 +33,12 @@ export async function ProductCard({
   return (
     <Link
       href={`/san-pham/${product.id}`}
+      store={product.department}
       className="die-cut hover-lift group flex h-full flex-col bg-paper"
     >
       <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-kraft-dark/30 p-4">
         {product.images[0] ? (
-          <Image
+          <ThumbImage
             src={product.images[0]}
             alt={product.name}
             fill

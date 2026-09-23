@@ -19,7 +19,7 @@ function escapeXml(value: string): string {
 }
 
 function imageUrl(image: string): string {
-  return image.startsWith("http") ? image : absoluteUrl(image);
+  return image.startsWith("http") ? image : absoluteUrl(image, null);
 }
 
 export async function GET() {
@@ -33,6 +33,7 @@ export async function GET() {
       description: true,
       availability: true,
       sizeQuantities: true,
+      department: true,
       categories: {
         select: { label: true, parentId: true, parent: { select: { label: true } } },
       },
@@ -61,7 +62,7 @@ export async function GET() {
           : category.label
         : undefined;
 
-      const link = absoluteUrl(`/san-pham/${p.id}`);
+      const link = absoluteUrl(`/san-pham/${p.id}`, p.department);
       const description = (p.description ?? p.name).slice(0, 5000);
 
       return `    <item>
@@ -88,7 +89,7 @@ ${images
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>TAT Sneaker</title>
-    <link>${escapeXml(absoluteUrl("/"))}</link>
+    <link>${escapeXml(absoluteUrl("/", null))}</link>
     <description>Product catalog feed for Facebook/Instagram Shop</description>
 ${items.join("\n")}
   </channel>

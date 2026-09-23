@@ -7,6 +7,8 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { Link, redirectGuard } from "@/i18n/navigation";
+import { getDepartment } from "@/lib/department";
+import { storeHref } from "@/lib/store-path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
@@ -52,7 +54,7 @@ export default async function OrderConfirmationPage({
   // confirm the code is valid (an oracle for guessing other customers' codes).
   if (order.customerId) {
     if (!session?.user?.email) {
-      redirectGuard({ href: `/dang-nhap?callbackUrl=/don-hang/${code}`, locale });
+      redirectGuard({ href: storeHref(await getDepartment(), `/dang-nhap?callbackUrl=/don-hang/${code}`), locale });
     } else if (order.customer?.email !== session.user.email) {
       notFound();
     }

@@ -1,0 +1,509 @@
+/* The tatsneaker.vn gateway: one screen split between the two stores, with
+   the TAT wordmark cut in two by the seam — heavy on the shoe side, light on
+   the clothing side, the same weights each store sets its own type in.
+   Hovering a side slides the seam toward the other; choosing one opens it
+   to full screen before the store loads.
+   Desktop: shoes left, clothing right. Phone (and any narrow window):
+   clothing on top, shoes below — the owner's call.
+   --split is the share of the first panel: the shoe panel's width side by
+   side, the clothing panel's height when stacked. --open drives the
+   opening sequence (the two photos part from the seam). */
+
+@property --split {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 50;
+}
+@property --open {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+/* The container that the @container rules below measure. A container
+   query can't style the container element itself, so all the state
+   (--split, data-enter, :has(:hover)) lives on .gw inside it. */
+.frame {
+  container: gw / size;
+  position: relative;
+  height: 100svh;
+  min-height: 520px;
+}
+
+.gw {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #0b0b0b;
+  color: #fff;
+  --split: 50;
+  --open: 1;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  transition: --split 0.9s var(--ease);
+}
+
+.side {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  z-index: 1;
+}
+.side:focus-visible {
+  outline: none;
+}
+.side:focus-visible .go {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+
+.shoe {
+  clip-path: inset(0 calc(100% - var(--split) * 1%) 0 calc(var(--split) * 1% * (1 - var(--open))));
+}
+.cloth {
+  clip-path: inset(0 calc((100% - var(--split) * 1%) * (1 - var(--open))) 0 calc(var(--split) * 1%));
+}
+
+/* Each photo is sized to its side's widest possible extent (the hover
+   state), anchored to its outer edge, so the seam slides over it instead of
+   squeezing it. */
+.ph {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 66%;
+  overflow: hidden;
+  transition:
+    width 0.9s var(--ease),
+    height 0.9s var(--ease);
+}
+.shoe .ph {
+  left: 0;
+}
+.cloth .ph {
+  right: 0;
+}
+.ph img {
+  transform: scale(1.02);
+  transition:
+    transform 1.6s var(--ease),
+    filter 0.7s ease;
+}
+.shoe .ph img {
+  object-position: 38% 70%;
+}
+.cloth .ph img {
+  object-position: 50% 28%;
+}
+.side::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.shoe::after {
+  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.18) 48%, rgb(0 0 0 / 0.42));
+}
+.cloth::after {
+  background: linear-gradient(to top, rgb(12 9 6 / 0.72), rgb(12 9 6 / 0.05) 50%, rgb(12 9 6 / 0.3));
+}
+/* No clothing photo uploaded yet: a plain light panel, dark type. */
+.cloth.plain {
+  background: #f3f3f1;
+  color: #111;
+}
+.cloth.plain::after {
+  display: none;
+}
+
+.cap {
+  position: absolute;
+  bottom: 7%;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  max-width: 34%;
+  transition: opacity 0.5s ease;
+}
+.shoe .cap {
+  left: 4.5%;
+}
+.cloth .cap {
+  right: 4.5%;
+  justify-items: end;
+  text-align: right;
+}
+.kicker {
+  font: 500 11px/1.3 var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+.title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(30px, 5.2cqw, 64px);
+  line-height: 0.95;
+}
+.shoe .title {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.cloth .title {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+.go {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  font: 500 12px/1.3 var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(currentColor, currentColor) left bottom / 0% 1px no-repeat;
+  transition: background-size 0.45s var(--ease);
+}
+.shoe .go {
+  background-image: linear-gradient(#ff3b2f, #ff3b2f);
+  background-size: 0% 3px;
+}
+.go i {
+  font-style: normal;
+  transition: transform 0.45s var(--ease);
+}
+
+.mark {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(84px, 19cqw, 280px);
+  line-height: 1;
+  transition: opacity 0.4s ease;
+}
+.mark span {
+  display: block;
+  width: 0.8em;
+  text-align: center;
+}
+.markShoe {
+  clip-path: inset(0 calc(100% - var(--split) * 1%) 0 0);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.markCloth {
+  clip-path: inset(0 0 0 calc(var(--split) * 1%));
+  font-weight: 300;
+  color: #f6f1e7;
+}
+.gw[data-plain="true"] .markCloth {
+  color: #111;
+}
+
+.seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  width: 1px;
+  pointer-events: none;
+  transform: translateX(calc(var(--split) * 1cqw - 0.5px));
+}
+.seam i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: rgb(255 255 255 / 0.75);
+  transform-origin: top;
+  transition: transform 0.6s var(--ease);
+}
+.gw[data-plain="true"] .seam i {
+  background: rgb(120 120 120 / 0.6);
+}
+
+/* mix-blend-mode keeps the language links legible over any photo or the
+   plain light panel without per-side colors. */
+.topbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  gap: 14px;
+  padding: 18px 4.5%;
+  font: 500 11px/1 var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff;
+  mix-blend-mode: difference;
+  transition: opacity 0.4s ease;
+}
+.topbar a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.7;
+  padding: 6px 0;
+}
+.topbar a[aria-current="true"],
+.topbar a:hover {
+  opacity: 1;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Custom cursor: a disc reading "Vào" in the colour of the side it's on.
+   Only with a real mouse, only on this page. */
+.cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  width: 92px;
+  height: 92px;
+  margin: -46px 0 0 -46px;
+  pointer-events: none;
+}
+.cursor span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font: 600 11px/1 var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transform: scale(0);
+  transition:
+    transform 0.35s var(--ease),
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+.cursor[data-side] span {
+  transform: scale(1);
+}
+.cursor[data-side="shoe"] span {
+  background: #e0261b;
+  color: #fff;
+}
+.cursor[data-side="cloth"] span {
+  background: #f6f1e7;
+  color: #111;
+}
+.gw[data-plain="true"] .cursor[data-side="cloth"] span {
+  background: #111;
+  color: #fff;
+}
+.fine .side {
+  cursor: none;
+}
+
+/* Side by side (desktop) */
+@container gw (min-width: 641px) {
+  @media (hover: hover) {
+    .gw:not([data-enter]):has(.shoe:hover) {
+      --split: 62;
+    }
+    .gw:not([data-enter]):has(.cloth:hover) {
+      --split: 38;
+    }
+    .gw:not([data-enter]):has(.shoe:hover) .shoe .ph img,
+    .gw:not([data-enter]):has(.cloth:hover) .cloth .ph img {
+      transform: scale(1.07);
+    }
+    .gw:not([data-enter]):has(.shoe:hover) .cloth .ph img,
+    .gw:not([data-enter]):has(.cloth:hover) .shoe .ph img {
+      filter: grayscale(1) brightness(0.55);
+    }
+    .gw:not([data-enter]):has(.shoe:hover) .cloth .cap,
+    .gw:not([data-enter]):has(.cloth:hover) .shoe .cap {
+      opacity: 0.35;
+    }
+    .side:hover .go {
+      background-size: 100% 1px;
+    }
+    .shoe:hover .go {
+      background-size: 100% 3px;
+    }
+    .side:hover .go i {
+      transform: translateX(5px);
+    }
+  }
+  .gw[data-enter="shoe"] {
+    --split: 100;
+  }
+  .gw[data-enter="cloth"] {
+    --split: 0;
+  }
+  .gw[data-enter] .ph {
+    width: 100%;
+  }
+}
+
+/* Stacked (phones): clothing on top, shoes below */
+@container gw (max-width: 640px) {
+  .cloth {
+    clip-path: inset(calc(var(--split) * 1% * (1 - var(--open))) 0 calc(100% - var(--split) * 1%) 0);
+  }
+  .shoe {
+    clip-path: inset(calc(var(--split) * 1%) 0 calc((100% - var(--split) * 1%) * (1 - var(--open))) 0);
+  }
+  .ph {
+    top: auto;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 53%;
+  }
+  .cloth .ph {
+    top: 0;
+  }
+  .shoe .ph {
+    bottom: 0;
+  }
+  .cloth .ph img {
+    object-position: 50% 6%;
+  }
+  .shoe .ph img {
+    object-position: 40% 62%;
+  }
+  .cloth .cap {
+    top: 60px;
+    bottom: auto;
+    left: 20px;
+    right: auto;
+    max-width: 75%;
+    justify-items: start;
+    text-align: left;
+  }
+  .shoe .cap {
+    right: 20px;
+    left: auto;
+    bottom: 28px;
+    max-width: 75%;
+    justify-items: end;
+    text-align: right;
+  }
+  .mark {
+    font-size: 25cqw;
+  }
+  .markCloth {
+    clip-path: inset(0 0 calc(100% - var(--split) * 1%) 0);
+  }
+  .markShoe {
+    clip-path: inset(calc(var(--split) * 1%) 0 0 0);
+  }
+  .seam {
+    top: 0;
+    bottom: auto;
+    right: 0;
+    width: auto;
+    height: 1px;
+    transform: translateY(calc(var(--split) * 1cqh - 0.5px));
+  }
+  .seam i {
+    transform-origin: left;
+  }
+  .gw[data-enter="shoe"] {
+    --split: 0;
+  }
+  .gw[data-enter="cloth"] {
+    --split: 100;
+  }
+  .gw[data-enter] .ph {
+    height: 100%;
+  }
+}
+
+.gw[data-enter] .mark,
+.gw[data-enter] .topbar,
+.gw[data-enter] .cap {
+  opacity: 0;
+}
+.gw[data-enter] .seam {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.gw[data-enter] .ph img {
+  filter: none;
+  transform: scale(1);
+}
+
+/* Opening sequence, on every visit: the seam draws, the photos part from
+   it, the letters rise, then the captions. `backwards` fill so hover and
+   enter states take over normally once it's done. */
+@media (prefers-reduced-motion: no-preference) {
+  .gw {
+    animation: gwOpen 1.15s var(--ease) 0.45s backwards;
+  }
+  .seam i {
+    animation: gwSeamY 0.8s var(--ease) backwards;
+  }
+  .mark span {
+    animation: gwRise 1s var(--ease) backwards;
+    animation-delay: calc(0.75s + var(--i) * 80ms);
+  }
+  .cap,
+  .topbar {
+    animation: gwFade 0.8s var(--ease) 1.15s backwards;
+  }
+  @container gw (max-width: 640px) {
+    .seam i {
+      animation-name: gwSeamX;
+    }
+  }
+}
+@keyframes gwOpen {
+  from {
+    --open: 0;
+  }
+  to {
+    --open: 1;
+  }
+}
+@keyframes gwSeamY {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes gwSeamX {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes gwRise {
+  from {
+    opacity: 0;
+    transform: translateY(38%);
+  }
+}
+@keyframes gwFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw,
+  .gw * {
+    transition-duration: 0s !important;
+  }
+}
