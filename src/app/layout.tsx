@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
+import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker, Cormorant, Montserrat } from "next/font/google";
 import { site } from "@/lib/site-config";
 import { siteUrlForDepartment } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
@@ -27,6 +27,24 @@ const permanentMarker = Permanent_Marker({
   variable: "--font-logo",
   subsets: ["latin"],
   weight: "400",
+});
+
+// Clothing storefront's serif/sans pair (quiet-luxury retheme — see
+// globals.css's `[data-department="clothing"]` block, which re-points
+// --font-display/--font-body at these instead of the shoe fonts above).
+// Distinct variable names so both pairs can be loaded side by side without
+// colliding; only the active department's classes are applied to <html>
+// below, so a given request's HTML never references the unused pair.
+const cormorant = Cormorant({
+  variable: "--font-display-clothing",
+  subsets: ["latin", "vietnamese"],
+  weight: ["500", "600", "700"],
+});
+
+const montserrat = Montserrat({
+  variable: "--font-body-clothing",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600"],
 });
 
 const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
@@ -79,6 +97,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const settings = await getSiteSettings();
+  // Already dynamic regardless: generateMetadata above calls getDepartment()
+  // too, which forces this route to render per-request — so this second
+  // call doesn't add any caching cost beyond what's already paid.
+  const department = await getDepartment();
+  const fontVariables =
+    department === "CLOTHING"
+      ? `${cormorant.variable} ${montserrat.variable}`
+      : `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
 
   return (
     // Deliberately hardcoded rather than getLocale() — that call falls back
@@ -92,7 +118,8 @@ export default async function RootLayout({
     // hardcoded Vietnamese regardless of visitor locale).
     <html
       lang="vi"
-      className={`${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable} h-full antialiased`}
+      data-department={department.toLowerCase()}
+      className={`${fontVariables} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
         {children}

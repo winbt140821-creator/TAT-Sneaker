@@ -20,6 +20,41 @@
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 14px 28px -12px rgb(0 0 0 / 0.22);
 }
 
+/* quanao.tatsneaker.vn (clothing) retheme — a distinct "quiet luxury"
+   palette (warm off-white, near-black ink, gold accent) and serif/sans
+   pairing instead of the shoe site's kraft-paper/mono-uppercase look.
+   Every component still just uses bg-kraft/text-forest/font-display/etc.
+   as before — overriding what those tokens resolve to here is enough to
+   retheme the whole site with zero component changes, since @theme inline
+   below re-points every Tailwind utility at these same CSS variables
+   rather than inlining a literal color at build time. data-department is
+   set on <html> in src/app/layout.tsx. font-display-clothing/
+   font-body-clothing are the Cormorant/Montserrat variables loaded there.
+   Deliberately `html[data-department=...]`, not `:root[data-department=...]`
+   — verified that Tailwind v4's build pipeline silently drops a second
+   `:root`-selector block of --color-* custom properties (only the plain
+   `:root { ... }` block above survives into the compiled CSS); scoping to
+   the `html` element tag instead of the `:root` pseudo-class sidesteps
+   whatever dedup/theme-extraction step was doing that, while still
+   targeting the exact same element. */
+html[data-department="clothing"] {
+  --color-kraft: #faf9f7;
+  --color-kraft-dark: #d6d3d1;
+  --color-ink: #1c1917;
+  --color-ink-soft: #44403c;
+  --color-forest: #a16207;
+  --color-forest-dark: #854d0e;
+  --color-stamp: #b91c1c;
+  --color-graphite: #78716c;
+
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.05), 0 8px 20px -12px rgb(28 25 23 / 0.18);
+  --shadow-card-hover: 0 2px 4px rgb(28 25 23 / 0.07), 0 16px 32px -14px rgb(28 25 23 / 0.24);
+
+  --font-display: var(--font-display-clothing);
+  --font-body: var(--font-body-clothing);
+  --font-logo: var(--font-display-clothing);
+}
+
 @theme inline {
   --color-kraft: var(--color-kraft);
   --color-kraft-dark: var(--color-kraft-dark);
