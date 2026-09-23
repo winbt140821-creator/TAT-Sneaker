@@ -19,19 +19,16 @@
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -10px rgb(0 0 0 / 0.16);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 14px 28px -12px rgb(0 0 0 / 0.22);
 
-  /* Shoe site's font-mono utility has always literally been its display
-     font (bold uppercase sneaker-drop labels read fine that way). Declared
-     as its own custom property, rather than inlined directly in the
-     @theme block below, so the clothing scope below can independently
-     repoint it to a real monospace without touching this line. */
-  --font-mono: var(--font-display);
+  /* font-mono is used all over for small uppercase labels and prices. It
+     points at the body grotesque (Inter Tight): those labels need to stay
+     crisp at 10–12px, which the Didone display face can't do. */
+  --font-mono: var(--font-body);
 }
 
 /* tatsneaker.vn/quan-ao (clothing) retheme.
    Direction: taken from the live COS and Zara storefronts rather than an
    invented concept — stark white page, black type, hairline grey rules,
-   no accent colour at all (buttons are black), no drop shadows, and one
-   neutral grotesque for every piece of UI. Photography carries the brand;
+   no accent colour at all (buttons are black), no drop shadows. Photography carries the brand;
    the chrome around it stays out of the way. Red is kept only for sale
    prices and genuine alerts, which is also what those sites do.
    Every component still just uses bg-kraft/text-forest/font-display/etc.
@@ -40,8 +37,7 @@
    below re-points every Tailwind utility at these same CSS variables
    rather than inlining a literal color at build time. data-department is
    set on <html> in src/app/layout.tsx. Fonts are shared with the shoe
-   store; font-mono deliberately maps to the body face here so small
-   uppercase labels read as plain refined caps.
+   store.
    Deliberately `html[data-department=...]`, not `:root[data-department=...]`
    — verified that Tailwind v4's build pipeline silently drops a second
    `:root`-selector block of --color-* custom properties (only the plain
@@ -63,19 +59,13 @@ html[data-department="clothing"] {
   --shadow-card: none;
   --shadow-card-hover: none;
 
-  /* Same type family as the shoe store (owner's call: one brand, one set of
-     fonts). Clothing differs by how it's set, not by which font: the
-     display face runs light, and small labels use the plain body face
-     instead of the shoe store's bold display caps. */
+  /* Fonts are shared with the shoe store (see src/app/layout.tsx). */
   --font-logo: var(--font-display);
-  --font-mono: var(--font-body);
 }
 
-/* The shoe store's .font-display defaults to bold; clothing headings run
-   light (Be Vietnam Pro 300, loaded in src/app/layout.tsx). */
+/* Clothing headings run a step lighter than the shoe store's. */
 html[data-department="clothing"] .font-display {
   font-weight: 300;
-  letter-spacing: -0.01em;
 }
 
 /* Clothing drops the shoe site's rounded card chrome entirely — COS/Zara
@@ -131,11 +121,12 @@ body {
   }
 }
 
-/* Be Vietnam Pro is a variable-weight family (unlike the old Archivo Black,
-   which was inherently bold at its only weight) — default it to bold here so
-   every heading doesn't need its own font-weight utility. */
+/* Headings: Noto Serif Display, regular weight. A Didone reads as
+   expensive when it's light and large, and as a tabloid masthead when it's
+   bold — so no heading is bold, in either store. */
 .font-display {
-  font-weight: 700;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* clean bordered card — thin hairline border, soft shadow, no texture */

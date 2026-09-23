@@ -1,6 +1,6 @@
 /* The tatsneaker.vn gateway: one screen split between the two stores, with
-   the TAT wordmark cut in two by the seam — heavy on the shoe side, light on
-   the clothing side, the same weights each store sets its own type in.
+   the TAT wordmark cut in two by the seam — the same Didone both stores use,
+   bold on the shoe side and hairline-light on the clothing side.
    Hovering a side slides the seam toward the other; choosing one opens it
    to full screen before the store loads.
    Desktop: shoes left, clothing right. Phone (and any narrow window):
@@ -142,13 +142,13 @@
   opacity: 0.82;
 }
 .title {
-  font-family: var(--font-display), system-ui, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(30px, 5.2cqw, 64px);
   line-height: 0.95;
 }
 .shoe .title {
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 .cloth .title {
@@ -184,7 +184,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  font-family: var(--font-display), system-ui, sans-serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(84px, 19cqw, 280px);
   line-height: 1;
   transition: opacity 0.4s ease;
@@ -196,8 +196,7 @@
 }
 .markShoe {
   clip-path: inset(0 calc(100% - var(--split) * 1%) 0 0);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
   color: #fff;
 }
 .markCloth {

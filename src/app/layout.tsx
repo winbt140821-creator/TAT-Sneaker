@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Noto_Sans, Permanent_Marker } from "next/font/google";
+import { Noto_Serif_Display, Inter_Tight, Permanent_Marker } from "next/font/google";
 import { site } from "@/lib/site-config";
 import { SITE_URL } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
@@ -9,23 +9,28 @@ import { MetaPixel } from "@/components/MetaPixel";
 import { DepartmentProvider } from "@/i18n/navigation";
 import "./globals.css";
 
-const beVietnamPro = Be_Vietnam_Pro({
+// One type system for both stores (owner's pick, Sept 2026: the clothing
+// store's): a high-contrast Didone for headings and one neutral grotesque
+// for everything else — nav, labels, prices, body. The way COS and Zara set
+// type. Noto Serif Display rather than Bodoni Moda, which has no Vietnamese
+// subset (every diacritic would fall back to another font mid-word).
+// Headings run light (300/400, see .font-display in globals.css); 700 is
+// only for the heavy half of the gateway wordmark. Browsers download only
+// the weights a page actually renders.
+const notoSerifDisplay = Noto_Serif_Display({
   variable: "--font-display",
   subsets: ["latin", "vietnamese"],
-  // 300 is only used by the clothing store's light headings (globals.css);
-  // browsers only download the weights a page actually renders.
-  weight: ["300", "500", "600", "700", "800"],
+  weight: ["300", "400", "700"],
 });
 
-const notoSans = Noto_Sans({
+const interTight = Inter_Tight({
   variable: "--font-body",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 // Marker/brush display face used only by BrandLogo's wordmark, matching the
-// hand-drawn sticker style of the reference logo — Be Vietnam Pro has no
-// weight that reads as "hand-drawn".
+// hand-drawn sticker style of the reference logo.
 const permanentMarker = Permanent_Marker({
   variable: "--font-logo",
   subsets: ["latin"],
@@ -86,10 +91,8 @@ export default async function RootLayout({
   // too, which forces this route to render per-request — so this second
   // call doesn't add any caching cost beyond what's already paid.
   const department = await getDepartment();
-  // Both stores share one type family (owner's call, Sept 2026) — the
-  // clothing store sets it lighter and more widely spaced instead (see the
-  // clothing block in globals.css).
-  const fontVariables = `${beVietnamPro.variable} ${notoSans.variable} ${permanentMarker.variable}`;
+  // Both stores share one type system (see the font loaders above).
+  const fontVariables = `${notoSerifDisplay.variable} ${interTight.variable} ${permanentMarker.variable}`;
 
   return (
     // Deliberately hardcoded rather than getLocale() — that call falls back

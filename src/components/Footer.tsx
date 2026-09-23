@@ -257,7 +257,7 @@ export async function Footer() {
           ))}
 
           <div className="order-5 col-span-2 sm:order-1 md:col-span-1">
-            <p className="font-display text-xl font-bold uppercase text-paper">{site.name}</p>
+            <p className="font-display text-xl uppercase tracking-[0.08em] text-paper">{site.name}</p>
 
             {settings?.footerAbout && (
               <p className="mt-2 max-w-xs font-body text-xs leading-relaxed text-kraft">
