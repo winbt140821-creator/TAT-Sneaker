@@ -3,7 +3,7 @@ import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { OrderStatus } from "@/generated/prisma/client";
-import { ORDER_STATUS_LABEL as STATUS_LABEL } from "@/lib/order-status";
+import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { attributionLabel } from "@/lib/order-attribution";
 import {
   updateOrderStatusAction,
@@ -219,9 +219,18 @@ export default async function AdminOrderDetailPage({
         </div>
 
         <div className="die-cut h-fit bg-paper p-4">
-          <p className="font-mono text-xs uppercase tracking-wide text-graphite">Trạng thái</p>
+          <p className="flex items-center justify-between gap-2 font-mono text-xs uppercase tracking-wide text-graphite">
+            Trạng thái
+            <span className={`px-2 py-0.5 text-[10px] ${STATUS_STYLE[order.status]}`}>{STATUS_LABEL[order.status]}</span>
+          </p>
           <form action={updateOrderStatusAction.bind(null, order.id)} className="mt-2 flex flex-col gap-3">
+            {/* Keyed on the saved status: React 19 resets a form after its
+                action runs, and a <select> resets to the defaultValue it was
+                first rendered with (React never updates it afterwards) — so
+                without the remount the dropdown snapped back to the old
+                status after saving, until the page was reloaded. */}
             <select
+              key={order.status}
               name="status"
               defaultValue={order.status}
               className="die-cut-flat bg-paper px-3 py-2 text-sm text-ink"

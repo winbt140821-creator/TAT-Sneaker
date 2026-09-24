@@ -41,7 +41,10 @@ export default async function AdminSettingsPaymentsPage() {
         </p>
 
         <form action={updateBankTransferInfoAction} className="mt-6 flex max-w-md flex-col gap-4">
+          {/* Keyed so it shows the saved bank after "Lưu" — see the same fix
+              on the order status select (admin/orders/[id]). */}
           <SelectField
+            key={bankBinDefault}
             id="bankBin"
             name="bankBin"
             label="Ngân hàng"
