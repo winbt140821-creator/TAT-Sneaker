@@ -8,6 +8,7 @@ import { autoCancelStaleOrders } from "@/lib/order-cleanup";
 import { getAdminStore, orderStoreWhere, STORE_LABEL } from "@/lib/admin-store";
 import { FOOTER_PAGES } from "@/lib/footer-pages";
 import { getLiveExchangeRates } from "@/lib/fx";
+import { getSiteSettings } from "@/lib/settings";
 import type { Department } from "@/lib/inventory";
 import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { OrderStatus } from "@/generated/prisma/client";
@@ -90,7 +91,7 @@ export default async function AdminDashboardPage() {
   // extra round trip before the real queries even start is pure added
   // latency against a remote (Turso) database. A stale order that gets
   // cancelled mid-render just shows its old status until the next reload.
-  const [, stats, todosByStore, existingPages, statusCounts, recentOrders, rates, socialAccounts] = await Promise.all([
+  const [, stats, todosByStore, existingPages, statusCounts, recentOrders, rates, socialAccounts, settings] = await Promise.all([
     autoCancelStaleOrders(),
     Promise.all(departments.map((d) => storeStats(d, startOfToday, startOfMonth, now))),
     Promise.all(departments.map(storeTodos)),
@@ -104,12 +105,20 @@ export default async function AdminDashboardPage() {
     }),
     getLiveExchangeRates(),
     prisma.socialAccount.findMany({ select: { platform: true, name: true, connectedAt: true } }),
+    getSiteSettings(),
   ]);
 
   const existing = new Set(existingPages.map((p) => p.slug));
   // Outside services the shop depends on, checked on every visit here so a
   // failure shows up before a customer runs into it.
   const serviceTodos: Todo[] = [];
+  if (settings?.ordersPaused) {
+    serviceTodos.push({
+      text: "Đang tạm dừng nhận đơn — khách không đặt hàng được ở cả hai cửa hàng.",
+      href: "/admin/settings/thanh-toan",
+      action: "Mở lại",
+    });
+  }
   if (!rates.usdExchangeRate) {
     serviceTodos.push({
       text: "Không lấy được tỷ giá USD từ cả hai nguồn — khách quốc tế tạm thời không thanh toán PayPal được. Thường tự hết sau vài phút.",

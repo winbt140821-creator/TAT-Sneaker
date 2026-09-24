@@ -12,6 +12,7 @@ import {
   updateCodOptionAction,
   updateAutoCancelHoursAction,
   updateAutoCancelCodHoursAction,
+  setOrdersPausedAction,
 } from "../actions";
 
 function formatRate(rate: number | null) {
@@ -29,8 +30,36 @@ export default async function AdminSettingsPaymentsPage() {
     VIETQR_BANKS.find((b) => b.name.toLowerCase() === settings?.bankName?.toLowerCase())?.bin ??
     "";
 
+  const ordersPaused = settings?.ordersPaused ?? false;
+
   return (
     <div className="flex flex-col gap-10">
+      <section
+        className={"die-cut-flat p-5 " + (ordersPaused ? "border-stamp bg-stamp/5" : "bg-paper")}
+        aria-live="polite"
+      >
+        <h2 className="font-display text-xl text-ink">Nhận đơn hàng</h2>
+        <p className="mt-2 font-body text-sm text-ink">
+          {ordersPaused ? (
+            <>
+              <span className="font-semibold text-stamp">Đang tạm dừng.</span> Khách vẫn xem web và thêm vào
+              giỏ, nhưng không đặt hàng được ở cả hai cửa hàng.
+            </>
+          ) : (
+            "Đang nhận đơn bình thường ở cả hai cửa hàng."
+          )}
+        </p>
+        <p className="mt-1 font-mono text-xs text-graphite">
+          Chỉ tạm dừng khi bảo trì, ví dụ lúc chuyển máy chủ. Nhớ mở lại ngay khi xong.
+        </p>
+        <form action={setOrdersPausedAction} className="mt-4">
+          {!ordersPaused && <input type="hidden" name="ordersPaused" value="on" />}
+          <SubmitButton pendingLabel={ordersPaused ? "Đang mở lại..." : "Đang tạm dừng..."}>
+            {ordersPaused ? "Mở lại nhận đơn" : "Tạm dừng nhận đơn"}
+          </SubmitButton>
+        </form>
+      </section>
+
       <div>
         <h2 className="font-display text-xl text-ink">Chuyển khoản ngân hàng</h2>
         <p className="mt-1 font-mono text-xs text-graphite">

@@ -63,6 +63,7 @@ export function CheckoutForm({
   defaultAddress,
   usdExchangeRate,
   cnyExchangeRate,
+  ordersPaused = false,
 }: {
   isLoggedIn: boolean;
   bankName?: string | null;
@@ -77,6 +78,7 @@ export function CheckoutForm({
   defaultAddress?: CheckoutDefaultAddress | null;
   usdExchangeRate?: number | null;
   cnyExchangeRate?: number | null;
+  ordersPaused?: boolean;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -860,6 +862,11 @@ export function CheckoutForm({
           </div>
         </div>
 
+        {ordersPaused && !error && (
+          <p role="status" className="mt-4 border border-stamp px-3 py-2 font-body text-sm text-stamp">
+            {t("ordersPaused")}
+          </p>
+        )}
         {error && (
           <p role="alert" className="mt-4 font-mono text-xs text-stamp">
             {error}
@@ -868,7 +875,7 @@ export function CheckoutForm({
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || ordersPaused}
           className="mt-4 w-full cursor-pointer bg-forest px-5 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? t("submitting") : t("submit")}

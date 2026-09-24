@@ -293,7 +293,8 @@
     "payInFullNoteOnline": "下单后将立即跳转至支付页面。",
     "noteCod": "货到付款（COD）。发货前工作人员会致电确认。",
     "submit": "提交订单",
-    "submitting": "处理中..."
+    "submitting": "处理中...",
+    "ordersPaused": "本店正在进行几分钟的维护，暂时无法下单。您的购物车已保存，请稍后再试。"
   },
   "order": {
     "breadcrumb": "订单",

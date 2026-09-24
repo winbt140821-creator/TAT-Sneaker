@@ -229,6 +229,11 @@ model SiteSettings {
   // semantics as autoCancelUnpaidDepositHours. See src/lib/order-cleanup.ts.
   autoCancelUnpaidCodHours Int?
 
+  // Admin switch (Cài đặt → Thanh toán) that stops checkout from creating
+  // orders while the site stays browsable — used for maintenance such as
+  // moving the database, when a new order would land in the wrong copy.
+  ordersPaused Boolean @default(false)
+
   // Manual bank transfer — no bank API integration, customer transfers by
   // hand using this info, staff confirms receipt manually (same pattern as
   // the VNPay/PayPal QR flow above).

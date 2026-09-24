@@ -1,12 +1,17 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { getBankByBin } from "@/lib/vietqr-banks";
 import type { Department } from "@/lib/inventory";
 
+// updateTag on top of the paths: getSiteSettings/getBranding sit behind a
+// 60s unstable_cache, and revalidatePath alone left the admin page (and the
+// checkout notice) showing the old value until that expired.
 function revalidateSettings() {
+  updateTag("site-settings");
+  updateTag("storefront-branding");
   revalidatePath("/admin/settings", "layout");
   revalidatePath("/");
 }
@@ -254,4 +259,18 @@ export async function updateDefaultProductDescriptionAction(formData: FormData):
   });
 
   revalidateSettings();
+}
+
+export async function setOrdersPausedAction(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const ordersPaused = formData.get("ordersPaused") === "on";
+  await prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { ordersPaused },
+    create: { id: "singleton", ordersPaused },
+  });
+
+  revalidateSettings();
+  revalidatePath("/admin");
 }

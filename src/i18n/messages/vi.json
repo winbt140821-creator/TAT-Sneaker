@@ -293,7 +293,8 @@
     "payInFullNoteOnline": "Bạn sẽ được chuyển đến trang thanh toán ngay sau khi đặt hàng.",
     "noteCod": "Thanh toán khi nhận hàng (COD). Nhân viên sẽ gọi xác nhận trước khi giao.",
     "submit": "Đặt hàng",
-    "submitting": "Đang xử lý..."
+    "submitting": "Đang xử lý...",
+    "ordersPaused": "Cửa hàng đang bảo trì vài phút nên tạm chưa nhận đơn. Giỏ hàng của bạn vẫn được giữ, vui lòng quay lại sau ít phút."
   },
   "order": {
     "breadcrumb": "Đơn hàng",

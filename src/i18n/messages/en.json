@@ -293,7 +293,8 @@
     "payInFullNoteOnline": "You'll be redirected to the payment page right after placing the order.",
     "noteCod": "Cash on delivery (COD). Our staff will call to confirm before shipping.",
     "submit": "Place order",
-    "submitting": "Processing..."
+    "submitting": "Processing...",
+    "ordersPaused": "We are doing a few minutes of maintenance and can’t take orders right now. Your cart is saved, so please try again shortly."
   },
   "order": {
     "breadcrumb": "Order",

@@ -56,6 +56,13 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   if (!(await checkRateLimit(`createOrder:${ip}`, 5, 10 * 60 * 1000))) {
     return { error: "Bạn đã đặt quá nhiều đơn trong thời gian ngắn. Vui lòng thử lại sau ít phút." };
   }
+  // Read fresh, not through the 60s-cached getSiteSettings(): during
+  // maintenance an order placed a minute after pausing would land in the
+  // database copy that is about to be retired.
+  const paused = await prisma.siteSettings.findUnique({ where: { id: "singleton" }, select: { ordersPaused: true } });
+  if (paused?.ordersPaused) {
+    return { error: "Cửa hàng đang bảo trì vài phút nên tạm chưa nhận đơn. Giỏ hàng của bạn vẫn được giữ, vui lòng thử lại sau ít phút." };
+  }
 
   const customerName = input.customerName.trim();
   const customerPhone = input.customerPhone.trim();

@@ -65,6 +65,7 @@ export default async function CheckoutPage() {
             defaultAddress={defaultAddress}
             usdExchangeRate={rates.usdExchangeRate}
             cnyExchangeRate={rates.cnyExchangeRate}
+            ordersPaused={settings?.ordersPaused ?? false}
           />
         </div>
       </main>
