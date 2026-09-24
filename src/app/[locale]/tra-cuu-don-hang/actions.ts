@@ -17,7 +17,7 @@ export async function lookupGuestOrderAction(input: {
   email: string;
 }): Promise<OrderLookupResult> {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`lookupOrder:${ip}`, 10, 10 * 60 * 1000)) {
+  if (!(await checkRateLimit(`lookupOrder:${ip}`, 10, 10 * 60 * 1000))) {
     return { error: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau ít phút." };
   }
 

@@ -282,6 +282,18 @@ a:focus-visible > .link-draw {
   }
 }
 
+/* Phones: while the product page's buy bar is up (MobileBuyBar), the shoe
+   store's floating scroll-to-top button steps up so it doesn't cover the
+   bar's button. */
+.floating-actions {
+  transition: transform 0.3s var(--ease-out-soft);
+}
+@media (max-width: 1023px) {
+  body[data-buybar="on"] .floating-actions {
+    transform: translateY(-4.5rem);
+  }
+}
+
 /* Bag count pops when something is added. */
 @keyframes cart-bump {
   40% {

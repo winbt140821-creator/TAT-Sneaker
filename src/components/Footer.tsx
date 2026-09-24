@@ -297,7 +297,7 @@ export async function Footer() {
 
       <nav
         aria-label={t("socialTitle")}
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-graphite/40 bg-ink sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-graphite/40 bg-ink pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
         {messengerLink ? (
           <a

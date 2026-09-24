@@ -199,6 +199,7 @@ export default async function ProductDetailPage({
                   productId={product.id}
                   productName={product.name}
                   price={product.price}
+                  priceLabel={price}
                   sizeQuantities={product.sizeQuantities}
                   availability={product.availability}
                   leadTimeMinDays={product.leadTimeMinDays}
@@ -370,6 +371,7 @@ export default async function ProductDetailPage({
                 productId={product.id}
                 productName={product.name}
                 price={product.price}
+                priceLabel={price}
                 sizeQuantities={product.sizeQuantities}
                 availability={product.availability}
                 leadTimeMinDays={product.leadTimeMinDays}

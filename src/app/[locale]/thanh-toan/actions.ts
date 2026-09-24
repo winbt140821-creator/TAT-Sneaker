@@ -53,7 +53,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // against a bot spamming unpaid COD orders to drain stock — a genuine
   // shopper placing several orders in ten minutes is not what this catches.
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkRateLimit(`createOrder:${ip}`, 5, 10 * 60 * 1000)) {
+  if (!(await checkRateLimit(`createOrder:${ip}`, 5, 10 * 60 * 1000))) {
     return { error: "Bạn đã đặt quá nhiều đơn trong thời gian ngắn. Vui lòng thử lại sau ít phút." };
   }
 

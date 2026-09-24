@@ -120,7 +120,8 @@
     "wishlistRemove": "取消收藏",
     "share": "分享商品",
     "shareCopied": "已复制商品链接。",
-    "added": "已加入购物车"
+    "added": "已加入购物车",
+    "close": "关闭"
   },
   "productDetail": {
     "promo1": "上架前经过 3 道验货工序",

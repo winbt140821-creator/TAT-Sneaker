@@ -7,6 +7,7 @@ import { getStockSummary } from "@/lib/stock-summary";
 import { autoCancelStaleOrders } from "@/lib/order-cleanup";
 import { getAdminStore, orderStoreWhere, STORE_LABEL } from "@/lib/admin-store";
 import { FOOTER_PAGES } from "@/lib/footer-pages";
+import { getLiveExchangeRates } from "@/lib/fx";
 import type { Department } from "@/lib/inventory";
 import { ORDER_STATUS_LABEL as STATUS_LABEL, ORDER_STATUS_STYLE as STATUS_STYLE } from "@/lib/order-status";
 import { OrderStatus } from "@/generated/prisma/client";
@@ -89,7 +90,7 @@ export default async function AdminDashboardPage() {
   // extra round trip before the real queries even start is pure added
   // latency against a remote (Turso) database. A stale order that gets
   // cancelled mid-render just shows its old status until the next reload.
-  const [, stats, todosByStore, existingPages, statusCounts, recentOrders] = await Promise.all([
+  const [, stats, todosByStore, existingPages, statusCounts, recentOrders, rates, socialAccounts] = await Promise.all([
     autoCancelStaleOrders(),
     Promise.all(departments.map((d) => storeStats(d, startOfToday, startOfMonth, now))),
     Promise.all(departments.map(storeTodos)),
@@ -101,10 +102,32 @@ export default async function AdminDashboardPage() {
       take: 5,
       include: { items: { select: { price: true, quantity: true, product: { select: { department: true } } } } },
     }),
+    getLiveExchangeRates(),
+    prisma.socialAccount.findMany({ select: { platform: true, name: true, connectedAt: true } }),
   ]);
 
   const existing = new Set(existingPages.map((p) => p.slug));
+  // Outside services the shop depends on, checked on every visit here so a
+  // failure shows up before a customer runs into it.
+  const serviceTodos: Todo[] = [];
+  if (!rates.usdExchangeRate) {
+    serviceTodos.push({
+      text: "Không lấy được tỷ giá USD từ cả hai nguồn — khách quốc tế tạm thời không thanh toán PayPal được. Thường tự hết sau vài phút.",
+      href: "/admin",
+      action: "Kiểm tra lại",
+    });
+  }
+  // Page tokens from the connect flow last about 60 days (see SocialAccount).
+  const staleAfter = now.getTime() - 50 * 24 * 60 * 60 * 1000;
+  for (const a of socialAccounts.filter((a) => a.connectedAt.getTime() < staleAfter)) {
+    serviceTodos.push({
+      text: `Kết nối ${a.platform === "FACEBOOK" ? "Facebook" : "Instagram"} "${a.name}" đã hơn 50 ngày — quyền đăng bài thường hết hạn sau khoảng 60 ngày. Kết nối lại để bài hẹn giờ không bị lỗi.`,
+      href: "/admin/social",
+      action: "Kết nối lại",
+    });
+  }
   const todos: Todo[] = [
+    ...serviceTodos,
     ...stats
       .filter((s) => s.pendingOrders > 0)
       .map((s) => ({

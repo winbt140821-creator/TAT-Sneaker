@@ -16,11 +16,13 @@ import { BagIcon } from "@/components/icons";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { WishlistButton } from "./WishlistButton";
 import { ShareButton } from "./ShareButton";
+import { MobileBuyBar } from "./MobileBuyBar";
 
 export function ProductActions({
   productId,
   productName,
   price,
+  priceLabel,
   sizeQuantities,
   availability,
   leadTimeMinDays,
@@ -30,6 +32,8 @@ export function ProductActions({
   productId: string;
   productName: string;
   price: number;
+  /** price as displayed on the page (locale currency), for the phone buy bar */
+  priceLabel: string;
   sizeQuantities: Record<string, number>;
   availability: "IN_STOCK" | "PREORDER";
   leadTimeMinDays: number;
@@ -49,6 +53,9 @@ export function ProductActions({
   const [added, setAdded] = useState(false);
   const addedTimer = useRef<number>(undefined);
   useEffect(() => () => window.clearTimeout(addedTimer.current), []);
+  // The on-page size picker and buttons; the phone buy bar shows while
+  // they're off screen.
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   const availableQty = selectedSize != null ? getQuantityForSize(sizeQuantities, selectedSize) : null;
   const carriedSizes = getCarriedSizes(sizeQuantities, department);
@@ -89,12 +96,31 @@ export function ProductActions({
     router.push("/thanh-toan");
   }
 
+  const buyBar = (
+    <MobileBuyBar
+      anchor={actionsRef}
+      department={department}
+      productName={productName}
+      priceLabel={priceLabel}
+      sizes={carriedSizes.map((s) => ({
+        size: s,
+        disabled: availability === "IN_STOCK" && getQuantityForSize(sizeQuantities, s) <= 0,
+      }))}
+      selectedSize={selectedSize}
+      onPickSize={pickSize}
+      onAdd={handleAddToCart}
+      added={added}
+      labels={{ chooseSize: t("chooseSize"), addToCart: t("addToCart"), added: t("added"), close: t("close") }}
+    />
+  );
+
   if (department === "CLOTHING") {
     // Purchase block as COS/Zara lay it out: wide square size boxes, one
     // full-width black "add to bag" as the primary action, the secondary
     // one outlined underneath — no side-by-side button cluster.
     return (
-      <div className="mt-8 flex flex-col gap-6">
+      <div ref={actionsRef} className="mt-8 flex flex-col gap-6">
+        {buyBar}
         <fieldset>
           <legend className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink">{t("chooseSize")}</legend>
           <ul className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5" aria-label={t("chooseSize")}>
@@ -186,7 +212,8 @@ export function ProductActions({
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-4">
+    <div ref={actionsRef} className="mt-6 flex flex-col gap-4">
+      {buyBar}
       <fieldset>
         <legend className="font-mono text-xs uppercase tracking-wide text-graphite">{t("size")}</legend>
         <ul className="mt-2 flex flex-wrap gap-2" aria-label={t("chooseSize")}>

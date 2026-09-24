@@ -18,7 +18,7 @@ export async function FloatingActions() {
   const byPlatform = new Map(links.map((l) => [l.platform.toLowerCase(), l]));
 
   return (
-    <div className="fixed bottom-20 right-4 z-30 flex flex-col items-center gap-3 sm:bottom-4">
+    <div className="floating-actions fixed bottom-20 right-4 z-30 flex flex-col items-center gap-3 sm:bottom-4">
       <ScrollToTopButton />
       {/* Messenger/Zalo bubbles are redundant on mobile — the fixed bottom
           nav bar in Footer.tsx already covers those. Desktop-only here. */}

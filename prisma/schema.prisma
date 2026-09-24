@@ -16,7 +16,7 @@ enum StaffRole {
 }
 
 // Distinguishes the two storefronts sharing this database/admin
-// (tatsneaker.vn = SHOES, quanao.tatsneaker.vn = CLOTHING). Defaults to
+// (tatsneaker.vn/giay = SHOES, tatsneaker.vn/quan-ao = CLOTHING). Defaults to
 // SHOES everywhere so every pre-existing row keeps behaving exactly as
 // before this was added.
 enum Department {
@@ -568,4 +568,16 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+// Request counters for abuse limits on public actions (placing orders,
+// looking up orders), shared by every server instance — the in-memory
+// counters these replace reset on each cold start and weren't shared
+// between instances. One row per action + client IP; see src/lib/rate-limit.ts.
+model RateLimit {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+
+  @@index([windowStart])
 }
