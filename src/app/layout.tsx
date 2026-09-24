@@ -37,7 +37,42 @@ const permanentMarker = Permanent_Marker({
   weight: "400",
 });
 
-const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
+// Moving between the two stores is a full page load (see Link in
+// src/i18n/store-navigation.tsx), which the browser can animate as a
+// cross-document view transition (enabled in globals.css). This tags that
+// transition "to-clothing" / "to-shoes" so globals.css can play the store
+// wipe for store switches only. It has to run before the new page's first
+// frame — pagereveal fires then, long before React hydrates — hence an
+// inline script in <head> rather than a component.
+const STORE_SWITCH_TRANSITION = `(function () {
+  var TRACKING = /^(utm_\\w+|fbclid|gclid|ttclid|_gl|ref)$/;
+  function storeOf(href) {
+    try {
+      var u = new URL(href, location.href);
+      if (u.origin !== location.origin) return null;
+      var p = u.pathname.replace(/^\\/(vi|en|zh)(?=\\/|$)/, "") || "/";
+      if (/^\\/quan-ao(\\/|$)/.test(p)) return "clothing";
+      if (/^\\/(admin|api)(\\/|$)/.test(p)) return null;
+      if (p === "/") {
+        var listing = false;
+        u.searchParams.forEach(function (_, k) { if (!TRACKING.test(k)) listing = true; });
+        return listing ? "shoes" : "gateway";
+      }
+      return "shoes";
+    } catch (e) { return null; }
+  }
+  addEventListener("pagereveal", function (e) {
+    if (!e.viewTransition) return;
+    var nav = window.navigation;
+    var from = (nav && nav.activation && nav.activation.from && nav.activation.from.url) || document.referrer;
+    var a = storeOf(from), b = storeOf(location.href);
+    if ((a === "shoes" && b === "clothing") || (a === "clothing" && b === "shoes")) {
+      e.viewTransition.types.add(b === "clothing" ? "to-clothing" : "to-shoes");
+    }
+  });
+})();`;
+
+const DEFAULT_TITLE =`${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
 const DEFAULT_DESCRIPTION = site.tagline;
 
 // Async so we can fall back to the admin-uploaded hero/logo image as the
@@ -109,6 +144,9 @@ export default async function RootLayout({
       data-department={department.toLowerCase()}
       className={`${fontVariables} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: STORE_SWITCH_TRANSITION }} />
+      </head>
       <body className="min-h-full flex flex-col bg-paper text-ink font-body">
         <DepartmentProvider department={department}>{children}</DepartmentProvider>
         <OrganizationJsonLd />

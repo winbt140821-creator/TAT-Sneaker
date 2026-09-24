@@ -185,6 +185,57 @@ body {
   animation-timing-function: var(--ease-out-soft);
 }
 
+/* Switching stores (the Giày | Quần áo tabs) is a full page load, so the
+   browser's cross-document view transition animates it instead of the page
+   just blinking: the store you tapped wipes in from the side its tab sits
+   on (Giày left, Quần áo right) while the one you left sinks back, header
+   included. The to-clothing / to-shoes types are set by the pagereveal
+   script in src/app/layout.tsx. Other full-page moves (entering from the
+   gateway, Back) get the browser's plain crossfade; browsers without
+   support simply load the page as before. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+html:active-view-transition-type(to-clothing)::view-transition-new(root),
+html:active-view-transition-type(to-clothing)::view-transition-new(site-header) {
+  animation: store-in-from-right 0.7s var(--ease-out-soft) both;
+}
+html:active-view-transition-type(to-shoes)::view-transition-new(root),
+html:active-view-transition-type(to-shoes)::view-transition-new(site-header) {
+  animation: store-in-from-left 0.7s var(--ease-out-soft) both;
+}
+html:active-view-transition-type(to-clothing)::view-transition-old(root),
+html:active-view-transition-type(to-shoes)::view-transition-old(root),
+html:active-view-transition-type(to-clothing)::view-transition-old(site-header),
+html:active-view-transition-type(to-shoes)::view-transition-old(site-header) {
+  display: block;
+  animation: store-recede 0.7s var(--ease-out-soft) both;
+}
+@keyframes store-in-from-right {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes store-in-from-left {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes store-recede {
+  to {
+    transform: scale(0.96);
+    opacity: 0.35;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*),
