@@ -220,14 +220,26 @@ export const getProductById = cache(async (id: string, department: Department) =
   return { ...parsed, ...salePriceFor(parsed, parsed.price, campaigns) };
 });
 
-// Which store a visible product belongs to (null if missing/hidden). Lets a
-// product page opened under the wrong store — an old link, or a cart line
-// followed from the other store — redirect to the right address instead of
-// 404ing.
-export async function getProductDepartment(id: string): Promise<Department | null> {
-  const row = await prisma.product.findUnique({ where: { id }, select: { department: true, hidden: true } });
-  return row && !row.hidden ? row.department : null;
-}
+// Which store a product belongs to, hidden or not (null if it doesn't
+// exist). Lets a product page opened under the wrong store — an old link, or
+// a cart line followed from the other store — redirect to the right address
+// instead of 404ing.
+export const getProductDepartment = cache(async (id: string): Promise<Department | null> => {
+  const row = await prisma.product.findUnique({ where: { id }, select: { department: true } });
+  return row?.department ?? null;
+});
+
+// A product taken off sale (hidden in admin). Its page still opens, because
+// links to it live on in social posts and ads (see src/lib/social-links.ts):
+// it says the item is no longer sold and suggests similar ones.
+export const getDiscontinuedProduct = cache(async (id: string, department: Department) => {
+  const row = await prisma.product.findUnique({
+    where: { id, department },
+    select: { id: true, name: true, images: true, hidden: true, categories: { select: { id: true } } },
+  });
+  if (!row?.hidden) return null;
+  return { id: row.id, name: row.name, images: JSON.parse(row.images || "[]") as string[], categoryIds: row.categories.map((c) => c.id) };
+});
 
 // The full row (all columns, e.g. sku) — distinct from CatalogProduct, which
 // is narrowed to only what a catalog-listing card renders.

@@ -148,7 +148,10 @@
     "galleryZoomClose": "Đóng ảnh phóng to",
     "description": "Mô tả",
     "descriptionExpand": "Xem thêm",
-    "descriptionCollapse": "Thu gọn"
+    "descriptionCollapse": "Thu gọn",
+    "discontinuedLabel": "Ngừng bán",
+    "discontinuedBody": "Mẫu này đã ngừng bán nên không đặt mua được nữa. Bạn xem thử các mẫu tương tự bên dưới nhé.",
+    "discontinuedCta": "Xem sản phẩm đang bán"
   },
   "news": {
     "title": "Tin tức",

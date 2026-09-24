@@ -38,12 +38,12 @@ const checks = [
   { path: "/?sort=newest", expect: "200", label: "Danh sách giày dạng cũ" },
 ];
 
-async function hit(path, redirect = "manual") {
+async function hit(path, redirect = "manual", userAgent = "tat-smoke-test") {
   const started = Date.now();
   try {
     const res = await fetch(base + path, {
       redirect,
-      headers: { "user-agent": "tat-smoke-test", cookie: "NEXT_LOCALE=vi" },
+      headers: { "user-agent": userAgent, cookie: "NEXT_LOCALE=vi" },
       signal: AbortSignal.timeout(30_000),
     });
     const body = res.status < 400 ? await res.text() : "";
@@ -86,6 +86,37 @@ for (const [dept, found] of Object.entries(discovered)) {
     if (!ok) failures.push(path);
   }
   if (!found.product) console.log(`WARN không tìm thấy link sản phẩm nào trên trang chủ ${dept}`);
+}
+
+// What Facebook's link-preview crawler gets for product links. Product pages
+// stream (loading.tsx), so a wrong-store link redirects inside the page and a
+// missing product is a noindex "not found" page — both with status 200 (see
+// resolveMissingProduct in san-pham/[id]). A real 3xx/404 is fine too.
+const FB_BOT = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
+const shoeProduct = discovered.SHOES?.product;
+if (shoeProduct) {
+  const botChecks = [
+    {
+      path: `/quan-ao${shoeProduct}?fbclid=smoke`,
+      label: "Link sai cửa hàng → chuyển về đúng cửa hàng, giữ fbclid (bot Facebook)",
+      ok: (r) =>
+        r.status >= 300 && r.status < 400
+          ? (r.location || "").endsWith(`${shoeProduct}?fbclid=smoke`)
+          : r.status === 200 && r.body.includes(`NEXT_REDIRECT;replace;${shoeProduct}?fbclid=smoke;`),
+    },
+    {
+      path: "/san-pham/khongtontaismoketest",
+      label: "Sản phẩm không tồn tại → trang không tìm thấy, noindex (bot Facebook)",
+      ok: (r) => r.status === 404 || (r.status === 200 && r.body.includes("noindex") && r.body.includes("NEXT_HTTP_ERROR_FALLBACK;404")),
+    },
+    { path: shoeProduct, label: "Sản phẩm giày có ảnh xem trước (bot Facebook)", ok: (r) => r.status === 200 && r.body.includes('property="og:title"') },
+  ];
+  for (const check of botChecks) {
+    const r = await hit(check.path, "manual", FB_BOT);
+    const ok = check.ok(r);
+    console.log(`${ok ? "OK  " : "FAIL"} ${String(r.status).padEnd(3)} ${String(r.ms).padStart(5)}ms  ${check.path}  (${check.label})`);
+    if (!ok) failures.push(check.path);
+  }
 }
 
 if (failures.length) {

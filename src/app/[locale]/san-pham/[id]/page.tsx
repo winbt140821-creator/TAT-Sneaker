@@ -8,10 +8,11 @@ import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { ProductGrid } from "@/components/ProductGrid";
 import { Link, redirectGuard } from "@/i18n/navigation";
-import { getProductById, getProductDepartment, getRelatedProducts } from "@/lib/catalog";
+import { getDiscontinuedProduct, getProductById, getProductDepartment, getRelatedProducts } from "@/lib/catalog";
 import { storeHref } from "@/lib/store-path";
 import { getSiteSettings } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
+import type { Department } from "@/lib/inventory";
 import { getDiscountPct } from "@/lib/pricing";
 import { hasAnyStock, hasRealStockAnywhere } from "@/lib/inventory";
 import { formatPrice } from "@/lib/products";
@@ -28,6 +29,7 @@ import { ProductActions } from "./ProductActions";
 import { SizeGuide } from "./SizeGuide";
 import { ProductJsonLd } from "./ProductJsonLd";
 import { ViewContentTracker } from "./ViewContentTracker";
+import { DiscontinuedProduct } from "./DiscontinuedProduct";
 
 function getBrandCategory(product: NonNullable<Awaited<ReturnType<typeof getProductById>>>) {
   return (
@@ -53,6 +55,28 @@ function getBrandCategory(product: NonNullable<Awaited<ReturnType<typeof getProd
 // fully dynamically per request, same as the homepage and category pages,
 // which already do the identical getDepartment() call safely.
 
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+// A product this store doesn't sell: redirect to the store that does
+// (keeping fbclid/utm so an ad click is still attributed), return it if it
+// was taken off sale here (hidden — its page says so), or 404. The page
+// streams behind loading.tsx, so both arrive after a 200 status: the
+// browser follows the redirect itself, and the 404 page carries noindex.
+async function resolveMissingProduct(id: string, department: Department, locale: string, searchParams: SearchParams) {
+  const actual = await getProductDepartment(id);
+  if (actual && actual !== department) {
+    const query = new URLSearchParams();
+    for (const [k, v] of Object.entries(await searchParams)) {
+      for (const value of Array.isArray(v) ? v : v ? [v] : []) query.append(k, value);
+    }
+    const qs = query.toString();
+    redirectGuard({ href: storeHref(actual, `/san-pham/${id}${qs ? `?${qs}` : ""}`), locale });
+  }
+  const gone = actual ? await getDiscontinuedProduct(id, department) : null;
+  if (!gone) notFound();
+  return gone;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -61,7 +85,12 @@ export async function generateMetadata({
   const { id } = await params;
   const department = await getDepartment();
   const product = await getProductById(id, department);
-  if (!product) return {};
+  if (!product) {
+    const gone = await getDiscontinuedProduct(id, department);
+    if (!gone) return {};
+    const t = await getTranslations("productDetail");
+    return { title: `${gone.name} (${t("discontinuedLabel")})`, robots: { index: false, follow: true } };
+  }
 
   const brandCategory = getBrandCategory(product);
   const title = brandCategory
@@ -91,7 +120,7 @@ export default async function ProductDetailPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: SearchParams;
 }) {
   const { id, locale } = await params;
   const department = await getDepartment();
@@ -102,18 +131,8 @@ export default async function ProductDetailPage({
   ]);
 
   if (!product) {
-    const actual = await getProductDepartment(id);
-    if (actual && actual !== department) {
-      // Keep the query (fbclid, utm_*…) so the ad click is still attributed
-      // on the page it lands on.
-      const query = new URLSearchParams();
-      for (const [k, v] of Object.entries(await searchParams)) {
-        for (const value of Array.isArray(v) ? v : v ? [v] : []) query.append(k, value);
-      }
-      const qs = query.toString();
-      redirectGuard({ href: storeHref(actual, `/san-pham/${id}${qs ? `?${qs}` : ""}`), locale });
-    }
-    notFound();
+    const gone = await resolveMissingProduct(id, department, locale, searchParams);
+    return <DiscontinuedProduct product={gone} department={department} />;
   }
 
   const brandCategory = getBrandCategory(product);

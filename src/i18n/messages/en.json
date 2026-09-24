@@ -148,7 +148,10 @@
     "galleryZoomClose": "Close zoomed image",
     "description": "Description",
     "descriptionExpand": "Show more",
-    "descriptionCollapse": "Show less"
+    "descriptionCollapse": "Show less",
+    "discontinuedLabel": "No longer sold",
+    "discontinuedBody": "This item is no longer sold, so it can’t be ordered. Have a look at similar items below.",
+    "discontinuedCta": "Shop current items"
   },
   "news": {
     "title": "News",

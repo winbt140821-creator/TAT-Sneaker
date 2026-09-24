@@ -148,7 +148,10 @@
     "galleryZoomClose": "关闭放大图片",
     "description": "商品描述",
     "descriptionExpand": "查看更多",
-    "descriptionCollapse": "收起"
+    "descriptionCollapse": "收起",
+    "discontinuedLabel": "已停售",
+    "discontinuedBody": "该商品已停售，无法再下单。看看下面的相似款式吧。",
+    "discontinuedCta": "浏览在售商品"
   },
   "news": {
     "title": "新闻资讯",

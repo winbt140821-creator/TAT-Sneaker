@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
+import { getSocialLinkedProducts } from "@/lib/social-links";
 import { ProductAvailability } from "@/generated/prisma/client";
 import { SIZE_SETS, PREORDER_DEFAULT_QTY, type Department } from "@/lib/inventory";
 
@@ -190,6 +191,9 @@ export async function updateProductAction(
 
 export async function deleteProductAction(id: string) {
   await requireStaff();
+  // The list offers no delete button for these (see ProductRow) — this only
+  // stops a stale page from deleting a product whose link is in a post.
+  if ((await getSocialLinkedProducts()).has(id)) return;
   try {
     await prisma.product.delete({ where: { id } });
   } catch {

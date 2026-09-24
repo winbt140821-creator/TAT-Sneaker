@@ -8,6 +8,7 @@ import { SearchIcon, ChevronDownIcon } from "@/components/icons";
 import { StoreBadge } from "@/components/admin/StoreBadge";
 import { getAdminStore, storeWhere, type AdminStore } from "@/lib/admin-store";
 import type { Department } from "@/lib/inventory";
+import { getSocialLinkedProducts } from "@/lib/social-links";
 
 // Only fetch the fields this list actually renders — the full Product row
 // also carries images/sizeQuantities/description/costPrice JSON blobs that
@@ -68,11 +69,14 @@ function ProductRow({
   categoryId,
   minSortOrder,
   maxSortOrder,
+  linkedPosts,
 }: {
   p: ProductListItem;
   categoryId?: string;
   minSortOrder: number;
   maxSortOrder: number;
+  // Social posts linking to this product — it can be hidden but not deleted.
+  linkedPosts: number;
 }) {
   const images: string[] = JSON.parse(p.images || "[]");
   return (
@@ -105,6 +109,14 @@ function ProductRow({
                 Đã ẩn
               </span>
             )}
+            {linkedPosts > 0 && (
+              <span
+                title="Link sản phẩm này có trong bài đăng. Chỉ ẩn được, không xoá được — link vẫn mở và báo ngừng bán."
+                className="bg-ink/10 px-1.5 py-0.5 font-mono text-[10px] text-ink"
+              >
+                Có trong {linkedPosts} bài đăng
+              </span>
+            )}
             {p.categories.map((c) => (
               <span key={c.id} className="bg-kraft-dark/40 px-1.5 py-0.5 font-mono text-[10px] text-graphite">
                 {c.label}
@@ -128,7 +140,7 @@ function ProductRow({
 
         <RowActions
           editHref={`/admin/products/${p.id}/edit`}
-          deleteAction={deleteProductAction.bind(null, p.id)}
+          deleteAction={linkedPosts > 0 ? undefined : deleteProductAction.bind(null, p.id)}
           deleteConfirmMessage={`Xóa sản phẩm "${p.name}"?`}
         />
       </div>
@@ -172,7 +184,8 @@ async function AllProductsView({
     ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
   };
 
-  const [products, totalCount, sortOrderBounds] = await Promise.all([
+  const [linkedPosts, products, totalCount, sortOrderBounds] = await Promise.all([
+    getSocialLinkedProducts(),
     prisma.product.findMany({
       where,
       select: {
@@ -246,7 +259,13 @@ async function AllProductsView({
           <p className="font-mono text-xs text-graphite">Không tìm thấy sản phẩm nào.</p>
         )}
         {products.map((p) => (
-          <ProductRow key={p.id} p={p} minSortOrder={minSortOrder} maxSortOrder={maxSortOrder} />
+          <ProductRow
+            key={p.id}
+            p={p}
+            minSortOrder={minSortOrder}
+            maxSortOrder={maxSortOrder}
+            linkedPosts={linkedPosts.get(p.id) ?? 0}
+          />
         ))}
       </div>
 
@@ -346,7 +365,8 @@ async function FolderProductsView({
     ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
   };
 
-  const [products, totalCount, sortOrderBounds] = await Promise.all([
+  const [linkedPosts, products, totalCount, sortOrderBounds] = await Promise.all([
+    getSocialLinkedProducts(),
     prisma.product.findMany({
       where,
       select: {
@@ -437,6 +457,7 @@ async function FolderProductsView({
             categoryId={categoryId}
             minSortOrder={minSortOrder}
             maxSortOrder={maxSortOrder}
+            linkedPosts={linkedPosts.get(p.id) ?? 0}
           />
         ))}
       </div>
