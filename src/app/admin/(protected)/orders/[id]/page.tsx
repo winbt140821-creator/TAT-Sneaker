@@ -13,6 +13,7 @@ import {
 } from "../actions";
 import { CopyShipmentInfoButton } from "./CopyShipmentInfoButton";
 import { StoreBadge } from "@/components/admin/StoreBadge";
+import { ThumbImage } from "@/components/ThumbImage";
 
 const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
   VNPAY: "VNPay",
@@ -57,7 +58,7 @@ export default async function AdminOrderDetailPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: { include: { product: { select: { name: true, sku: true, department: true } } } },
+      items: { include: { product: { select: { id: true, name: true, sku: true, department: true, images: true } } } },
       payments: { orderBy: { createdAt: "desc" } },
     },
   });
@@ -126,7 +127,8 @@ export default async function AdminOrderDetailPage({
                 )}
                 {group.items.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-3 border-b border-kraft-dark pb-3 last:border-0 last:pb-0">
-                    <div className="min-w-0">
+                    <ItemPhoto productId={item.product.id} images={item.product.images} name={item.product.name} />
+                    <div className="min-w-0 flex-1">
                       <p className="font-body text-sm font-medium text-ink">{item.product.name}</p>
                       <p className="font-mono text-xs text-graphite">
                         SKU {item.product.sku} · Size {item.sizeLabel ?? item.size} × {item.quantity}
@@ -310,5 +312,27 @@ export default async function AdminOrderDetailPage({
         </div>
       </div>
     </div>
+  );
+}
+
+// The product's cover photo, so staff can tell at a glance which item was
+// ordered (names alone are easy to mix up). Opens the product for a closer look.
+function ItemPhoto({ productId, images, name }: { productId: string; images: string; name: string }) {
+  let cover: string | undefined;
+  try {
+    cover = (JSON.parse(images || "[]") as string[])[0];
+  } catch {}
+  return (
+    <Link
+      href={`/admin/products/${productId}`}
+      title="Xem sản phẩm"
+      className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30"
+    >
+      {cover ? (
+        <ThumbImage src={cover} alt={name} width={80} height={80} className="h-full w-full object-cover" />
+      ) : (
+        <span className="px-1 text-center font-mono text-[10px] text-graphite">Chưa có ảnh</span>
+      )}
+    </Link>
   );
 }
