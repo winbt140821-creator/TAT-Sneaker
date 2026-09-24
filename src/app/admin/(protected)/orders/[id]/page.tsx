@@ -324,7 +324,7 @@ function ItemPhoto({ productId, images, name }: { productId: string; images: str
   } catch {}
   return (
     <Link
-      href={`/admin/products/${productId}`}
+      href={`/admin/products/${productId}/edit`}
       title="Xem sản phẩm"
       className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden bg-kraft-dark/30"
     >
