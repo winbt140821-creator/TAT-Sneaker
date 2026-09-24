@@ -17,7 +17,7 @@ export async function NewsSection() {
   if (articles.length === 0) return null;
 
   return (
-    <section className="pb-10">
+    <section className="cv-auto pb-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h2 className="border-b border-kraft-dark pb-3 font-display text-xl text-ink">{t("title")}</h2>
         <div className="mt-6">

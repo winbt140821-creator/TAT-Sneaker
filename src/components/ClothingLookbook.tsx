@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ThumbImage } from "./ThumbImage";
 import { Link } from "@/i18n/navigation";
 import { Reveal } from "./motion/Reveal";
 
@@ -20,7 +20,7 @@ export function ClothingLookbook({ categories }: { categories: ShowcaseCategory[
   if (items.length === 0) return null;
 
   return (
-    <section className="pb-16 pt-6 lg:pb-24">
+    <section className="cv-auto pb-16 pt-6 lg:pb-24">
       <h2 className="mb-6 px-4 text-[12px] font-medium uppercase tracking-[0.16em] text-ink sm:px-6 lg:px-8">
         Mua theo danh mục
       </h2>
@@ -28,7 +28,7 @@ export function ClothingLookbook({ categories }: { categories: ShowcaseCategory[
         {items.map((c) => (
           <Link key={c.id} href={`/?category=${encodeURIComponent(c.slug)}`} className="press group block">
             <Reveal className="relative aspect-[3/4] overflow-hidden bg-kraft">
-              <Image
+              <ThumbImage
                 src={c.showcaseImageUrl!}
                 alt={c.label}
                 fill

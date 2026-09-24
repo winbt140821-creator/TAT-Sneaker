@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ThumbImage } from "./ThumbImage";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Reveal } from "./motion/Reveal";
@@ -11,7 +11,7 @@ export async function CategoryShowcase({ categories }: { categories: ShowcaseCat
   const tProduct = await getTranslations("product");
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-12 pt-4 sm:px-6">
+    <section className="cv-auto mx-auto max-w-7xl px-4 pb-12 pt-4 sm:px-6">
       <h2 className="font-display text-2xl text-ink">{t("featuredCategories")}</h2>
       <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
         {categories.map((c) => (
@@ -20,7 +20,7 @@ export async function CategoryShowcase({ categories }: { categories: ShowcaseCat
             href={`/?category=${encodeURIComponent(c.slug)}`}
             className="press die-cut hover-lift group relative flex aspect-[4/3] items-end overflow-hidden bg-kraft-dark/30"
           >
-            <Image
+            <ThumbImage
               src={c.showcaseImageUrl!}
               alt={c.label}
               fill

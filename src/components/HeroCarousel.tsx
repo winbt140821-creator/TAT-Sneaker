@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { CoverImage } from "./CoverImage";
 import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 
 export function HeroCarousel({ images }: { images: string[] }) {
   const [index, setIndex] = useState(0);
   const hasMultiple = images.length > 1;
+  // Slides are only put on the page once they're shown or about to be:
+  // stacked slides all count as on-screen, so rendering every one at once
+  // made phones download every cover photo before the first one appeared.
+  // The next slide is added a couple of seconds after the current one shows
+  // (well before the 6s auto-advance), so the first cover has the network
+  // to itself.
+  const [mounted, setMounted] = useState(() => new Set([0]));
+  if (!mounted.has(index)) setMounted(new Set([...mounted, index]));
+  useEffect(() => {
+    if (!hasMultiple) return;
+    const t = setTimeout(() => setMounted((m) => new Set([...m, (index + 1) % images.length])), 2500);
+    return () => clearTimeout(t);
+  }, [index, hasMultiple, images.length]);
 
   useEffect(() => {
     if (!hasMultiple) return;
@@ -20,21 +33,18 @@ export function HeroCarousel({ images }: { images: string[] }) {
 
   return (
     <div className="absolute inset-0" aria-hidden="true">
-      {images.map((src, i) => (
-        <Image
-          key={src}
-          src={src}
-          alt=""
-          fill
-          priority={i === 0}
-          sizes="100vw"
-          quality={90}
-          className={
-            "object-cover transition-opacity duration-700 ease-out " +
-            (i === index ? "opacity-100" : "opacity-0")
-          }
-        />
-      ))}
+      {images.map((src, i) =>
+        mounted.has(i) ? (
+          <CoverImage
+            key={src}
+            src={src}
+            priority={i === 0}
+            className={
+              "transition-opacity duration-700 ease-out " + (i === index ? "opacity-100" : "opacity-0")
+            }
+          />
+        ) : null
+      )}
 
       {hasMultiple && (
         <>

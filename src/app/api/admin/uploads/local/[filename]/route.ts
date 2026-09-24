@@ -22,7 +22,7 @@ export async function PUT(
   // public/uploads entirely. Every real filename here is server-generated
   // (randomUUID() + extension in createUploadTargets), so anything else is
   // a forged request, not a legitimate upload.
-  if (!/^[0-9a-f-]+(_640)?\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
+  if (!/^[0-9a-f-]+(_640|_1280)?\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
     return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
   }
 

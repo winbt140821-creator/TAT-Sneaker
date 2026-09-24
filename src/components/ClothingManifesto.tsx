@@ -3,7 +3,7 @@
 // short statement sit on an otherwise empty band, instead of a busy block.
 export function ClothingManifesto() {
   return (
-    <section className="border-t border-kraft-dark px-6 py-24 text-center sm:py-32">
+    <section className="cv-auto border-t border-kraft-dark px-6 py-24 text-center sm:py-32">
       <p className="mx-auto max-w-3xl font-display text-3xl leading-[1.2] text-ink sm:text-5xl">
         Được chọn để ở lại lâu trong tủ đồ của bạn.
       </p>

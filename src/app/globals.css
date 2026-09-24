@@ -345,6 +345,17 @@ a:focus-visible > .link-draw {
   }
 }
 
+/* Sections below the fold (product rows, category tiles, news, footer):
+   the browser skips laying out and painting them until they're about to
+   scroll into view, which makes the first paint and scrolling noticeably
+   lighter on phones. The intrinsic size is only a placeholder height until
+   a section has been rendered once; "auto" then remembers its real size so
+   the scrollbar doesn't jump. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
+}
+
 /* Bag count pops when something is added. */
 @keyframes cart-bump {
   40% {

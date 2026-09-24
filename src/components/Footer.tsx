@@ -1,4 +1,4 @@
-import Script from "next/script";
+import { FacebookPagePlugin } from "./FacebookPagePlugin";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { site, defaultContactEmail } from "@/lib/site-config";
@@ -104,7 +104,7 @@ export async function Footer() {
     const titleClass = "text-[11px] font-medium uppercase tracking-[0.14em] text-ink";
 
     return (
-      <footer className="mt-auto border-t border-kraft-dark bg-paper text-ink">
+      <footer className="cv-auto mt-auto border-t border-kraft-dark bg-paper text-ink">
         <div className="grid grid-cols-2 gap-x-6 gap-y-12 px-4 py-14 sm:px-6 lg:grid-cols-4 lg:px-8 lg:py-20">
           {clothingColumns.map((col, i) => (
             <div key={col.title}>
@@ -164,7 +164,7 @@ export async function Footer() {
 
   return (
     <>
-      <footer className="mt-auto border-t-4 border-forest bg-ink text-kraft">
+      <footer className="cv-auto mt-auto border-t-4 border-forest bg-ink text-kraft">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-3 lg:grid-cols-5">
           <div className="order-1 col-span-2 sm:order-5 sm:col-span-1">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-paper">
@@ -195,35 +195,7 @@ export async function Footer() {
               <p className="mt-3 font-mono text-xs text-graphite">{t("socialUpdating")}</p>
             )}
 
-            {facebookLink && (
-              <div className="mt-3 max-w-[340px] overflow-hidden">
-                <div id="fb-root" />
-                {/* Graph API versions expire ~2 years after release (v19.0
-                    expired 2026-05-21) — the widget fails silently on every
-                    device once the pinned version lapses, not just in
-                    certain browsers, so this needs bumping again well before
-                    v23.0's own expiry. */}
-                <Script
-                  src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v23.0"
-                  strategy="lazyOnload"
-                />
-                <div
-                  className="fb-page"
-                  data-href={facebookLink.url}
-                  data-tabs=""
-                  data-width="340"
-                  data-height=""
-                  data-small-header="false"
-                  data-adapt-container-width="true"
-                  data-hide-cover="false"
-                  data-show-facepile="false"
-                >
-                  <blockquote cite={facebookLink.url} className="fb-xfbml-parameter">
-                    <a href={facebookLink.url}>{site.name}</a>
-                  </blockquote>
-                </div>
-              </div>
-            )}
+            {facebookLink && <FacebookPagePlugin href={facebookLink.url} name={site.name} />}
           </div>
 
           {columns.map((col, i) => (

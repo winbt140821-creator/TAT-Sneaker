@@ -37,6 +37,7 @@ export default async function AdminSettingsHomePage({
           name="images"
           label="Ảnh bìa"
           initialImages={heroImages}
+          withCover
         />
       </div>
 

@@ -16,7 +16,13 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-type UploadTarget = { uploadUrl: string; publicUrl: string; contentType?: string; thumbUploadUrl?: string };
+type UploadTarget = {
+  uploadUrl: string;
+  publicUrl: string;
+  contentType?: string;
+  thumbUploadUrl?: string;
+  coverUploadUrl?: string;
+};
 
 // The grid thumbnail is best-effort: if it fails after retries the photo
 // still counts as uploaded, and ThumbImage falls back to the full photo.
@@ -30,9 +36,15 @@ async function uploadThumb(thumb: Blob, url: string) {
   }
 }
 
-async function uploadWithRetry(file: File, target: UploadTarget, thumb: Blob | null = null): Promise<string> {
+async function uploadWithRetry(
+  file: File,
+  target: UploadTarget,
+  thumb: Blob | null = null,
+  cover: Blob | null = null
+): Promise<string> {
   const url = await uploadFileWithRetry(file, target);
   if (thumb && target.thumbUploadUrl) await uploadThumb(thumb, target.thumbUploadUrl);
+  if (cover && target.coverUploadUrl) await uploadThumb(cover, target.coverUploadUrl);
   return url;
 }
 
@@ -77,6 +89,7 @@ export function ImageUploadFieldMulti({
   label,
   initialImages = [],
   onUploadingChange,
+  withCover = false,
   onImagesChange,
 }: {
   name: string;
@@ -86,6 +99,8 @@ export function ImageUploadFieldMulti({
   // flight — otherwise submitting mid-upload saves the form with that image
   // missing since its URL hasn't landed in the images array yet.
   onUploadingChange?: (uploading: boolean) => void;
+  // Cover photos (homepage covers): also store the 1280px copy phones get.
+  withCover?: boolean;
   // Only needed when this field is rendered outside the <form> it belongs
   // to (e.g. a shared compose area feeding two different submit forms) —
   // lets the parent mirror the uploaded URLs into its own hidden inputs
@@ -136,14 +151,19 @@ export function ImageUploadFieldMulti({
     try {
       // Shrunk to web size (plus a grid thumbnail) in the browser before
       // anything is sent — see src/lib/image-prep.ts.
-      const prepared = await Promise.all(originals.map(prepareImageForUpload));
+      const prepared = await Promise.all(originals.map((f) => prepareImageForUpload(f, { cover: withCover })));
       const files = prepared.map((p) => p.file);
 
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          files: prepared.map((p) => ({ name: p.file.name, size: p.file.size, thumb: Boolean(p.thumb) })),
+          files: prepared.map((p) => ({
+            name: p.file.name,
+            size: p.file.size,
+            thumb: Boolean(p.thumb),
+            cover: Boolean(p.cover),
+          })),
         }),
       });
       const data = await res.json();
@@ -161,7 +181,9 @@ export function ImageUploadFieldMulti({
       for (let start = 0; start < files.length; start += UPLOAD_CONCURRENCY) {
         const batch = files.slice(start, start + UPLOAD_CONCURRENCY);
         const results = await Promise.allSettled(
-          batch.map((file, i) => uploadWithRetry(file, targets[start + i], prepared[start + i].thumb))
+          batch.map((file, i) =>
+            uploadWithRetry(file, targets[start + i], prepared[start + i].thumb, prepared[start + i].cover)
+          )
         );
         results.forEach((r, i) => {
           if (r.status === "fulfilled") succeeded.push(r.value);

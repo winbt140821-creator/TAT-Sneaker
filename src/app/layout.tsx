@@ -14,27 +14,30 @@ import "./globals.css";
 // for everything else — nav, labels, prices, body. The way COS and Zara set
 // type. Noto Serif Display rather than Bodoni Moda, which has no Vietnamese
 // subset (every diacritic would fall back to another font mid-word).
-// Headings run light (300/400, see .font-display in globals.css); 700 is
-// only for the heavy half of the gateway wordmark. Browsers download only
-// the weights a page actually renders.
+// Headings run light (300/400, see .font-display in globals.css) — no
+// bold cut is loaded at all. Only weights something actually uses are
+// listed: each one is another file a phone preloads before first paint.
 const notoSerifDisplay = Noto_Serif_Display({
   variable: "--font-display",
   subsets: ["latin", "vietnamese"],
-  weight: ["300", "400", "700"],
+  weight: ["300", "400"],
 });
 
 const interTight = Inter_Tight({
   variable: "--font-body",
   subsets: ["latin", "vietnamese"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 // Marker/brush display face used only by BrandLogo's wordmark, matching the
 // hand-drawn sticker style of the reference logo.
+// Not preloaded: it only draws the fallback wordmark shown when no logo
+// image has been uploaded, so almost no page ever needs it.
 const permanentMarker = Permanent_Marker({
   variable: "--font-logo",
   subsets: ["latin"],
   weight: "400",
+  preload: false,
 });
 
 // Moving between the two stores is a full page load (see Link in
@@ -72,7 +75,7 @@ const STORE_SWITCH_TRANSITION = `(function () {
   });
 })();`;
 
-const DEFAULT_TITLE =`${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
+const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
 const DEFAULT_DESCRIPTION = site.tagline;
 
 // Async so we can fall back to the admin-uploaded hero/logo image as the

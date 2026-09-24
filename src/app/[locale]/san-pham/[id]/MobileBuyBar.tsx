@@ -162,7 +162,7 @@ export function MobileBuyBar({
       <div
         inert={!show || sheetOpen}
         className={
-          `fixed inset-x-0 ${offset} z-30 border-t border-kraft-dark bg-paper/95 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ` +
+          `fixed inset-x-0 ${offset} z-30 border-t border-kraft-dark bg-paper px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ` +
           (barUp ? "translate-y-0" : "translate-y-[calc(100%+4rem)]")
         }
       >

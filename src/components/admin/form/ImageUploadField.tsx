@@ -37,6 +37,7 @@ export function ImageUploadField({
   keepFieldName,
   unoptimized,
   onUploadingChange,
+  withThumb = false,
 }: {
   label: string;
   name: string;
@@ -57,6 +58,8 @@ export function ImageUploadField({
   // flight — otherwise submitting mid-upload saves the form with that image
   // missing since its URL hasn't landed in the form yet.
   onUploadingChange?: (uploading: boolean) => void;
+  // Also store the small copy phones get (category tiles) — see thumbUrl().
+  withThumb?: boolean;
 }) {
   const inputId = id ?? name;
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -81,18 +84,24 @@ export function ImageUploadField({
     setError(null);
     updateUploading(true);
     try {
-      // Single images (category covers, logo, QR...) never appear in a
-      // product grid, so only the web-size shrink applies, no thumbnail.
-      const { file } = await prepareImageForUpload(original);
+      // Most single images (logo, QR...) are only ever shown at one size, so
+      // only the web-size shrink applies. Category photos (withThumb) are
+      // shown as half-screen tiles on phones, which get the small copy.
+      const { file, thumb } = await prepareImageForUpload(original);
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: [{ name: file.name, size: file.size }] }),
+        body: JSON.stringify({ files: [{ name: file.name, size: file.size, thumb: withThumb && Boolean(thumb) }] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload thất bại");
 
-      const target = data.targets[0] as { uploadUrl: string; publicUrl: string; contentType?: string };
+      const target = data.targets[0] as {
+        uploadUrl: string;
+        publicUrl: string;
+        contentType?: string;
+        thumbUploadUrl?: string;
+      };
       const putRes = await fetch(target.uploadUrl, {
         method: "PUT",
         // The presigned R2 URL is signed against a Content-Type derived
@@ -104,6 +113,12 @@ export function ImageUploadField({
         body: file,
       });
       if (!putRes.ok) throw new Error("Upload thất bại");
+      // Best effort: without it the tile just shows the full photo.
+      if (thumb && target.thumbUploadUrl) {
+        await fetch(target.thumbUploadUrl, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: thumb }).catch(
+          () => undefined
+        );
+      }
 
       setUploadedUrl(target.publicUrl);
       setRemoved(false);

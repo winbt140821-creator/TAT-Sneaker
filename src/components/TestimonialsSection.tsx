@@ -14,7 +14,7 @@ export async function TestimonialsSection() {
   if (testimonials.length === 0) return null;
 
   return (
-    <section className="pb-12">
+    <section className="cv-auto pb-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h2 className="text-center font-display text-2xl text-ink">
           {t("title")}

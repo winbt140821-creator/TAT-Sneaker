@@ -18,6 +18,7 @@
 const MAX_EDGE = 2000;
 const MAX_BYTES = 900 * 1024;
 const THUMB_WIDTH = 640;
+const COVER_WIDTH = 1280;
 
 async function encode(bitmap: ImageBitmap, width: number, height: number, quality: number): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
@@ -38,14 +39,18 @@ function fit(w: number, h: number, maxW: number, maxH: number) {
   return { width: Math.round(w * scale), height: Math.round(h * scale) };
 }
 
-export async function prepareImageForUpload(file: File): Promise<{ file: File; thumb: Blob | null }> {
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return { file, thumb: null };
+/** `cover`: also make the 1280px copy phones get for cover photos. */
+export async function prepareImageForUpload(
+  file: File,
+  { cover = false }: { cover?: boolean } = {}
+): Promise<{ file: File; thumb: Blob | null; cover: Blob | null }> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return { file, thumb: null, cover: null };
 
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    return { file, thumb: null };
+    return { file, thumb: null, cover: null };
   }
 
   try {
@@ -61,9 +66,14 @@ export async function prepareImageForUpload(file: File): Promise<{ file: File; t
 
     const t = fit(bitmap.width, bitmap.height, THUMB_WIDTH, THUMB_WIDTH * 2);
     const thumb = await encode(bitmap, t.width, t.height, 0.8);
-    return { file: out, thumb };
+    let coverBlob: Blob | null = null;
+    if (cover) {
+      const c = fit(bitmap.width, bitmap.height, COVER_WIDTH, COVER_WIDTH * 2);
+      coverBlob = await encode(bitmap, c.width, c.height, 0.82);
+    }
+    return { file: out, thumb, cover: coverBlob };
   } catch {
-    return { file, thumb: null };
+    return { file, thumb: null, cover: null };
   } finally {
     bitmap.close();
   }

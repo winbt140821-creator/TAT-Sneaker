@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import Image from "next/image";
+import { CoverImage } from "@/components/CoverImage";
 import { useLocale } from "next-intl";
 import { GatewayLink, useStoreUrl } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -141,14 +141,7 @@ export function Gateway({
         >
           {shoesImage && (
             <div className={styles.ph}>
-              <Image
-                src={shoesImage}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 640px) 100vw, 66vw"
-                className="object-cover"
-              />
+              <CoverImage src={shoesImage} priority sizes="(max-width: 640px) 100vw, 66vw" />
             </div>
           )}
           <div className={styles.cap}>
@@ -169,14 +162,7 @@ export function Gateway({
         >
           {clothingImage && (
             <div className={styles.ph}>
-              <Image
-                src={clothingImage}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 640px) 100vw, 66vw"
-                className="object-cover"
-              />
+              <CoverImage src={clothingImage} priority sizes="(max-width: 640px) 100vw, 66vw" />
             </div>
           )}
           <div className={styles.cap}>

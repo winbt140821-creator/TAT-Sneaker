@@ -127,6 +127,7 @@ export function CategoryForm({
           previewHeight={120}
           keepFieldName="keepShowcaseImage"
           onUploadingChange={setImageUploading}
+          withThumb
         />
       </fieldset>
 

@@ -25,7 +25,7 @@ export function CategorySection({
 }) {
   if (department === "CLOTHING") {
     return (
-      <section className="pb-16 pt-14 lg:pb-20 lg:pt-16">
+      <section className="cv-auto pb-16 pt-14 lg:pb-20 lg:pt-16">
         <div className="mb-6 flex items-baseline justify-between px-4 sm:px-6 lg:px-8">
           <h2 className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink">{heading}</h2>
           {viewAllHref && (
@@ -43,7 +43,7 @@ export function CategorySection({
   }
 
   return (
-    <section className="pb-10">
+    <section className="cv-auto pb-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex items-center justify-between border-b border-kraft-dark pb-3">
           <h2 className="font-display text-xl text-ink">{heading}</h2>

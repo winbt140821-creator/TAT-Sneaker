@@ -3,7 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { THUMB_SUFFIX } from "./image-url";
+import { COVER_SUFFIX, THUMB_SUFFIX } from "./image-url";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 export const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB
@@ -73,6 +73,9 @@ export type UploadTarget = {
   // with THUMB_SUFFIX in place of the extension, which is what lets
   // thumbUrl() (src/lib/image-url.ts) derive it from the stored URL alone.
   thumbUploadUrl?: string;
+  // Same idea for cover photos (homepage covers): a 1280px copy phones get
+  // instead of the original — see coverUrl()/CoverImage.
+  coverUploadUrl?: string;
 };
 
 /**
@@ -88,12 +91,12 @@ export type UploadTarget = {
  * ever reached our code.
  */
 export async function createUploadTargets(
-  files: { name: string; size: number; thumb?: boolean }[]
+  files: { name: string; size: number; thumb?: boolean; cover?: boolean }[]
 ): Promise<UploadTarget[]> {
   const config = r2Config();
 
   return Promise.all(
-    files.map(async ({ name, size, thumb }) => {
+    files.map(async ({ name, size, thumb, cover }) => {
       if (size > MAX_FILE_BYTES) throw new Error(`File quá lớn: ${name}`);
       const ext = path.extname(name).toLowerCase();
       if (!ALLOWED_EXTENSIONS.has(ext)) throw new Error(`Định dạng không hỗ trợ: ${name}`);
@@ -101,6 +104,7 @@ export async function createUploadTargets(
       const id = randomUUID();
       const filename = `${id}${ext}`;
       const thumbFilename = `${id}${THUMB_SUFFIX}`;
+      const coverFilename = `${id}${COVER_SUFFIX}`;
       const contentType = CONTENT_TYPE_FOR_EXT[ext];
 
       if (!config) {
@@ -109,6 +113,7 @@ export async function createUploadTargets(
           publicUrl: `/uploads/${filename}`,
           contentType,
           ...(thumb ? { thumbUploadUrl: `/api/admin/uploads/local/${thumbFilename}` } : {}),
+          ...(cover ? { coverUploadUrl: `/api/admin/uploads/local/${coverFilename}` } : {}),
         };
       }
 
@@ -123,12 +128,14 @@ export async function createUploadTargets(
         });
       const uploadUrl = await presign(filename, contentType);
       const thumbUploadUrl = thumb ? await presign(thumbFilename, "image/jpeg") : undefined;
+      const coverUploadUrl = cover ? await presign(coverFilename, "image/jpeg") : undefined;
 
       return {
         uploadUrl,
         publicUrl: `${config.publicUrl.replace(/\/$/, "")}/${filename}`,
         contentType,
         ...(thumbUploadUrl ? { thumbUploadUrl } : {}),
+        ...(coverUploadUrl ? { coverUploadUrl } : {}),
       };
     })
   );

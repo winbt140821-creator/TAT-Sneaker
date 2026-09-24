@@ -18,3 +18,12 @@ export function thumbUrl(url: string): string {
   const match = url.match(OWN_UPLOAD);
   return match ? `${match[1]}${THUMB_SUFFIX}` : url;
 }
+
+// Cover photos (homepage covers) also get a 1280px-wide copy — enough for
+// a phone at 3x — served to phones by CoverImage.
+export const COVER_SUFFIX = "_1280.jpg";
+
+export function coverUrl(url: string): string {
+  const match = url.match(OWN_UPLOAD);
+  return match ? `${match[1]}${COVER_SUFFIX}` : url;
+}

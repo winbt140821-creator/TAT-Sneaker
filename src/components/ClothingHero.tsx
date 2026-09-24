@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { CoverImage } from "./CoverImage";
 import { Link } from "@/i18n/navigation";
 
 // The clothing homepage's opening — built from how COS and Zara actually
@@ -55,11 +55,12 @@ export function ClothingHero({
     <section className="relative h-[calc(100svh-3.5rem)] min-h-[520px] w-full overflow-hidden bg-kraft lg:h-[calc(100svh-60px)]">
       <div className={"grid h-full " + (second ? "lg:grid-cols-2" : "")}>
         <div className="relative h-full">
-          <Image src={first} alt="" fill priority sizes={second ? "(min-width: 1024px) 50vw, 100vw" : "100vw"} quality={90} className="object-cover" />
+          <CoverImage src={first} priority sizes={second ? "(min-width: 1024px) 50vw, 100vw" : "100vw"} />
         </div>
         {second && (
           <div className="relative hidden h-full lg:block">
-            <Image src={second} alt="" fill priority sizes="50vw" quality={90} className="object-cover" />
+            {/* Desktop only, and lazy: hidden on phones, so phones never download it. */}
+            <CoverImage src={second} sizes="50vw" />
           </div>
         )}
       </div>
