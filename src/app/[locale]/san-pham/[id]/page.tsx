@@ -88,8 +88,10 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id, locale } = await params;
   const department = await getDepartment();
@@ -101,7 +103,16 @@ export default async function ProductDetailPage({
 
   if (!product) {
     const actual = await getProductDepartment(id);
-    if (actual && actual !== department) redirectGuard({ href: storeHref(actual, `/san-pham/${id}`), locale });
+    if (actual && actual !== department) {
+      // Keep the query (fbclid, utm_*…) so the ad click is still attributed
+      // on the page it lands on.
+      const query = new URLSearchParams();
+      for (const [k, v] of Object.entries(await searchParams)) {
+        for (const value of Array.isArray(v) ? v : v ? [v] : []) query.append(k, value);
+      }
+      const qs = query.toString();
+      redirectGuard({ href: storeHref(actual, `/san-pham/${id}${qs ? `?${qs}` : ""}`), locale });
+    }
     notFound();
   }
 
