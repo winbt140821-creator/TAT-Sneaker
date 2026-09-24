@@ -4,10 +4,11 @@ import type { Department } from "./inventory";
 // segment (after the locale, if any):
 //
 //   /                      the shared gateway page (pick a store)
-//   /giay                  shoe homepage + listings (/giay?category=…)
-//   /san-pham/…, /gio-hang shoe store — every other unprefixed path, which
-//                          keeps every shoe URL shared/indexed before the
-//                          merge working unchanged
+//   /giay                  shoe homepage
+//   /?category=…, /san-pham/…, /gio-hang…
+//                          shoe store — exactly the URLs it had before the
+//                          merge, so every link already shared, posted or
+//                          advertised keeps opening the same page
 //   /quan-ao/…             clothing store — the same routes, prefixed
 //
 // src/proxy.ts strips the prefix and serves the same route tree for both,
@@ -47,7 +48,9 @@ export function storeHref(department: Department, href: string): string {
   const tail = cut === -1 ? "" : href.slice(cut);
 
   if (department === "CLOTHING") return `${STORE_PREFIX.CLOTHING}${path === "/" ? "" : path}${tail}`;
-  // Shoes keep their original unprefixed URLs; only the homepage moved,
-  // because "/" is the gateway now.
-  return path === "/" ? `${STORE_PREFIX.SHOES}${tail}` : href;
+  // Shoes keep every original URL, listings included ("/?category=nike" is
+  // still the Nike listing — the proxy serves it as before). Only the bare
+  // homepage moved, because "/" on its own is the gateway now.
+  const isListing = path === "/" && tail.startsWith("?") && tail.length > 1;
+  return path === "/" && !isListing ? `${STORE_PREFIX.SHOES}${tail}` : href;
 }

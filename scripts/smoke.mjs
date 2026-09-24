@@ -33,7 +33,9 @@ const checks = [
   { path: "/sitemap.xml", expect: "200", label: "Sitemap" },
   { path: "/robots.txt", expect: "200", label: "robots.txt" },
   // Old shoe-homepage URLs (ads, Google) must keep landing somewhere.
-  { path: "/?category=nike", expect: "ok", label: "Link danh mục cũ" },
+  // Shoe listings keep their original address — no redirect.
+  { path: "/?category=nike", expect: "no5xx", label: "Link danh mục giày dạng cũ" },
+  { path: "/?sort=newest", expect: "200", label: "Danh sách giày dạng cũ" },
 ];
 
 async function hit(path, redirect = "manual") {
@@ -71,7 +73,7 @@ for (const check of checks) {
   // so product/category pages get tested without hardcoding IDs.
   if (check.discover && r.body) {
     const product = r.body.match(/href="((?:\/quan-ao)?\/san-pham\/[a-z0-9]+)"/);
-    const category = r.body.match(/href="(\/(?:giay|quan-ao)\?category=[^"&]+)"/);
+    const category = r.body.match(/href="((?:\/quan-ao|\/giay)?\/?\?category=[^"&]+)"/);
     discovered[check.discover] = { product: product?.[1], category: category?.[1]?.replace(/&amp;/g, "&") };
   }
 }

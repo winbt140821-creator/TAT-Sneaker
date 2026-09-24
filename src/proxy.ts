@@ -66,9 +66,9 @@ function departmentHeaders(request: NextRequest, department: Department): Header
 }
 
 // Ad/campaign parameters only. A bare tatsneaker.vn link carrying just these
-// (e.g. an old Facebook ad) still lands on the gateway; any other parameter
-// on "/" is an old shoe-catalog link (?category=, ?q=, ?page=...) from
-// before the shoe homepage moved to /giay, and follows it there.
+// (e.g. an old Facebook ad) lands on the gateway; any other parameter on
+// "/" (?category=, ?q=, ?page=...) is a shoe-store listing, served right
+// there as it always was.
 const TRACKING_PARAM = /^(utm_\w+|fbclid|gclid|ttclid|_gl|ref)$/;
 
 // The gateway is served from its own internal route; "/" is its only public
@@ -126,8 +126,17 @@ function routeStore(request: NextRequest): StoreRoute | NextResponse {
   if (rest === GATEWAY_ROUTE) return redirectTo(join(localePrefix, "/"));
 
   if (rest === "/") {
+    // "/?category=…", "/?q=…", "/?page=…": the shoe store's listings, still
+    // served at the exact address they always had (no redirect), so old
+    // category links in posts, ads and search results open unchanged.
     const hasCatalogParams = [...searchParams.keys()].some((k) => !TRACKING_PARAM.test(k));
-    if (hasCatalogParams) return redirectTo(join(localePrefix, STORE_PREFIX.SHOES));
+    if (hasCatalogParams) {
+      return {
+        department: "SHOES",
+        internal: join(localePrefix, "/"),
+        restore: (p) => p,
+      };
+    }
     return {
       department: "SHOES",
       internal: join(localePrefix, GATEWAY_ROUTE),
