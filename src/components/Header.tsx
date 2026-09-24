@@ -69,7 +69,7 @@ export async function Header() {
             <Logo
               logoUrl={branding?.logoUrl}
               department="CLOTHING"
-              imageClassName="h-5 w-auto max-w-[140px] object-contain sm:h-6"
+              imageClassName="h-[17px] w-auto max-w-[150px] object-contain sm:h-[22px] sm:max-w-[220px]"
             />
           </Link>
 

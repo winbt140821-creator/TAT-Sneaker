@@ -1,8 +1,9 @@
 // Clothing department's fallback logo mark, shown until the owner uploads a
-// real logo via Cài đặt > Logo. A bare, widely tracked wordmark in the light
-// Didone — the convention COS/Zara/Toteme all follow — rather than the shoe
-// site's sneaker-silhouette sticker badge, and without inventing a finished
-// brand identity the owner hasn't chosen yet.
+// real logo via Cài đặt > Logo: "TAT STORE" as a bare, widely tracked
+// wordmark in the light Didone — the convention COS/Zara/Toteme all follow —
+// rather than the shoe site's sneaker-silhouette sticker badge.
+// textLength spreads the letters to exactly fill the viewBox, so the mark
+// keeps its proportions even if the font hasn't loaded yet.
 export function ClothingWordmark({
   className,
   variant = "dark",
@@ -12,16 +13,17 @@ export function ClothingWordmark({
 }) {
   const color = variant === "dark" ? "#111111" : "#ffffff";
   return (
-    <svg viewBox="0 0 112 28" className={className} role="img" aria-label="TAT">
+    <svg viewBox="0 0 224 28" className={className} role="img" aria-label="TAT STORE">
       <text
-        x="0"
+        x="1"
         y="24"
         className="font-display"
-        fontSize="29"
-        letterSpacing="14"
+        fontSize="28"
+        textLength="222"
+        lengthAdjust="spacing"
         fill={color}
       >
-        TAT
+        TAT STORE
       </text>
     </svg>
   );
