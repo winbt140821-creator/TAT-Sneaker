@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { groupDigits, regroupInput } from "./money-format";
 
 type Currency = "VND" | "USD" | "CNY";
 
@@ -9,7 +10,8 @@ type Currency = "VND" | "USD" | "CNY";
 // always stored in VND. This converts on the fly using the same live
 // exchange rates already used to display prices in USD/CNY to customers
 // (see src/lib/fx.ts), and submits only the converted VND amount via a
-// hidden input.
+// hidden input. VND is shown grouped ("3.000.000"); USD/CNY take decimals
+// ("39.99" or "39,99").
 export function PriceInputWithCurrency({
   id,
   name,
@@ -30,12 +32,12 @@ export function PriceInputWithCurrency({
   cnyExchangeRate?: number | null;
 }) {
   const [currency, setCurrency] = useState<Currency>("VND");
-  const [amount, setAmount] = useState(defaultValueVnd != null ? String(defaultValueVnd) : "");
+  const [amount, setAmount] = useState(defaultValueVnd != null ? groupDigits(String(defaultValueVnd)) : "");
 
   const rateFor = (c: Currency) => (c === "USD" ? usdExchangeRate : c === "CNY" ? cnyExchangeRate : 1);
 
   function toVnd(value: string, c: Currency): number {
-    const n = Number(value);
+    const n = c === "VND" ? Number(value.replace(/\D/g, "")) : Number(value.replace(",", "."));
     if (!value || Number.isNaN(n)) return 0;
     const rate = rateFor(c);
     return rate ? Math.round(n * rate) : 0;
@@ -44,7 +46,8 @@ export function PriceInputWithCurrency({
   function handleCurrencyChange(next: Currency) {
     const vnd = toVnd(amount, currency);
     const nextRate = rateFor(next);
-    if (vnd && nextRate) setAmount(String(Math.round((vnd / nextRate) * 100) / 100));
+    if (next === "VND") setAmount(vnd ? groupDigits(String(vnd)) : amount && "0");
+    else if (vnd && nextRate) setAmount(String(Math.round((vnd / nextRate) * 100) / 100));
     setCurrency(next);
   }
 
@@ -58,12 +61,14 @@ export function PriceInputWithCurrency({
       <div className="flex gap-2">
         <input
           id={id}
-          type="number"
-          min={0}
-          step="any"
+          type="text"
+          inputMode={currency === "VND" ? "numeric" : "decimal"}
+          autoComplete="off"
           required={required}
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) =>
+            setAmount(currency === "VND" ? regroupInput(e.target) : e.target.value.replace(/[^\d.,]/g, ""))
+          }
           className="min-w-0 flex-1 border border-graphite bg-paper px-3 py-2 text-sm text-ink focus:border-forest"
         />
         <select

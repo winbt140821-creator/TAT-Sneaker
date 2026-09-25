@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
 import { PriceInputWithCurrency } from "@/components/admin/form/PriceInputWithCurrency";
+import { MoneyInput } from "@/components/admin/form/MoneyInput";
 import { SIZE_SETS, type Department } from "@/lib/inventory";
 import type { ProductFormState } from "./actions";
 
@@ -189,12 +190,10 @@ export function ProductForm({
           hint="Nội bộ, dùng để tính lợi nhuận — khách không thấy."
         />
 
-        <TextField
+        <MoneyInput
           id="shippingFee"
           name="shippingFee"
           label="Phí ship (đ)"
-          type="number"
-          min={0}
           defaultValue={shippingFeeDefault}
           hint="Giá nhập = Giá gốc + Phí ship."
         />
@@ -294,14 +293,12 @@ export function ProductForm({
             />
             Yêu cầu đặt cọc trước khi giao
           </label>
-          <TextField
+          <MoneyInput
             id="depositAmount"
             name="depositAmount"
             label="Số tiền cọc (đ)"
-            type="number"
-            min={0}
             disabled={!depositRequired}
-            defaultValue={defaultValues?.depositAmount ?? undefined}
+            defaultValue={defaultValues?.depositAmount}
           />
         </div>
       </fieldset>
