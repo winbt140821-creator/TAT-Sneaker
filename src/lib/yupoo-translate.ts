@@ -64,7 +64,7 @@ const GLOSSARY: Record<string, Entry> = {
   口袋: m("túi"), 后口袋: m("túi sau"), 贴袋: m("túi đắp"), 爱心: m("trái tim"), 小爱心: m("trái tim nhỏ"),
   十字架: m("thánh giá"), 马蹄: m("móng ngựa"), 马蹄铁: m("móng ngựa"), 骷髅: m("đầu lâu"), 星星: m("ngôi sao"),
   大钩子: m("logo swoosh lớn"), 钩子: m("logo swoosh"), 小钩: m("logo swoosh nhỏ"), 战马: m("logo kỵ sĩ"),
-  花卉: m("hoa"), 纹花: m("hoa văn"), 趣味: m("vui nhộn"), 太阳: m("mặt trời"), 太阳花: m("hoa mặt trời"),
+  草间弥生: m("Yayoi Kusama"), 花卉: m("hoa"), 纹花: m("hoa văn"), 趣味: m("vui nhộn"), 太阳: m("mặt trời"), 太阳花: m("hoa mặt trời"),
   // Materials
   棉: m("cotton"), 纯棉: m("cotton"), 羊毛: m("len lông cừu"), 羊绒: m("cashmere"), 真丝: m("lụa"), 丝绸: m("lụa"),
   亚麻: m("linen"), 皮革: m("da"), 真皮: m("da thật"), 牛皮: m("da bò"), 羊皮: m("da cừu"), 麂皮: m("da lộn"),

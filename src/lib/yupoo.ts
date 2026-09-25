@@ -12,7 +12,12 @@ const UA =
 const TIMEOUT_MS = 15_000;
 const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
-export class YupooError extends Error {}
+export class YupooError extends Error {
+  // "locked": the shop needs a password (or a different one).
+  constructor(message: string, readonly kind: "locked" | "other" = "other") {
+    super(message);
+  }
+}
 
 /** "https://cpdk8888.x.yupoo.com/albums?tab=gallery", "cpdk8888.x.yupoo.com"
  *  or just "cpdk8888" → "cpdk8888". Null when it isn't a Yupoo shop. */
@@ -25,6 +30,21 @@ export function parseShopOwner(input: string): string | null {
 
 export function shopOrigin(owner: string) {
   return `https://${owner}.x.yupoo.com`;
+}
+
+/** Every album link in pasted text ("https://cpdk8888.x.yupoo.com/albums/
+ *  256250530?uid=1", one per line or run together), without repeats. */
+export function parseAlbumLinks(text: string): { owner: string; albumId: string }[] {
+  const links: { owner: string; albumId: string }[] = [];
+  const seen = new Set<string>();
+  for (const m of text.matchAll(/(?:https?:\/\/)?([a-z0-9][a-z0-9_-]*)\.x\.yupoo\.com\/albums\/(\d+)/gi)) {
+    const owner = m[1].toLowerCase();
+    const key = `${owner}/${m[2]}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push({ owner, albumId: m[2] });
+  }
+  return links;
 }
 
 /** The canonical link stored on an imported product (Product.sourceUrl). */
@@ -59,7 +79,8 @@ async function fetchPage(owner: string, path: string, password?: string | null):
     throw new YupooError(
       password
         ? "Mật khẩu shop không đúng (có thể nhà cung cấp vừa đổi). Sửa mật khẩu ở nguồn này rồi thử lại."
-        : "Shop này có khoá mật khẩu. Nhập mật khẩu nhà cung cấp đưa cho bạn."
+        : "Shop này có khoá mật khẩu. Nhập mật khẩu nhà cung cấp đưa cho bạn.",
+      "locked"
     );
   }
   return html;
@@ -153,13 +174,14 @@ export async function listAlbums(
   return { albums, categories, totalPages: max ? Math.max(1, Number(max)) : 1 };
 }
 
-export type YupooAlbum = { id: string; title: string; description: string; photos: string[] };
+export type YupooAlbum = { id: string; title: string; description: string; photos: string[]; cover: string | null };
 
 /** An album's title, the supplier's note under it, and every photo at the
  *  size the supplier uploaded (falling back to Yupoo's large copy). */
 export async function getAlbum(owner: string, password: string | null, albumId: string): Promise<YupooAlbum> {
   if (!/^\d+$/.test(albumId)) throw new YupooError("Mã album không hợp lệ.");
   const photos: string[] = [];
+  let cover: string | null = null;
   let title = "";
   let description = "";
   // Big albums spread their photos over several pages.
@@ -167,12 +189,20 @@ export async function getAlbum(owner: string, password: string | null, albumId: 
     const html = await fetchPage(owner, `/albums/${albumId}?uid=1${page > 1 ? `&page=${page}` : ""}`, password);
     if (page === 1) {
       title = decodeEntities(html.match(/class="showalbumheader__gallerytitle"[^>]*>([^<]*)</)?.[1] ?? "").trim();
-      const sub = html.match(/class="showalbumheader__gallerysubtitle[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "";
+      // The note can hold its own <div>/<p> lines, so read up to the buttons
+      // that follow it rather than to the first </div>.
+      const sub =
+        html.match(/class="showalbumheader__gallerysubtitle[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<div class="showalbumheader__tabgroup"/)?.[1] ??
+        html.match(/class="showalbumheader__gallerysubtitle[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ??
+        "";
       description = stripTags(sub);
     }
     const before = photos.length;
     for (const img of html.match(/<img[^>]*data-origin-src="[^"]*"[^>]*>/g) ?? []) {
       const src = attr(img, "data-origin-src") || attr(img, "data-src");
+      // Yupoo's small copy of the first photo, for the progress list.
+      const big = attr(img, "data-src");
+      if (!cover && big && /\/big\.(jpe?g|png|webp)$/i.test(big)) cover = absolutePhoto(big.replace(/\/big\./i, "/medium."));
       if (src && /photo\.yupoo\.com/.test(src)) {
         const url = absolutePhoto(src);
         if (!photos.includes(url)) photos.push(url);
@@ -181,12 +211,12 @@ export async function getAlbum(owner: string, password: string | null, albumId: 
     const max = Number(html.match(/name="page"[^>]*max="(\d+)"/)?.[1] ?? 1);
     if (photos.length === before || page >= max) break;
   }
-  return { id: albumId, title, description, photos };
+  return { id: albumId, title, description, photos, cover };
 }
 
 /** Checks a shop exists and, when it's locked, that the password opens it.
- *  Returns the shop's display name. */
-export async function checkShop(owner: string, password: string | null): Promise<{ nickname: string }> {
+ *  Returns the shop's display name and whether it's locked. */
+export async function checkShop(owner: string, password: string | null): Promise<{ nickname: string; locked: boolean }> {
   let res: Response;
   try {
     res = await fetch(`${shopOrigin(owner)}/api/web/users/${owner}?password=${encodeURIComponent(password ?? "")}`, {
@@ -202,9 +232,12 @@ export async function checkShop(owner: string, password: string | null): Promise
   } | null;
   if (!res.ok || !body?.data) throw new YupooError("Không tìm thấy shop này trên Yupoo. Kiểm tra lại link.");
   if (body.data.needPassWord && !body.data.passwordValid) {
-    throw new YupooError(password ? "Mật khẩu shop không đúng." : "Shop này có khoá mật khẩu. Nhập mật khẩu nhà cung cấp đưa cho bạn.");
+    throw new YupooError(
+      password ? "Mật khẩu shop không đúng." : "Shop này có khoá mật khẩu. Nhập mật khẩu nhà cung cấp đưa cho bạn.",
+      "locked"
+    );
   }
-  return { nickname: body.data.nickname?.trim() || owner };
+  return { nickname: body.data.nickname?.trim() || owner, locked: !!body.data.needPassWord };
 }
 
 /** Downloads one photo of `owner`'s shop. Only photo.yupoo.com URLs under

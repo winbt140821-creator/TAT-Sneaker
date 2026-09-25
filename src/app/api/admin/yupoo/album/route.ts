@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       name: translateTitle(album.title),
       description: cleanDescription(album.description),
       photos: album.photos,
+      cover: album.cover,
       sizes: { SHOES: parseSizes(text, "SHOES"), CLOTHING: parseSizes(text, "CLOTHING") },
     });
   } catch (err) {

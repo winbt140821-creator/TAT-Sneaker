@@ -63,6 +63,7 @@ export function ProductForm({
     leadTimeMaxDays?: number;
     depositRequired?: boolean;
     depositAmount?: number | null;
+    hidden?: boolean;
   };
   submitLabel: string;
 }) {
@@ -500,6 +501,24 @@ export function ProductForm({
         defaultValue={defaultValues?.description ?? ""}
         hint="Chỉnh mô tả chung cho tất cả sản phẩm ở Cài đặt > Mô tả sản phẩm."
       />
+
+      <label className="flex cursor-pointer items-start gap-3 border border-kraft-dark bg-paper p-3">
+        {/* Tells the action this form has the switch, so an unticked box
+            means "hide" rather than "field missing". */}
+        <input type="hidden" name="visibilityField" value="1" />
+        <input
+          type="checkbox"
+          name="visible"
+          defaultChecked={!defaultValues?.hidden}
+          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-ink"
+        />
+        <span className="font-body text-sm text-ink">
+          Hiện sản phẩm trên web
+          <span className="block font-mono text-[10px] text-graphite">
+            Bỏ chọn để giữ ẩn — khách không thấy, bạn vẫn sửa được. Cần có giá bán mới hiện được.
+          </span>
+        </span>
+      </label>
 
       <FormError message={state.error} />
 

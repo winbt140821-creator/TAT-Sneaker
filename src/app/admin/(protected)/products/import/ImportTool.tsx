@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { StoreBadge } from "@/components/admin/StoreBadge";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
@@ -8,6 +9,7 @@ import type { Department } from "@/lib/inventory";
 import {
   createImportedProductAction,
   deleteImportSourceAction,
+  resolveAlbumLinksAction,
   saveImportSourceAction,
   type SourceFormState,
 } from "./actions";
@@ -42,6 +44,7 @@ type Options = {
   again: boolean;
 };
 type Job = {
+  sourceId: string;
   album: AlbumCard;
   status: "queued" | "reading" | "photos" | "saving" | "done" | "skipped" | "error";
   done: number;
@@ -67,9 +70,9 @@ function defaultOptions(department: Department): Options {
   return {
     department,
     categoryIds: [],
-    maxPhotos: 15,
+    maxPhotos: 30,
     translate: true,
-    description: false,
+    description: true,
     sizes: true,
     quality: "Auth",
     availability: "PREORDER",
@@ -135,8 +138,9 @@ export function ImportTool({
   categories: CategoryOption[];
   preferredDepartment: Department | null;
 }) {
+  const router = useRouter();
   const [sourceId, setSourceId] = useState<string | null>(sources[0]?.id ?? null);
-  const [editing, setEditing] = useState<Source | "new" | null>(sources.length === 0 ? "new" : null);
+  const [editing, setEditing] = useState<Source | "new" | null>(null);
   const source = sources.find((s) => s.id === sourceId) ?? null;
 
   const saved = useSyncExternalStore(noSubscribe, readSavedOptions, () => null);
@@ -151,6 +155,7 @@ export function ImportTool({
   const [jobs, setJobs] = useState<Job[]>([]);
   const [running, setRunning] = useState(false);
   const stopRef = useRef(false);
+  const progressRef = useRef<HTMLElement>(null);
   const [listingVersion, setListingVersion] = useState(0);
 
   const optionsToKeep = JSON.stringify({ ...options, price: undefined, again: undefined });
@@ -178,33 +183,44 @@ export function ImportTool({
     setJobs((all) => all.map((job, i) => (i === index ? { ...job, ...patch } : job)));
   }
 
-  async function importAlbums(albums: AlbumCard[]) {
-    if (!source || albums.length === 0) return;
+  /** Imports albums one after another (their photos a few at a time) and
+   *  returns how each one ended. */
+  async function importAlbums(items: { sourceId: string; album: AlbumCard }[]): Promise<Job[]> {
+    if (items.length === 0) return [];
     const run = { ...options };
     const price = Math.round(Number(run.price.replace(/\D/g, "")) || 0);
+    const results: Job[] = items.map(({ sourceId, album }) => ({ sourceId, album, status: "queued", done: 0, total: 0 }));
+    const update = (index: number, patch: Partial<Job>) => {
+      results[index] = { ...results[index], ...patch };
+      updateJob(index, patch);
+    };
     stopRef.current = false;
     setRunning(true);
-    setJobs(albums.map((album) => ({ album, status: "queued", done: 0, total: 0 })));
+    setJobs(results);
+    requestAnimationFrame(() => progressRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
 
-    for (const [index, album] of albums.entries()) {
+    for (const [index, { sourceId: from, album }] of items.entries()) {
       if (stopRef.current) break;
       if (album.productId && !run.again) {
-        updateJob(index, { status: "skipped", productId: album.productId });
+        update(index, { status: "skipped", productId: album.productId });
         continue;
       }
       try {
-        updateJob(index, { status: "reading" });
+        update(index, { status: "reading" });
         const data = await getJson<{
           title: string;
           name: string;
           description: string;
           photos: string[];
+          cover: string | null;
           sizes: Record<Department, string[]>;
-        }>(`/api/admin/yupoo/album?source=${source.id}&id=${album.id}`);
+        }>(`/api/admin/yupoo/album?source=${from}&id=${album.id}`);
+        const name = run.translate ? data.name : data.title;
+        update(index, { album: { ...album, title: data.title, name, cover: album.cover ?? data.cover } });
 
         const photos = data.photos.slice(0, Math.max(1, run.maxPhotos));
         if (photos.length === 0) throw new Error("Album không có ảnh.");
-        updateJob(index, { status: "photos", total: photos.length });
+        update(index, { status: "photos", total: photos.length });
         let done = 0;
         const copied = await mapLimit(photos, PHOTO_CONCURRENCY, async (url) => {
           for (let attempt = 0; attempt < 2; attempt++) {
@@ -212,24 +228,24 @@ export function ImportTool({
               const { url: stored } = await getJson<{ url: string }>("/api/admin/yupoo/photo", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ source: source.id, url }),
+                body: JSON.stringify({ source: from, url }),
               });
-              updateJob(index, { done: ++done });
+              update(index, { done: ++done });
               return stored;
             } catch {}
           }
-          updateJob(index, { done: ++done });
+          update(index, { done: ++done });
           return null;
         });
         const images = copied.filter((u): u is string => !!u);
         if (images.length === 0) throw new Error("Không tải được ảnh nào từ album này.");
 
-        updateJob(index, { status: "saving" });
+        update(index, { status: "saving" });
         const result = await createImportedProductAction({
-          sourceId: source.id,
+          sourceId: from,
           albumId: album.id,
           department: run.department,
-          name: run.translate ? data.name : data.title,
+          name,
           description: run.description ? data.description : null,
           images,
           sizes: run.sizes ? data.sizes[run.department] : [],
@@ -241,38 +257,87 @@ export function ImportTool({
           again: run.again,
         });
         if (result.error) throw new Error(result.error);
-        updateJob(index, {
+        update(index, {
           status: result.skipped ? "skipped" : "done",
           productId: result.id,
           hidden: result.hidden,
           failedPhotos: photos.length - images.length,
         });
       } catch (err) {
-        updateJob(index, { status: "error", error: err instanceof Error ? err.message : "Lỗi không rõ." });
+        update(index, { status: "error", error: err instanceof Error ? err.message : "Lỗi không rõ." });
       }
     }
 
     setRunning(false);
     setSelected(new Map());
     setListingVersion((v) => v + 1);
+    return results;
   }
 
-  const failed = jobs.filter((j) => j.status === "error").map((j) => j.album);
+  async function importLinks(items: { sourceId: string; albumId: string; productId: string | null }[]) {
+    const results = await importAlbums(
+      items.map(({ sourceId, albumId, productId }) => ({
+        sourceId,
+        album: { id: albumId, title: "", name: `Album ${albumId}`, cover: null, photoCount: 0, productId },
+      }))
+    );
+    // One link: straight to the product's page to check it, price it and
+    // put it on sale.
+    const only = results.length === 1 ? results[0] : null;
+    if (only?.productId && (only.status === "done" || only.status === "skipped")) {
+      router.push(`/admin/products/${only.productId}/edit`);
+    }
+  }
+
+  const failed = jobs.filter((j) => j.status === "error").map(({ sourceId, album }) => ({ sourceId, album }));
   const imported = jobs.filter((j) => j.status === "done").length;
+  const startSelected = () => source && importAlbums([...selected.values()].map((album) => ({ sourceId: source.id, album })));
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
-      <SourceBar
-        sources={sources}
-        source={source}
-        onPick={pickSource}
-        editing={editing}
-        setEditing={setEditing}
-        disabled={running}
-      />
+    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="flex min-w-0 flex-col gap-6">
+        <LinkImport disabled={running} department={options.department} onImport={importLinks} />
 
-      {source && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        {jobs.length > 0 && (
+          <section ref={progressRef} aria-labelledby="import-progress" className="die-cut scroll-mt-4 bg-paper p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="import-progress" className="font-display text-lg text-ink">
+                {running ? "Đang nhập…" : `Đã nhập ${imported} sản phẩm`}
+              </h2>
+              {!running && (
+                <div className="flex flex-wrap gap-2">
+                  {failed.length > 0 && (
+                    <button type="button" className={ghostButtonClass} onClick={() => importAlbums(failed)}>
+                      Thử lại {failed.length} album lỗi
+                    </button>
+                  )}
+                  {imported > 1 && (
+                    <Link href="/admin/products?imported=1&noPrice=1" className={buttonClass}>
+                      Điền giá cho hàng mới nhập →
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+            {running && <p className="mt-1 font-mono text-xs text-graphite">Giữ trang này mở cho tới khi xong.</p>}
+            <ul className="mt-4 flex flex-col divide-y divide-kraft-dark">
+              {jobs.map((job) => (
+                <JobRow key={`${job.sourceId}-${job.album.id}`} job={job} />
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <SourceBar
+          sources={sources}
+          source={source}
+          onPick={pickSource}
+          editing={editing}
+          setEditing={setEditing}
+          disabled={running}
+        />
+
+        {source && (
           <AlbumBrowser
             key={`${source.id}-${listingVersion}`}
             source={source}
@@ -280,61 +345,132 @@ export function ImportTool({
             setSelected={setSelected}
             disabled={running}
           />
-          <OptionsPanel
-            options={options}
-            setOptions={setOptions}
-            categories={categories}
-            selectedCount={selected.size}
-            running={running}
-            onStart={() => importAlbums([...selected.values()])}
-            onStop={() => (stopRef.current = true)}
-          />
-        </div>
-      )}
+        )}
+      </div>
 
-      {jobs.length > 0 && (
-        <section aria-labelledby="import-progress" className="die-cut bg-paper p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="import-progress" className="font-display text-lg text-ink">
-              {running ? "Đang nhập…" : `Đã nhập ${imported} sản phẩm`}
-            </h2>
-            {!running && (
-              <div className="flex flex-wrap gap-2">
-                {failed.length > 0 && (
-                  <button type="button" className={ghostButtonClass} onClick={() => importAlbums(failed)}>
-                    Thử lại {failed.length} album lỗi
-                  </button>
-                )}
-                {imported > 0 && (
-                  <Link href="/admin/products?imported=1&noPrice=1" className={buttonClass}>
-                    Điền giá cho hàng mới nhập →
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-          {running && (
-            <p className="mt-1 font-mono text-xs text-graphite">Giữ trang này mở cho tới khi xong.</p>
-          )}
-          <ul className="mt-4 flex flex-col divide-y divide-kraft-dark">
-            {jobs.map((job) => (
-              <JobRow key={job.album.id} job={job} sourceId={source?.id ?? ""} />
-            ))}
-          </ul>
-        </section>
-      )}
+      <OptionsPanel
+        options={options}
+        setOptions={setOptions}
+        categories={categories}
+        selectedCount={selected.size}
+        running={running}
+        onStart={startSelected}
+        onStop={() => (stopRef.current = true)}
+      />
 
       {source && selected.size > 0 && !running && (
         // Phones: the options panel sits below a long grid, so the start
         // button also rides along at the bottom of the screen.
         <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-3 border-t border-kraft-dark bg-paper px-4 py-3 lg:hidden">
           <span className="font-mono text-xs text-ink">Đã chọn {selected.size} album</span>
-          <button type="button" className={buttonClass} onClick={() => importAlbums([...selected.values()])}>
+          <button type="button" className={buttonClass} onClick={startSelected}>
             Nhập {selected.size} album
           </button>
         </div>
       )}
     </div>
+  );
+}
+
+/** Paste one or more album links; each becomes a product. With a single
+ *  link the tool then opens that product's page for editing. */
+function LinkImport({
+  disabled,
+  department,
+  onImport,
+}: {
+  disabled: boolean;
+  department: Department;
+  onImport: (items: { sourceId: string; albumId: string; productId: string | null }[]) => void;
+}) {
+  const [text, setText] = useState("");
+  const [password, setPassword] = useState("");
+  const [needPassword, setNeedPassword] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    startTransition(async () => {
+      const result = await resolveAlbumLinksAction(text, needPassword ? password : null, department);
+      if (result.needPassword) {
+        setNeedPassword(result.needPassword);
+        setError(result.error ?? null);
+        return;
+      }
+      if (result.error || !result.items) {
+        setError(result.error ?? "Không đọc được link này.");
+        return;
+      }
+      setNeedPassword(null);
+      setPassword("");
+      setError(null);
+      setText("");
+      onImport(result.items);
+    });
+  }
+
+  return (
+    <section aria-labelledby="import-link" className="die-cut bg-paper p-4">
+      <h2 id="import-link" className="font-display text-lg text-ink">
+        Dán link album
+      </h2>
+      <p className="mt-1 font-body text-sm text-graphite">
+        Mở album trên Yupoo, copy link trên thanh địa chỉ rồi dán vào đây. Tool lấy đủ ảnh, tên, mô tả, size rồi mở
+        trang sản phẩm để bạn sửa, điền giá và đăng.
+      </p>
+      <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
+        <label htmlFor="album-links" className="sr-only">
+          Link album Yupoo
+        </label>
+        <textarea
+          id="album-links"
+          rows={2}
+          value={text}
+          disabled={disabled || pending}
+          onChange={(e) => {
+            setText(e.target.value);
+            // A new link may be from another shop: ask again only if needed.
+            setNeedPassword(null);
+            setPassword("");
+            setError(null);
+          }}
+          placeholder="https://cpdk8888.x.yupoo.com/albums/256250530?uid=1 — nhiều link thì mỗi dòng một link"
+          className={`${inputClass} font-mono text-xs`}
+        />
+        {needPassword && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="link-password" className={labelClass}>
+              Mật khẩu shop {needPassword}
+            </label>
+            <input
+              id="link-password"
+              type="password"
+              autoComplete="off"
+              value={password}
+              disabled={pending}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputClass} max-w-xs`}
+            />
+            <p className="font-mono text-[10px] text-graphite">
+              Shop này có khoá. Nhập mật khẩu nhà cung cấp đưa cho bạn — chỉ cần một lần, admin sẽ nhớ.
+            </p>
+          </div>
+        )}
+        {error && (
+          <p role="alert" className="font-mono text-xs text-stamp">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={disabled || pending || !text.trim() || (!!needPassword && !password.trim())}
+          className={`${buttonClass} min-h-11 w-fit`}
+        >
+          {pending ? "Đang kiểm tra link…" : "Lấy sản phẩm"}
+        </button>
+      </form>
+    </section>
   );
 }
 
@@ -355,9 +491,14 @@ function SourceBar({
 }) {
   return (
     <section aria-labelledby="import-sources" className="die-cut bg-paper p-4">
-      <h2 id="import-sources" className={labelClass}>
-        Shop nhà cung cấp
+      <h2 id="import-sources" className="font-display text-lg text-ink">
+        Hoặc chọn nhiều album từ shop
       </h2>
+      {sources.length === 0 && editing === null && (
+        <p className="mt-1 font-body text-sm text-graphite">
+          Shop sẽ tự được lưu khi bạn dán link album ở trên. Sau đó bạn xem được toàn bộ album của shop tại đây.
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {sources.map((s) => (
           <button
@@ -1022,14 +1163,14 @@ const STATUS_TEXT: Record<Job["status"], string> = {
   error: "Lỗi",
 };
 
-function JobRow({ job, sourceId }: { job: Job; sourceId: string }) {
+function JobRow({ job }: { job: Job }) {
   return (
     <li className="flex items-center gap-3 py-2">
       <div className="h-12 w-12 shrink-0 overflow-hidden bg-kraft-dark/30">
         {job.album.cover && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/admin/yupoo/cover?source=${sourceId}&src=${encodeURIComponent(job.album.cover)}`}
+            src={`/api/admin/yupoo/cover?source=${job.sourceId}&src=${encodeURIComponent(job.album.cover)}`}
             alt=""
             className="h-full w-full object-cover"
           />

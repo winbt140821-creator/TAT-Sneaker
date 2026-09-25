@@ -1,3 +1,4 @@
+import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
 import { getLiveExchangeRates } from "@/lib/fx";
 import { createProductAction } from "../actions";
@@ -23,6 +24,12 @@ export default async function NewProductPage({
   return (
     <div>
       <h1 className="font-display text-2xl text-ink">Thêm sản phẩm</h1>
+      <p className="mt-2 font-body text-sm text-graphite">
+        Có link album Yupoo của nhà cung cấp?{" "}
+        <Link href="/admin/products/import" className="text-ink underline hover:text-forest">
+          Dán link để tự lấy ảnh, tên và size
+        </Link>
+      </p>
       <div className="mt-6">
         <ProductForm
           action={createProductAction}

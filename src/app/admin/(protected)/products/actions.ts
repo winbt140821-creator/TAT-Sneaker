@@ -72,8 +72,11 @@ function readProductForm(formData: FormData) {
   const depositRequired = formData.get("depositRequired") === "on";
   const depositAmountRaw = String(formData.get("depositAmount") ?? "").trim();
   const depositAmount = depositRequired && depositAmountRaw ? Math.round(Number(depositAmountRaw)) : null;
+  // Only forms with the "Hiện sản phẩm trên web" switch decide visibility.
+  const hidden = formData.get("visibilityField") === "1" ? formData.get("visible") !== "on" : undefined;
 
   return {
+    hidden,
     name,
     sku,
     price,
@@ -107,6 +110,9 @@ export async function createProductAction(
   if (data.depositRequired && !data.depositAmount) {
     return { error: "Vui lòng nhập số tiền cọc." };
   }
+  if (data.hidden === false && data.price <= 0) {
+    return { error: "Điền giá bán trước khi hiện sản phẩm lên web (hoặc bỏ chọn “Hiện sản phẩm trên web”)." };
+  }
 
   try {
     // New products default to the end of the manual display order (not 0)
@@ -132,6 +138,7 @@ export async function createProductAction(
         leadTimeMaxDays: data.leadTimeMaxDays,
         depositRequired: data.depositRequired,
         depositAmount: data.depositAmount,
+        ...(data.hidden !== undefined ? { hidden: data.hidden } : {}),
         sortOrder,
         categories: { connect: data.categoryIds.map((id) => ({ id })) },
       },
@@ -159,6 +166,9 @@ export async function updateProductAction(
   if (data.depositRequired && !data.depositAmount) {
     return { error: "Vui lòng nhập số tiền cọc." };
   }
+  if (data.hidden === false && data.price <= 0) {
+    return { error: "Điền giá bán trước khi hiện sản phẩm lên web (hoặc bỏ chọn “Hiện sản phẩm trên web”)." };
+  }
 
   try {
     await prisma.product.update({
@@ -180,6 +190,7 @@ export async function updateProductAction(
         leadTimeMaxDays: data.leadTimeMaxDays,
         depositRequired: data.depositRequired,
         depositAmount: data.depositAmount,
+        ...(data.hidden !== undefined ? { hidden: data.hidden } : {}),
         categories: { set: data.categoryIds.map((id) => ({ id })) },
       },
     });

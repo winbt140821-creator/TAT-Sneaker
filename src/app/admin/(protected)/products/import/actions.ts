@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { isOwnUploadUrl } from "@/lib/uploads";
-import { albumUrl, checkShop, parseShopOwner, YupooError } from "@/lib/yupoo";
+import { albumUrl, checkShop, parseAlbumLinks, parseShopOwner, YupooError } from "@/lib/yupoo";
 import { SIZE_SETS, PREORDER_DEFAULT_QTY, IN_STOCK_LEAD_TIME, type Department } from "@/lib/inventory";
 import { ProductAvailability } from "@/generated/prisma/client";
 
@@ -24,16 +24,17 @@ export async function saveImportSourceAction(_prev: SourceFormState, formData: F
   const department: Department = formData.get("department") === "SHOES" ? "SHOES" : "CLOTHING";
 
   let nickname: string;
+  let locked: boolean;
   try {
-    ({ nickname } = await checkShop(owner, password));
+    ({ nickname, locked } = await checkShop(owner, password));
   } catch (err) {
     return { error: err instanceof YupooError ? err.message : "Không kiểm tra được shop này." };
   }
 
   const source = await prisma.importSource.upsert({
     where: { owner },
-    create: { owner, label: nickname, password, department },
-    update: { label: nickname, password, department },
+    create: { owner, label: nickname, password: locked ? password : null, department },
+    update: { label: nickname, password: locked ? password : null, department },
     select: { id: true },
   });
   revalidatePath("/admin/products/import");
@@ -44,6 +45,70 @@ export async function deleteImportSourceAction(id: string) {
   await requireStaff();
   await prisma.importSource.deleteMany({ where: { id } });
   revalidatePath("/admin/products/import");
+}
+
+export type ResolvedLinks = {
+  error?: string;
+  // This shop is locked and not saved yet (or the password given is wrong):
+  // ask for its password, then call again.
+  needPassword?: string;
+  items?: { sourceId: string; albumId: string; productId: string | null }[];
+};
+
+/** Pasted album links → the saved shop each belongs to (a shop seen for the
+ *  first time is checked and saved, with its password if it's locked), and
+ *  whether the album is already a product here. */
+export async function resolveAlbumLinksAction(
+  text: string,
+  password: string | null,
+  department: Department
+): Promise<ResolvedLinks> {
+  await requireStaff();
+  const links = parseAlbumLinks(text);
+  if (links.length === 0) {
+    return { error: "Không thấy link album Yupoo nào. Link đúng có dạng https://tenshop.x.yupoo.com/albums/123456" };
+  }
+  if (links.length > 50) return { error: "Tối đa 50 link mỗi lần." };
+
+  const sourceIds = new Map<string, string>();
+  for (const owner of new Set(links.map((l) => l.owner))) {
+    const saved = await prisma.importSource.findUnique({ where: { owner }, select: { id: true } });
+    if (saved) {
+      sourceIds.set(owner, saved.id);
+      continue;
+    }
+    try {
+      const { nickname, locked } = await checkShop(owner, password?.trim() || null);
+      const created = await prisma.importSource.create({
+        data: {
+          owner,
+          label: nickname,
+          // Only a locked shop keeps the password typed for it.
+          password: locked ? password?.trim() || null : null,
+          department: department === "SHOES" ? "SHOES" : "CLOTHING",
+        },
+        select: { id: true },
+      });
+      sourceIds.set(owner, created.id);
+    } catch (err) {
+      if (err instanceof YupooError && err.kind === "locked") {
+        return { needPassword: owner, error: password ? err.message : undefined };
+      }
+      return { error: err instanceof YupooError ? err.message : "Không kiểm tra được shop này." };
+    }
+  }
+
+  const urls = links.map((l) => albumUrl(l.owner, l.albumId));
+  const existing = await prisma.product.findMany({ where: { sourceUrl: { in: urls } }, select: { id: true, sourceUrl: true } });
+  const productByUrl = new Map(existing.map((p) => [p.sourceUrl, p.id]));
+  revalidatePath("/admin/products/import");
+  return {
+    items: links.map((l) => ({
+      sourceId: sourceIds.get(l.owner)!,
+      albumId: l.albumId,
+      productId: productByUrl.get(albumUrl(l.owner, l.albumId)) ?? null,
+    })),
+  };
 }
 
 export type ImportedProductInput = {
