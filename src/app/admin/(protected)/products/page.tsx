@@ -9,6 +9,8 @@ import { StoreBadge } from "@/components/admin/StoreBadge";
 import { getAdminStore, storeWhere, type AdminStore } from "@/lib/admin-store";
 import type { Department } from "@/lib/inventory";
 import { getSocialLinkedProducts } from "@/lib/social-links";
+import { productListWhere } from "@/lib/admin-product-filter";
+import { BulkBar } from "./BulkBar";
 
 // Only fetch the fields this list actually renders — the full Product row
 // also carries images/sizeQuantities/description/costPrice JSON blobs that
@@ -84,6 +86,14 @@ function ProductRow({
       className={`die-cut flex flex-col gap-3 bg-paper p-3 sm:flex-row sm:items-center sm:gap-4 ${p.hidden ? "opacity-60" : ""}`}
     >
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <input
+          type="checkbox"
+          name="ids"
+          value={p.id}
+          form="bulk-products"
+          aria-label={`Chọn ${p.name}`}
+          className="h-5 w-5 shrink-0 cursor-pointer accent-ink"
+        />
         <MoveButtons
           id={p.id}
           categoryId={categoryId}
@@ -127,16 +137,30 @@ function ProductRow({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 sm:ml-auto sm:justify-end sm:gap-4">
-        <p className="font-mono text-sm font-semibold text-forest">{formatPrice(p.price)}</p>
+        {p.price > 0 ? (
+          <p className="font-mono text-sm font-semibold text-forest">{formatPrice(p.price)}</p>
+        ) : (
+          <p className="font-mono text-xs font-semibold uppercase tracking-wide text-stamp">Chưa có giá</p>
+        )}
 
-        <form action={toggleProductHiddenAction.bind(null, p.id)}>
-          <button
-            type="submit"
-            className="flex min-h-11 cursor-pointer items-center px-2 font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
+        {p.hidden && p.price <= 0 ? (
+          // Showing a product with no price would let shoppers order it for 0đ.
+          <span
+            title="Điền giá trước (sửa sản phẩm, hoặc chọn nhiều rồi Đổi giá)"
+            className="flex min-h-11 items-center px-2 font-mono text-xs uppercase tracking-wide text-graphite/60"
           >
-            {p.hidden ? "Hiện lại" : "Ẩn"}
-          </button>
-        </form>
+            Hiện lại
+          </span>
+        ) : (
+          <form action={toggleProductHiddenAction.bind(null, p.id)}>
+            <button
+              type="submit"
+              className="flex min-h-11 cursor-pointer items-center px-2 font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
+            >
+              {p.hidden ? "Hiện lại" : "Ẩn"}
+            </button>
+          </form>
+        )}
 
         <RowActions
           editHref={`/admin/products/${p.id}/edit`}
@@ -164,24 +188,66 @@ function ViewTabs({ active }: { active: "all" | "folder" }) {
   );
 }
 
+// Quick filters above the list. "Chưa có ảnh" is also linked from the
+// dashboard's to-do list; the other two are where the Yupoo import sends
+// staff to price what it just brought in.
+function FilterChips({ active, query }: { active: { noImage: boolean; noPrice: boolean; imported: boolean }; query?: string }) {
+  const chips = [
+    { key: "noPrice", label: "Chưa có giá" },
+    { key: "imported", label: "Nhập từ Yupoo" },
+    { key: "noImage", label: "Chưa có ảnh" },
+  ] as const;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {chips.map(({ key, label }) => {
+        const on = active[key];
+        const params = new URLSearchParams({
+          ...(query ? { q: query } : {}),
+          ...Object.fromEntries(
+            chips.filter((c) => (c.key === key ? !on : active[c.key])).map((c) => [c.key, "1"])
+          ),
+        });
+        return (
+          <Link
+            key={key}
+            href={`/admin/products${params.size ? `?${params}` : ""}`}
+            aria-pressed={on}
+            className={
+              "flex min-h-9 items-center border px-3 font-mono text-xs transition-colors " +
+              (on ? "border-ink bg-ink text-paper" : "border-kraft-dark bg-paper text-ink hover:border-ink")
+            }
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 async function AllProductsView({
   q,
   pageParam,
   store,
   noImage,
+  noPrice,
+  imported,
 }: {
   q?: string;
   pageParam?: string;
   store: AdminStore;
   noImage: boolean;
+  noPrice: boolean;
+  imported: boolean;
 }) {
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
-  const where = {
-    ...storeWhere(store),
-    // "Sản phẩm chưa có ảnh" — linked from the dashboard's to-do list.
-    ...(noImage ? { images: "[]" } : {}),
-    ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
+  const where = productListWhere({ store, q: query, noImage, noPrice, imported });
+  const filterParams: Record<string, string> = {
+    ...(query ? { q: query } : {}),
+    ...(noImage ? { noImage: "1" } : {}),
+    ...(noPrice ? { noPrice: "1" } : {}),
+    ...(imported ? { imported: "1" } : {}),
   };
 
   const [linkedPosts, products, totalCount, sortOrderBounds] = await Promise.all([
@@ -245,17 +311,20 @@ async function AllProductsView({
           </Link>
         </p>
       )}
-      {noImage && (
+      <FilterChips active={{ noImage, noPrice, imported }} query={query} />
+      {(noImage || noPrice || imported) && (
         <p className="mt-2 font-mono text-xs text-graphite">
-          Đang xem {totalCount} sản phẩm chưa có ảnh.{" "}
+          Đang lọc: {totalCount} sản phẩm.{" "}
           <Link href="/admin/products" className="text-forest hover:underline">
             Bỏ lọc
           </Link>
         </p>
       )}
 
+      <BulkBar filter={filterParams} totalCount={totalCount} />
+
       <div className="mt-6 flex flex-col gap-3">
-        {query && products.length === 0 && (
+        {(query || noImage || noPrice || imported) && products.length === 0 && (
           <p className="font-mono text-xs text-graphite">Không tìm thấy sản phẩm nào.</p>
         )}
         {products.map((p) => (
@@ -274,7 +343,7 @@ async function AllProductsView({
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/admin/products?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(noImage ? { noImage: "1" } : {}), page: String(p) })}`}
+              href={`/admin/products?${new URLSearchParams({ ...filterParams, page: String(p) })}`}
               aria-current={p === page ? "page" : undefined}
               className={
                 "die-cut-flat flex h-9 w-9 cursor-pointer items-center justify-center font-mono text-sm " +
@@ -360,10 +429,7 @@ async function FolderProductsView({
 
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
-  const where = {
-    categories: { some: { id: categoryId } },
-    ...(query ? { OR: [{ name: { contains: query } }, { sku: { contains: query } }] } : {}),
-  };
+  const where = productListWhere({ store: "ALL", q: query, categoryId });
 
   const [linkedPosts, products, totalCount, sortOrderBounds] = await Promise.all([
     getSocialLinkedProducts(),
@@ -444,6 +510,8 @@ async function FolderProductsView({
         </p>
       )}
 
+      <BulkBar filter={{ category: categoryId, ...(query ? { q: query } : {}) }} totalCount={totalCount} />
+
       <div className="mt-6 flex flex-col gap-3">
         {products.length === 0 && (
           <p className="font-mono text-xs text-graphite">
@@ -486,9 +554,17 @@ async function FolderProductsView({
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; view?: string; category?: string; noImage?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    page?: string;
+    view?: string;
+    category?: string;
+    noImage?: string;
+    noPrice?: string;
+    imported?: string;
+  }>;
 }) {
-  const [{ q, page: pageParam, view, category: categoryId, noImage }, store] = await Promise.all([
+  const [{ q, page: pageParam, view, category: categoryId, noImage, noPrice, imported }, store] = await Promise.all([
     searchParams,
     getAdminStore(),
   ]);
@@ -498,12 +574,20 @@ export default async function AdminProductsPage({
     <div>
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl text-ink">Sản phẩm</h1>
-        <Link
-          href={store === "ALL" ? "/admin/products/new" : `/admin/products/new?department=${store}`}
-          className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
-        >
-          + Thêm sản phẩm
-        </Link>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link
+            href="/admin/products/import"
+            className="die-cut-flat cursor-pointer border border-ink bg-paper px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-ink transition-colors hover:bg-kraft-dark/40"
+          >
+            Nhập từ Yupoo
+          </Link>
+          <Link
+            href={store === "ALL" ? "/admin/products/new" : `/admin/products/new?department=${store}`}
+            className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
+          >
+            + Thêm sản phẩm
+          </Link>
+        </div>
       </div>
 
       <ViewTabs active={isFolderView ? "folder" : "all"} />
@@ -515,7 +599,14 @@ export default async function AdminProductsPage({
           <FolderPicker store={store} />
         )
       ) : (
-        <AllProductsView q={q} pageParam={pageParam} store={store} noImage={noImage === "1"} />
+        <AllProductsView
+          q={q}
+          pageParam={pageParam}
+          store={store}
+          noImage={noImage === "1"}
+          noPrice={noPrice === "1"}
+          imported={imported === "1"}
+        />
       )}
     </div>
   );

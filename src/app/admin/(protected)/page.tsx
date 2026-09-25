@@ -31,10 +31,12 @@ async function storeStats(department: Department, startOfToday: Date, startOfMon
 // category tiles without a picture, footer links to pages that don't exist.
 async function storeTodos(department: Department): Promise<Todo[]> {
   const label = STORE_LABEL[department];
-  const [branding, visibleProducts, productsWithoutPhotos, categoriesWithoutPhoto] = await Promise.all([
+  const [branding, visibleProducts, productsWithoutPhotos, productsWithoutPrice, categoriesWithoutPhoto] = await Promise.all([
     prisma.storefrontBranding.findUnique({ where: { department }, select: { heroImages: true, heroImageUrl: true } }),
     prisma.product.count({ where: { department, hidden: false } }),
     prisma.product.count({ where: { department, hidden: false, images: "[]" } }),
+    // Fresh from the Yupoo import: hidden until someone sets a price.
+    prisma.product.count({ where: { department, price: { lte: 0 } } }),
     // Clothing shows every top-level category that has a photo as a tile;
     // shoes only the ones switched on for the homepage showcase.
     prisma.category.count({
@@ -66,6 +68,14 @@ async function storeTodos(department: Department): Promise<Todo[]> {
       text: `${productsWithoutPhotos} sản phẩm ${label.toLowerCase()} chưa có ảnh.`,
       href: "/admin/products?noImage=1",
       action: "Xem danh sách",
+    });
+  }
+  if (productsWithoutPrice > 0) {
+    todos.push({
+      department,
+      text: `${productsWithoutPrice} sản phẩm ${label.toLowerCase()} chưa có giá nên đang ẩn.`,
+      href: "/admin/products?noPrice=1",
+      action: "Điền giá",
     });
   }
   if (categoriesWithoutPhoto > 0) {

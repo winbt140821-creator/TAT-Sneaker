@@ -154,6 +154,12 @@ model Product {
   // tatsneaker.vn and vice versa.
   department Department @default(SHOES)
 
+  // Where an imported product came from — the supplier's Yupoo album
+  // ("https://<shop>.x.yupoo.com/albums/<id>"), set by Sản phẩm → Nhập từ
+  // Yupoo. Lets the import tool mark albums already brought in so the same
+  // album isn't imported twice. Null for products made by hand.
+  sourceUrl String?
+
   categories    Category[]  @relation("ProductCategories")
   saleCampaigns SaleCampaign[] @relation("SaleCampaignProducts")
   orderItems    OrderItem[]
@@ -165,6 +171,20 @@ model Product {
   @@index([hidden])
   @@index([sortOrder])
   @@index([department])
+  @@index([sourceUrl])
+}
+
+// A supplier shop on Yupoo that Sản phẩm → Nhập từ Yupoo reads albums from.
+// Many suppliers lock their shop with a password they give to resellers —
+// kept here so staff type it once. Admin-only; never sent to shoppers.
+model ImportSource {
+  id         String     @id @default(cuid())
+  owner      String     @unique // the shop's subdomain: "cpdk8888" in cpdk8888.x.yupoo.com
+  label      String
+  password   String?
+  department Department @default(CLOTHING) // store the tool picks first for this shop
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 // Holiday/seasonal discount campaigns — replaces the old per-product

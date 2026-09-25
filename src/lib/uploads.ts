@@ -140,3 +140,33 @@ export async function createUploadTargets(
     })
   );
 }
+
+/**
+ * Stores a file the server made itself (not one a browser uploads) — used
+ * by the Yupoo import, which downloads supplier photos server-side because
+ * Yupoo refuses them to any other site's browser. R2 when configured, else
+ * public/uploads like the dev fallback above. Returns the public URL.
+ */
+export async function storeServerFile(filename: string, body: Buffer, contentType: string): Promise<string> {
+  const config = r2Config();
+  if (!config) {
+    await saveToLocalDisk(filename, body);
+    return `/uploads/${filename}`;
+  }
+  const client = new S3Client({
+    region: "auto",
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
+  });
+  await client.send(new PutObjectCommand({ Bucket: config.bucket, Key: filename, Body: body, ContentType: contentType }));
+  return `${config.publicUrl.replace(/\/$/, "")}/${filename}`;
+}
+
+/** True for a photo storeServerFile/an admin upload put in our own storage
+ *  (a bare "<uuid>.<ext>" name) — lets an action trust URLs a browser sends. */
+export function isOwnUploadUrl(url: string): boolean {
+  const name = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpe?g|png|gif|webp)$/i;
+  if (url.startsWith("/uploads/")) return name.test(url.slice("/uploads/".length));
+  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+  return !!base && url.startsWith(`${base}/`) && name.test(url.slice(base.length + 1));
+}

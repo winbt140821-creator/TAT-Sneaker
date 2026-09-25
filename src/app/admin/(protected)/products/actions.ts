@@ -5,8 +5,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { getSocialLinkedProducts } from "@/lib/social-links";
-import { ProductAvailability } from "@/generated/prisma/client";
 import { SIZE_SETS, PREORDER_DEFAULT_QTY, type Department } from "@/lib/inventory";
+import { Prisma, ProductAvailability } from "@/generated/prisma/client";
+import { formatPrice } from "@/lib/products";
+import { getAdminStore } from "@/lib/admin-store";
+import { productListWhere, readProductListFilter } from "@/lib/admin-product-filter";
 
 export type ProductFormState = { error?: string };
 
@@ -213,7 +216,10 @@ export async function toggleProductHiddenAction(id: string) {
   // One raw UPDATE instead of a read-then-write — SQLite stores Boolean as
   // 0/1, so NOT negates it directly, cutting a round trip against the
   // remote (Turso) database out of every single toggle click.
-  await prisma.$executeRaw`UPDATE "Product" SET "hidden" = NOT "hidden" WHERE "id" = ${id}`;
+  // A product with no price yet (fresh from the Yupoo import) stays hidden —
+  // the list shows it greyed out with no "Hiện lại" button, this only stops
+  // a stale page.
+  await prisma.$executeRaw`UPDATE "Product" SET "hidden" = NOT "hidden" WHERE "id" = ${id} AND ("hidden" = 0 OR "price" > 0)`;
   revalidatePath("/admin/products");
   revalidatePath("/");
 }
@@ -266,4 +272,87 @@ export async function moveProductAction(id: string, direction: "up" | "down", ca
 
   revalidatePath("/admin/products");
   revalidatePath("/");
+}
+
+export type BulkProductsState = { message?: string; error?: string; at?: number };
+
+const BULK_CHUNK = 200;
+
+function chunks<T>(items: T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
+}
+
+/** Changes price or visibility of many products at once — the ticked rows,
+ *  or every product the list's current filter shows. Price changes:
+ *  "set" gives one price; "add" moves by an amount; "percent" by a
+ *  percentage, rounded to the nearest 1.000đ. Products with no price yet
+ *  are only touched by "set", and are never shown to shoppers. */
+export async function bulkProductsAction(_prev: BulkProductsState, formData: FormData): Promise<BulkProductsState> {
+  await requireStaff();
+  const op = String(formData.get("op") ?? "");
+  const at = Date.now();
+
+  let ids: string[];
+  if (formData.get("scope") === "filter") {
+    const filter = readProductListFilter((k) => formData.get(k)?.toString(), await getAdminStore());
+    ids = (await prisma.product.findMany({ where: productListWhere(filter), select: { id: true } })).map((p) => p.id);
+  } else {
+    ids = [...new Set(formData.getAll("ids").map(String))].slice(0, 1000);
+  }
+  if (ids.length === 0) return { error: "Chưa chọn sản phẩm nào.", at };
+
+  let changed = 0;
+  let message: string;
+
+  if (op === "show" || op === "hide") {
+    for (const part of chunks(ids, BULK_CHUNK)) {
+      const { count } = await prisma.product.updateMany({
+        where: { id: { in: part }, ...(op === "show" ? { price: { gt: 0 } } : {}) },
+        data: { hidden: op === "hide" },
+      });
+      changed += count;
+    }
+    const noPrice = ids.length - changed;
+    message =
+      op === "show"
+        ? `Đã hiện ${changed} sản phẩm.${noPrice > 0 ? ` ${noPrice} sản phẩm chưa có giá nên vẫn ẩn.` : ""}`
+        : `Đã ẩn ${changed} sản phẩm.`;
+  } else if (op === "price") {
+    const mode = String(formData.get("priceMode") ?? "set");
+    const raw = String(formData.get("amount") ?? "").trim();
+    const negative = raw.startsWith("-");
+    // "350.000" is 350 nghìn đồng, but "7,5" / "7.5" is 7.5%.
+    const digits = mode === "percent" ? raw.replace(",", ".").replace(/[^\d.]/g, "") : raw.replace(/\D/g, "");
+    const amount = Number(digits) * (negative ? -1 : 1);
+    if (!raw || !Number.isFinite(amount) || amount === 0) return { error: "Nhập số tiền hoặc phần trăm.", at };
+
+    if (mode === "set") {
+      if (amount < 1000) return { error: "Giá bán phải từ 1.000đ trở lên.", at };
+      for (const part of chunks(ids, BULK_CHUNK)) {
+        changed += (await prisma.product.updateMany({ where: { id: { in: part } }, data: { price: Math.round(amount) } })).count;
+      }
+      message = `Đã đặt giá ${formatPrice(Math.round(amount))} cho ${changed} sản phẩm.`;
+    } else if (mode === "add") {
+      const delta = Math.round(amount);
+      for (const part of chunks(ids, BULK_CHUNK)) {
+        changed += await prisma.$executeRaw`UPDATE "Product" SET "price" = MAX(1000, "price" + ${delta}) WHERE "price" > 0 AND "id" IN (${Prisma.join(part)})`;
+      }
+      message = `Đã ${delta > 0 ? "tăng" : "giảm"} ${formatPrice(Math.abs(delta))} cho ${changed} sản phẩm.`;
+    } else {
+      if (amount <= -90 || amount > 500) return { error: "Phần trăm phải trong khoảng -90% đến 500%.", at };
+      const factor = (100 + amount) / 100;
+      for (const part of chunks(ids, BULK_CHUNK)) {
+        changed += await prisma.$executeRaw`UPDATE "Product" SET "price" = MAX(1000, CAST(ROUND("price" * ${factor} / 1000.0) AS INTEGER) * 1000) WHERE "price" > 0 AND "id" IN (${Prisma.join(part)})`;
+      }
+      message = `Đã ${amount > 0 ? "tăng" : "giảm"} ${Math.abs(amount)}% (làm tròn tới 1.000đ) cho ${changed} sản phẩm.`;
+    }
+    const skipped = ids.length - changed;
+    if (skipped > 0 && mode !== "set") message += ` Bỏ qua ${skipped} sản phẩm chưa có giá.`;
+  } else {
+    return { error: "Thao tác không hợp lệ.", at };
+  }
+
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+  return { message, at };
 }
