@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { isOwnUploadUrl } from "@/lib/uploads";
+import { cleanPageUrl } from "@/lib/image-source-url";
 import { albumUrl, checkShop, parseAlbumLinks, parseShopLink, parseShopOwner, YupooError } from "@/lib/yupoo";
 import { SIZE_SETS, PREORDER_DEFAULT_QTY, IN_STOCK_LEAD_TIME, type Department } from "@/lib/inventory";
 import { ProductAvailability } from "@/generated/prisma/client";
@@ -130,8 +131,8 @@ export async function resolveAlbumLinksAction(
 }
 
 export type ImportedProductInput = {
-  sourceId: string;
-  albumId: string;
+  // A Yupoo album (a saved shop + album id), or a product page on any site.
+  source: { kind: "yupoo"; sourceId: string; albumId: string } | { kind: "web"; url: string };
   department: Department;
   name: string;
   description: string | null;
@@ -142,21 +143,30 @@ export type ImportedProductInput = {
   quality: string;
   availability: "PREORDER" | "IN_STOCK";
   publish: boolean;
-  // Import again even though a product from this album exists.
+  // Import again even though a product from this album/page exists.
   again: boolean;
 };
 
 export type ImportedProductResult = { id?: string; skipped?: boolean; hidden?: boolean; error?: string };
 
-/** Creates one product from an album whose photos are already copied into
- *  our storage. Starts hidden unless staff asked to publish and gave a
- *  price — a product without a price must never reach shoppers. */
+/** Creates one product from an album or product page whose photos are
+ *  already copied into our storage. Starts hidden unless staff asked to
+ *  publish and gave a price — a product without a price must never reach
+ *  shoppers. */
 export async function createImportedProductAction(input: ImportedProductInput): Promise<ImportedProductResult> {
   await requireStaff();
 
-  const source = await prisma.importSource.findUnique({ where: { id: input.sourceId }, select: { owner: true } });
-  if (!source || !/^\d+$/.test(input.albumId)) return { error: "Không tìm thấy shop hoặc album." };
-  const sourceUrl = albumUrl(source.owner, input.albumId);
+  let sourceUrl: string;
+  if (input.source.kind === "yupoo") {
+    const { sourceId, albumId } = input.source;
+    const source = await prisma.importSource.findUnique({ where: { id: sourceId }, select: { owner: true } });
+    if (!source || !/^\d+$/.test(albumId)) return { error: "Không tìm thấy shop hoặc album." };
+    sourceUrl = albumUrl(source.owner, albumId);
+  } else {
+    const url = cleanPageUrl(String(input.source.url));
+    if (!/^https?:\/\//.test(url) || url.length > 2000) return { error: "Link sản phẩm không hợp lệ." };
+    sourceUrl = url;
+  }
 
   if (!input.again) {
     const existing = await prisma.product.findFirst({ where: { sourceUrl }, select: { id: true } });

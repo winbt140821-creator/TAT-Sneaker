@@ -11,8 +11,20 @@ import {
   deleteImportSourceAction,
   resolveAlbumLinksAction,
   saveImportSourceAction,
+  type ImportedProductInput,
   type SourceFormState,
 } from "./actions";
+import {
+  BookmarkletLink,
+  productFromBookmarkHash,
+  webPreview,
+  WebListPanel,
+  WebProductPanel,
+  type ReadyProduct,
+  type WebListData,
+  type WebListItem,
+  type WebProductData,
+} from "./WebImport";
 
 type Source = { id: string; owner: string; label: string; department: Department; hasPassword: boolean };
 type CategoryOption = { id: string; label: string; department: Department; children: { id: string; label: string }[] };
@@ -43,9 +55,30 @@ type Options = {
   publish: boolean;
   again: boolean;
 };
+// What one import needs: how to read the product, and where its photos
+// are copied from. Yupoo albums, product pages on other sites, and products
+// staff already reviewed (photos picked) all run through the same steps.
+type Loaded = {
+  title: string;
+  name: string;
+  description: string;
+  photos: string[];
+  sizes: Record<Department, string[]>;
+  cover?: string | null;
+};
+type ImportItem = {
+  key: string;
+  label: string;
+  preview: string | null;
+  productId: string | null;
+  source: ImportedProductInput["source"];
+  photos: { via: "yupoo"; sourceId: string } | { via: "web"; referer: string };
+  load: () => Promise<Loaded>;
+};
 type Job = {
-  sourceId: string;
-  album: AlbumCard;
+  item: ImportItem;
+  label: string;
+  preview: string | null;
   status: "queued" | "reading" | "photos" | "saving" | "done" | "skipped" | "error";
   done: number;
   total: number;
@@ -107,6 +140,24 @@ function parseSavedOptions(saved: string | null): Partial<Options> {
   }
 }
 
+// The bookmark hands its data over in the page address (#tat=…); reading
+// it through useSyncExternalStore keeps the server render and the first
+// client render in agreement.
+const HASH_CLEARED = "tat-hash-cleared";
+function subscribeHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  window.addEventListener(HASH_CLEARED, onChange);
+  return () => {
+    window.removeEventListener("hashchange", onChange);
+    window.removeEventListener(HASH_CLEARED, onChange);
+  };
+}
+function clearBookmarkHash() {
+  if (!window.location.hash) return;
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+  window.dispatchEvent(new Event(HASH_CLEARED));
+}
+
 /** Runs `work` over `items` with at most `limit` at once, keeping order. */
 async function mapLimit<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = new Array(items.length);
@@ -120,6 +171,56 @@ async function mapLimit<T, R>(items: T[], limit: number, work: (item: T) => Prom
     })
   );
   return results;
+}
+
+function yupooCover(sourceId: string, cover: string | null) {
+  return cover ? `/api/admin/yupoo/cover?source=${sourceId}&src=${encodeURIComponent(cover)}` : null;
+}
+
+function yupooItem(sourceId: string, album: AlbumCard): ImportItem {
+  return {
+    key: `yupoo:${sourceId}:${album.id}`,
+    label: album.name,
+    preview: yupooCover(sourceId, album.cover),
+    productId: album.productId,
+    source: { kind: "yupoo", sourceId, albumId: album.id },
+    photos: { via: "yupoo", sourceId },
+    load: () => getJson<Loaded>(`/api/admin/yupoo/album?source=${sourceId}&id=${album.id}`),
+  };
+}
+
+/** A product page on another site, read when its turn comes. */
+function webItem(url: string, label: string, image: string | null, productId: string | null): ImportItem {
+  return {
+    key: `web:${url}`,
+    label,
+    preview: image ? webPreview(image, url) : null,
+    productId,
+    source: { kind: "web", url },
+    photos: { via: "web", referer: url },
+    load: async () => {
+      const page = await getJson<{ kind: string; product?: WebProductData }>(
+        `/api/admin/import/page?url=${encodeURIComponent(url)}`
+      );
+      const p = page.product;
+      if (page.kind !== "product" || !p) throw new Error("Link này là trang danh sách, không phải một sản phẩm.");
+      const photos = p.images.length ? p.images : p.extraImages.slice(0, 12);
+      return { title: p.title, name: p.name, description: p.description, photos, sizes: p.sizes, cover: photos[0] };
+    },
+  };
+}
+
+/** A product staff already reviewed, with the photos they picked. */
+function readyItem(ready: ReadyProduct): ImportItem {
+  return {
+    key: `ready:${ready.url}`,
+    label: ready.name,
+    preview: ready.photos[0] ? webPreview(ready.photos[0], ready.url) : null,
+    productId: null,
+    source: { kind: "web", url: ready.url },
+    photos: { via: "web", referer: ready.url },
+    load: async () => ({ ...ready, name: ready.name }),
+  };
 }
 
 async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -185,13 +286,20 @@ export function ImportTool({
     setJobs((all) => all.map((job, i) => (i === index ? { ...job, ...patch } : job)));
   }
 
-  /** Imports albums one after another (their photos a few at a time) and
-   *  returns how each one ended. */
-  async function importAlbums(items: { sourceId: string; album: AlbumCard }[]): Promise<Job[]> {
+  /** Imports products one after another (their photos a few at a time)
+   *  and returns how each one ended. */
+  async function importItems(items: ImportItem[]): Promise<Job[]> {
     if (items.length === 0) return [];
     const run = { ...options };
     const price = Math.round(Number(run.price.replace(/\D/g, "")) || 0);
-    const results: Job[] = items.map(({ sourceId, album }) => ({ sourceId, album, status: "queued", done: 0, total: 0 }));
+    const results: Job[] = items.map((item) => ({
+      item,
+      label: item.label,
+      preview: item.preview,
+      status: "queued",
+      done: 0,
+      total: 0,
+    }));
     const update = (index: number, patch: Partial<Job>) => {
       results[index] = { ...results[index], ...patch };
       updateJob(index, patch);
@@ -201,37 +309,41 @@ export function ImportTool({
     setJobs(results);
     requestAnimationFrame(() => progressRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
 
-    for (const [index, { sourceId: from, album }] of items.entries()) {
+    for (const [index, item] of items.entries()) {
       if (stopRef.current) break;
-      if (album.productId && !run.again) {
-        update(index, { status: "skipped", productId: album.productId });
+      if (item.productId && !run.again) {
+        update(index, { status: "skipped", productId: item.productId });
         continue;
       }
       try {
         update(index, { status: "reading" });
-        const data = await getJson<{
-          title: string;
-          name: string;
-          description: string;
-          photos: string[];
-          cover: string | null;
-          sizes: Record<Department, string[]>;
-        }>(`/api/admin/yupoo/album?source=${from}&id=${album.id}`);
-        const name = run.translate ? data.name : data.title;
-        update(index, { album: { ...album, title: data.title, name, cover: album.cover ?? data.cover } });
+        const data = await item.load();
+        // Keep a name staff typed themselves (a reviewed product) as it is.
+        const name = run.translate || item.key.startsWith("ready:") ? data.name : data.title;
+        const cover = data.cover ?? data.photos[0];
+        update(index, {
+          label: name,
+          preview:
+            results[index].preview ??
+            (cover ? (item.photos.via === "yupoo" ? yupooCover(item.photos.sourceId, cover) : webPreview(cover, item.photos.referer)) : null),
+        });
 
         const photos = data.photos.slice(0, Math.max(1, run.maxPhotos));
-        if (photos.length === 0) throw new Error("Album không có ảnh.");
+        if (photos.length === 0) throw new Error("Không có ảnh nào.");
         update(index, { status: "photos", total: photos.length });
         let done = 0;
+        const via = item.photos;
         const copied = await mapLimit(photos, PHOTO_CONCURRENCY, async (url) => {
           for (let attempt = 0; attempt < 2; attempt++) {
             try {
-              const { url: stored } = await getJson<{ url: string }>("/api/admin/yupoo/photo", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ source: from, url }),
-              });
+              const { url: stored } = await getJson<{ url: string }>(
+                via.via === "yupoo" ? "/api/admin/yupoo/photo" : "/api/admin/import/photo",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(via.via === "yupoo" ? { source: via.sourceId, url } : { url, referer: via.referer }),
+                }
+              );
               update(index, { done: ++done });
               return stored;
             } catch {}
@@ -240,12 +352,11 @@ export function ImportTool({
           return null;
         });
         const images = copied.filter((u): u is string => !!u);
-        if (images.length === 0) throw new Error("Không tải được ảnh nào từ album này.");
+        if (images.length === 0) throw new Error("Không tải được ảnh nào.");
 
         update(index, { status: "saving" });
         const result = await createImportedProductAction({
-          sourceId: from,
-          albumId: album.id,
+          source: item.source,
           department: run.department,
           name,
           description: run.description ? data.description : null,
@@ -276,19 +387,80 @@ export function ImportTool({
     return results;
   }
 
-  async function importLinks(items: { sourceId: string; albumId: string; productId: string | null }[]) {
-    const results = await importAlbums(
-      items.map(({ sourceId, albumId, productId }) => ({
-        sourceId,
-        album: { id: albumId, title: "", name: `Album ${albumId}`, cover: null, photoCount: 0, productId },
-      }))
-    );
-    // One link: straight to the product's page to check it, price it and
-    // put it on sale.
+  /** One product imported on its own: straight to its page to check,
+   *  price and put on sale. */
+  function openIfSingle(results: Job[]) {
     const only = results.length === 1 ? results[0] : null;
     if (only?.productId && (only.status === "done" || only.status === "skipped")) {
       router.push(`/admin/products/${only.productId}/edit`);
     }
+  }
+
+  async function importLinks(items: { sourceId: string; albumId: string; productId: string | null }[]) {
+    openIfSingle(
+      await importItems(
+        items.map(({ sourceId, albumId, productId }) =>
+          yupooItem(sourceId, { id: albumId, title: "", name: `Album ${albumId}`, cover: null, photoCount: 0, productId })
+        )
+      )
+    );
+  }
+
+  async function importWebLinks(urls: string[]) {
+    openIfSingle(await importItems(urls.map((url) => webItem(url, url, null, null))));
+  }
+
+  async function importReady(ready: ReadyProduct) {
+    closeWebView();
+    openIfSingle(await importItems([readyItem(ready)]));
+  }
+
+  // ── Other sites: a product to review or a list to pick from ──
+  const [webView, setWebView] = useState<
+    { kind: "product"; product: WebProductData } | { kind: "list"; list: WebListData } | null
+  >(null);
+  const [webSelected, setWebSelected] = useState<Map<string, WebListItem>>(new Map());
+  const [webLoading, setWebLoading] = useState(false);
+  const [webError, setWebError] = useState<string | null>(null);
+  // What the "Gửi về TAT" bookmark sent, in the page address.
+  const hash = useSyncExternalStore(subscribeHash, () => window.location.hash, () => "");
+  const fromBookmark = productFromBookmarkHash(hash);
+  const shownWeb = webView ?? (fromBookmark ? { kind: "product" as const, product: fromBookmark } : null);
+
+  function showWebPage(page: { kind: "product"; product: WebProductData } | ({ kind: "list" } & WebListData)) {
+    clearBookmarkHash();
+    setWebSelected(new Map());
+    setWebError(null);
+    setWebView(page.kind === "product" ? page : { kind: "list", list: page });
+  }
+
+  function closeWebView() {
+    clearBookmarkHash();
+    setWebView(null);
+    setWebSelected(new Map());
+  }
+
+  async function loadNextWebPage() {
+    if (webView?.kind !== "list" || !webView.list.next) return;
+    setWebLoading(true);
+    setWebError(null);
+    try {
+      const page = await getJson<{ kind: string } & WebListData>(
+        `/api/admin/import/page?url=${encodeURIComponent(webView.list.next)}`
+      );
+      if (page.kind !== "list") throw new Error("Không còn trang sau.");
+      setWebView({ kind: "list", list: page });
+    } catch (err) {
+      setWebError(err instanceof Error ? err.message : "Không tải được trang sau.");
+    } finally {
+      setWebLoading(false);
+    }
+  }
+
+  async function importWebSelected() {
+    const items = [...webSelected.values()].map((i) => webItem(i.url, i.name || i.url, i.image, i.productId));
+    setWebSelected(new Map());
+    await importItems(items);
   }
 
   function openShop(shop: { sourceId: string; categoryId?: string; q?: string }) {
@@ -298,14 +470,44 @@ export function ImportTool({
     setBrowse({ categoryId: shop.categoryId, q: shop.q, opened: Date.now() });
   }
 
-  const failed = jobs.filter((j) => j.status === "error").map(({ sourceId, album }) => ({ sourceId, album }));
+  const failed = jobs.filter((j) => j.status === "error").map((j) => j.item);
   const imported = jobs.filter((j) => j.status === "done").length;
-  const startSelected = () => source && importAlbums([...selected.values()].map((album) => ({ sourceId: source.id, album })));
+  const startSelected = () => source && importItems([...selected.values()].map((album) => yupooItem(source.id, album)));
 
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        <LinkImport disabled={running} department={options.department} onImport={importLinks} onShop={openShop} />
+        <LinkImport
+          disabled={running}
+          department={options.department}
+          onImport={importLinks}
+          onShop={openShop}
+          onWebPage={showWebPage}
+          onWebLinks={importWebLinks}
+        />
+
+        {shownWeb?.kind === "product" && (
+          <WebProductPanel
+            key={shownWeb.product.url}
+            product={shownWeb.product}
+            disabled={running}
+            onImport={importReady}
+            onClose={closeWebView}
+          />
+        )}
+        {shownWeb?.kind === "list" && (
+          <WebListPanel
+            list={shownWeb.list}
+            loading={webLoading}
+            error={webError}
+            disabled={running}
+            selected={webSelected}
+            setSelected={setWebSelected}
+            onNext={loadNextWebPage}
+            onImport={importWebSelected}
+            onClose={closeWebView}
+          />
+        )}
 
         {jobs.length > 0 && (
           <section ref={progressRef} aria-labelledby="import-progress" className="die-cut scroll-mt-4 bg-paper p-4">
@@ -316,7 +518,7 @@ export function ImportTool({
               {!running && (
                 <div className="flex flex-wrap gap-2">
                   {failed.length > 0 && (
-                    <button type="button" className={ghostButtonClass} onClick={() => importAlbums(failed)}>
+                    <button type="button" className={ghostButtonClass} onClick={() => importItems(failed)}>
                       Thử lại {failed.length} album lỗi
                     </button>
                   )}
@@ -331,11 +533,35 @@ export function ImportTool({
             {running && <p className="mt-1 font-mono text-xs text-graphite">Giữ trang này mở cho tới khi xong.</p>}
             <ul className="mt-4 flex flex-col divide-y divide-kraft-dark">
               {jobs.map((job) => (
-                <JobRow key={`${job.sourceId}-${job.album.id}`} job={job} />
+                <JobRow key={job.item.key} job={job} />
               ))}
             </ul>
           </section>
         )}
+
+        <details className="die-cut bg-paper p-4">
+          <summary className="cursor-pointer font-display text-lg text-ink">
+            Web không lấy được bằng link? Dùng nút “Gửi về TAT”
+          </summary>
+          <div className="mt-3 flex flex-col gap-3 font-body text-sm text-graphite">
+            <p>
+              Dành cho Taobao, 1688, Weidian, Pinduoduo, Instagram, Zara… — những web chặn máy chủ hoặc bắt đăng nhập.
+              Nút này chạy ngay trong trình duyệt của bạn nên lấy được gần như mọi trang.
+            </p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>Bật thanh dấu trang: bấm Ctrl + Shift + B (Chrome, Edge, Cốc Cốc).</li>
+              <li>Kéo nút bên dưới thả lên thanh dấu trang (chỉ làm một lần).</li>
+              <li>
+                Mở trang sản phẩm ở web kia, cuộn xuống cho ảnh hiện hết, rồi bấm “Gửi về TAT” trên thanh dấu trang.
+              </li>
+              <li>Trang nhập này mở ra với tên và ảnh sản phẩm — chọn ảnh rồi bấm Nhập.</li>
+            </ol>
+            <div>
+              <BookmarkletLink />
+            </div>
+            <p className="font-mono text-[10px]">Dùng trên máy tính, ở trình duyệt đang đăng nhập admin.</p>
+          </div>
+        </details>
 
         <SourceBar
           sources={sources}
@@ -392,11 +618,15 @@ function LinkImport({
   department,
   onImport,
   onShop,
+  onWebPage,
+  onWebLinks,
 }: {
   disabled: boolean;
   department: Department;
   onImport: (items: { sourceId: string; albumId: string; productId: string | null }[]) => void;
   onShop: (shop: { sourceId: string; categoryId?: string; q?: string }) => void;
+  onWebPage: (page: { kind: "product"; product: WebProductData } | ({ kind: "list" } & WebListData)) => void;
+  onWebLinks: (urls: string[]) => void;
 }) {
   const [text, setText] = useState("");
   const [password, setPassword] = useState("");
@@ -407,6 +637,31 @@ function LinkImport({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
+      if (!/\.x\.yupoo\.com/i.test(text)) {
+        // Any other site: one link is read here (a product to review or a
+        // list to pick from); several are imported one by one.
+        const urls = [...new Set(text.match(/https?:\/\/[^\s<>"']+/g) ?? [])];
+        if (urls.length === 0) {
+          setError("Dán link bắt đầu bằng http:// hoặc https://");
+          return;
+        }
+        if (urls.length > 1) {
+          setText("");
+          onWebLinks(urls.slice(0, 50));
+          return;
+        }
+        try {
+          const page = await getJson<{ kind: "product"; product: WebProductData } | ({ kind: "list" } & WebListData)>(
+            `/api/admin/import/page?url=${encodeURIComponent(urls[0])}`
+          );
+          setError(null);
+          setText("");
+          onWebPage(page);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Không đọc được link này.");
+        }
+        return;
+      }
       const result = await resolveAlbumLinksAction(text, needPassword ? password : null, department);
       if (result.needPassword) {
         setNeedPassword(result.needPassword);
@@ -429,21 +684,21 @@ function LinkImport({
   return (
     <section aria-labelledby="import-link" className="die-cut bg-paper p-4">
       <h2 id="import-link" className="font-display text-lg text-ink">
-        Dán link Yupoo
+        Dán link sản phẩm
       </h2>
       <ul className="mt-1 flex flex-col gap-0.5 font-body text-sm text-graphite">
         <li>
-          <span className="text-ink">Link một album</span> → lấy đủ ảnh, tên, mô tả, size rồi mở trang sản phẩm để bạn
-          sửa, điền giá và đăng.
+          <span className="text-ink">Link một sản phẩm / album</span> (Yupoo, Shopify, Haravan, Sapo, WooCommerce, web
+          thương hiệu…) → lấy ảnh, tên, mô tả, size rồi mở trang sản phẩm để bạn sửa, điền giá và đăng.
         </li>
         <li>
-          <span className="text-ink">Link shop, danh mục hoặc trang tìm kiếm</span> → hiện các album ở trang đó để bạn
+          <span className="text-ink">Link shop, danh mục, trang tìm kiếm</span> → hiện các sản phẩm ở trang đó để bạn
           chọn nhiều cái một lúc.
         </li>
       </ul>
       <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
         <label htmlFor="album-links" className="sr-only">
-          Link Yupoo
+          Link sản phẩm
         </label>
         <textarea
           id="album-links"
@@ -1200,17 +1455,13 @@ function JobRow({ job }: { job: Job }) {
   return (
     <li className="flex items-center gap-3 py-2">
       <div className="h-12 w-12 shrink-0 overflow-hidden bg-kraft-dark/30">
-        {job.album.cover && (
+        {job.preview && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/admin/yupoo/cover?source=${job.sourceId}&src=${encodeURIComponent(job.album.cover)}`}
-            alt=""
-            className="h-full w-full object-cover"
-          />
+          <img src={job.preview} alt="" className="h-full w-full object-cover" />
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-body text-sm text-ink">{job.album.name}</p>
+        <p className="truncate font-body text-sm text-ink">{job.label}</p>
         <p
           className={`font-mono text-[11px] ${job.status === "error" ? "text-stamp" : "text-graphite"}`}
           role={job.status === "error" ? "alert" : undefined}

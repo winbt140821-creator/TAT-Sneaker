@@ -194,7 +194,7 @@ function ViewTabs({ active }: { active: "all" | "folder" }) {
 function FilterChips({ active, query }: { active: { noImage: boolean; noPrice: boolean; imported: boolean }; query?: string }) {
   const chips = [
     { key: "noPrice", label: "Chưa có giá" },
-    { key: "imported", label: "Nhập từ Yupoo" },
+    { key: "imported", label: "Hàng nhập từ web" },
     { key: "noImage", label: "Chưa có ảnh" },
   ] as const;
   return (
@@ -579,7 +579,7 @@ export default async function AdminProductsPage({
             href="/admin/products/import"
             className="die-cut-flat cursor-pointer border border-ink bg-paper px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-ink transition-colors hover:bg-kraft-dark/40"
           >
-            Nhập từ Yupoo
+            Nhập từ web
           </Link>
           <Link
             href={store === "ALL" ? "/admin/products/new" : `/admin/products/new?department=${store}`}

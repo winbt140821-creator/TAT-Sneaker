@@ -3,9 +3,9 @@ import { prisma } from "@/lib/db";
 import { getAdminStore } from "@/lib/admin-store";
 import { ImportTool } from "./ImportTool";
 
-// Sản phẩm → Nhập từ Yupoo: pick albums in a supplier's Yupoo shop and turn
-// each into a product — photos copied into our storage, name translated,
-// sizes read from the album — hidden until staff check it and set a price.
+// Sản phẩm → Nhập sản phẩm: bring products in from a supplier's Yupoo shop
+// or any other shop's page — photos copied into our storage, name
+// translated, sizes read — hidden until staff check them and set a price.
 export default async function ImportPage() {
   const [sources, categories, store] = await Promise.all([
     prisma.importSource.findMany({
@@ -32,12 +32,13 @@ export default async function ImportPage() {
           <Link href="/admin/products" className="font-mono text-xs text-graphite hover:text-ink hover:underline">
             ← Sản phẩm
           </Link>
-          <h1 className="mt-1 font-display text-2xl text-ink">Nhập từ Yupoo</h1>
+          <h1 className="mt-1 font-display text-2xl text-ink">Nhập sản phẩm</h1>
         </div>
       </div>
       <p className="mt-2 max-w-2xl font-body text-sm text-graphite">
-        Chọn album trong shop Yupoo của nhà cung cấp. Mỗi album thành một sản phẩm: ảnh được tải về kho ảnh của bạn, tên
-        được dịch sang tiếng Việt. Sản phẩm mới nằm ở trạng thái ẩn để bạn xem lại và điền giá trước khi hiện lên web.
+        Lấy sản phẩm từ Yupoo của nhà cung cấp hoặc từ web bán hàng khác: ảnh được tải về kho ảnh của bạn, tên tiếng
+        Trung được dịch sang tiếng Việt. Sản phẩm mới nằm ở trạng thái ẩn để bạn xem lại và điền giá trước khi hiện lên
+        web.
       </p>
 
       <ImportTool

@@ -25,7 +25,7 @@ export default async function NewProductPage({
     <div>
       <h1 className="font-display text-2xl text-ink">Thêm sản phẩm</h1>
       <p className="mt-2 font-body text-sm text-graphite">
-        Có link album Yupoo của nhà cung cấp?{" "}
+        Có link sản phẩm (Yupoo, web bán hàng khác)?{" "}
         <Link href="/admin/products/import" className="text-ink underline hover:text-forest">
           Dán link để tự lấy ảnh, tên và size
         </Link>
