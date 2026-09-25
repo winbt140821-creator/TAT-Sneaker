@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { isOwnUploadUrl } from "@/lib/uploads";
-import { albumUrl, checkShop, parseAlbumLinks, parseShopOwner, YupooError } from "@/lib/yupoo";
+import { albumUrl, checkShop, parseAlbumLinks, parseShopLink, parseShopOwner, YupooError } from "@/lib/yupoo";
 import { SIZE_SETS, PREORDER_DEFAULT_QTY, IN_STOCK_LEAD_TIME, type Department } from "@/lib/inventory";
 import { ProductAvailability } from "@/generated/prisma/client";
 
@@ -52,56 +52,74 @@ export type ResolvedLinks = {
   // This shop is locked and not saved yet (or the password given is wrong):
   // ask for its password, then call again.
   needPassword?: string;
+  // Album links: import these.
   items?: { sourceId: string; albumId: string; productId: string | null }[];
+  // A shop, category or search link: show its albums to pick from.
+  shop?: { sourceId: string; categoryId?: string; q?: string };
 };
 
-/** Pasted album links → the saved shop each belongs to (a shop seen for the
- *  first time is checked and saved, with its password if it's locked), and
- *  whether the album is already a product here. */
+/** The saved shop for `owner` — a shop seen for the first time is checked
+ *  and saved, keeping the password only if it's locked. */
+async function ensureSource(
+  owner: string,
+  password: string | null,
+  department: Department
+): Promise<{ id: string } | { needPassword: string; error?: string } | { error: string }> {
+  const saved = await prisma.importSource.findUnique({ where: { owner }, select: { id: true } });
+  if (saved) return saved;
+  try {
+    const { nickname, locked } = await checkShop(owner, password);
+    return await prisma.importSource.create({
+      data: {
+        owner,
+        label: nickname,
+        password: locked ? password : null,
+        department: department === "SHOES" ? "SHOES" : "CLOTHING",
+      },
+      select: { id: true },
+    });
+  } catch (err) {
+    if (err instanceof YupooError && err.kind === "locked") {
+      return { needPassword: owner, ...(password ? { error: err.message } : {}) };
+    }
+    return { error: err instanceof YupooError ? err.message : "Không kiểm tra được shop này." };
+  }
+}
+
+/** Pasted Yupoo links → what to do with them. Album links (one or many)
+ *  come back as albums to import, with whether each is already a product
+ *  here; a shop, category or search link comes back as the shop to browse. */
 export async function resolveAlbumLinksAction(
   text: string,
   password: string | null,
   department: Department
 ): Promise<ResolvedLinks> {
   await requireStaff();
+  const pass = password?.trim() || null;
   const links = parseAlbumLinks(text);
-  if (links.length === 0) {
-    return { error: "Không thấy link album Yupoo nào. Link đúng có dạng https://tenshop.x.yupoo.com/albums/123456" };
+  const shopLink = links.length === 0 ? parseShopLink(text) : null;
+  if (links.length === 0 && !shopLink) {
+    return {
+      error:
+        "Không thấy link Yupoo nào. Dán link album (…x.yupoo.com/albums/123456) hoặc link shop (https://tenshop.x.yupoo.com).",
+    };
   }
   if (links.length > 50) return { error: "Tối đa 50 link mỗi lần." };
 
   const sourceIds = new Map<string, string>();
-  for (const owner of new Set(links.map((l) => l.owner))) {
-    const saved = await prisma.importSource.findUnique({ where: { owner }, select: { id: true } });
-    if (saved) {
-      sourceIds.set(owner, saved.id);
-      continue;
-    }
-    try {
-      const { nickname, locked } = await checkShop(owner, password?.trim() || null);
-      const created = await prisma.importSource.create({
-        data: {
-          owner,
-          label: nickname,
-          // Only a locked shop keeps the password typed for it.
-          password: locked ? password?.trim() || null : null,
-          department: department === "SHOES" ? "SHOES" : "CLOTHING",
-        },
-        select: { id: true },
-      });
-      sourceIds.set(owner, created.id);
-    } catch (err) {
-      if (err instanceof YupooError && err.kind === "locked") {
-        return { needPassword: owner, error: password ? err.message : undefined };
-      }
-      return { error: err instanceof YupooError ? err.message : "Không kiểm tra được shop này." };
-    }
+  for (const owner of shopLink ? [shopLink.owner] : new Set(links.map((l) => l.owner))) {
+    const source = await ensureSource(owner, pass, department);
+    if (!("id" in source)) return source;
+    sourceIds.set(owner, source.id);
   }
+  revalidatePath("/admin/products/import");
 
+  if (shopLink) {
+    return { shop: { sourceId: sourceIds.get(shopLink.owner)!, categoryId: shopLink.categoryId, q: shopLink.q } };
+  }
   const urls = links.map((l) => albumUrl(l.owner, l.albumId));
   const existing = await prisma.product.findMany({ where: { sourceUrl: { in: urls } }, select: { id: true, sourceUrl: true } });
   const productByUrl = new Map(existing.map((p) => [p.sourceUrl, p.id]));
-  revalidatePath("/admin/products/import");
   return {
     items: links.map((l) => ({
       sourceId: sourceIds.get(l.owner)!,

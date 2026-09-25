@@ -47,6 +47,22 @@ export function parseAlbumLinks(text: string): { owner: string; albumId: string 
   return links;
 }
 
+/** A link to a shop's listing rather than one album — the shop itself
+ *  ("…x.yupoo.com/albums"), one of its categories ("/categories/123") or a
+ *  search ("/search/album?q=…"). Null when there's no Yupoo link at all. */
+export function parseShopLink(text: string): { owner: string; categoryId?: string; q?: string } | null {
+  const m = text.match(/(?:https?:\/\/)?([a-z0-9][a-z0-9_-]*)\.x\.yupoo\.com(\/[^\s]*)?/i);
+  if (!m) return null;
+  const rest = m[2] ?? "";
+  let q: string | undefined;
+  if (/^\/search\//.test(rest)) {
+    try {
+      q = new URL(`https://x${rest}`).searchParams.get("q")?.trim() || undefined;
+    } catch {}
+  }
+  return { owner: m[1].toLowerCase(), categoryId: rest.match(/^\/categories\/(\d+)/)?.[1], q };
+}
+
 /** The canonical link stored on an imported product (Product.sourceUrl). */
 export function albumUrl(owner: string, albumId: string) {
   return `${shopOrigin(owner)}/albums/${albumId}`;

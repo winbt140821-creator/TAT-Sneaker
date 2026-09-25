@@ -157,6 +157,8 @@ export function ImportTool({
   const stopRef = useRef(false);
   const progressRef = useRef<HTMLElement>(null);
   const [listingVersion, setListingVersion] = useState(0);
+  // Where the album grid opens: set by a pasted shop/category/search link.
+  const [browse, setBrowse] = useState<{ categoryId?: string; q?: string; opened: number }>({ opened: 0 });
 
   const optionsToKeep = JSON.stringify({ ...options, price: undefined, again: undefined });
   useEffect(() => {
@@ -289,6 +291,13 @@ export function ImportTool({
     }
   }
 
+  function openShop(shop: { sourceId: string; categoryId?: string; q?: string }) {
+    setSourceId(shop.sourceId);
+    setSelected(new Map());
+    setEditing(null);
+    setBrowse({ categoryId: shop.categoryId, q: shop.q, opened: Date.now() });
+  }
+
   const failed = jobs.filter((j) => j.status === "error").map(({ sourceId, album }) => ({ sourceId, album }));
   const imported = jobs.filter((j) => j.status === "done").length;
   const startSelected = () => source && importAlbums([...selected.values()].map((album) => ({ sourceId: source.id, album })));
@@ -296,7 +305,7 @@ export function ImportTool({
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        <LinkImport disabled={running} department={options.department} onImport={importLinks} />
+        <LinkImport disabled={running} department={options.department} onImport={importLinks} onShop={openShop} />
 
         {jobs.length > 0 && (
           <section ref={progressRef} aria-labelledby="import-progress" className="die-cut scroll-mt-4 bg-paper p-4">
@@ -339,8 +348,11 @@ export function ImportTool({
 
         {source && (
           <AlbumBrowser
-            key={`${source.id}-${listingVersion}`}
+            key={`${source.id}-${listingVersion}-${browse.opened}`}
             source={source}
+            initialCategory={browse.categoryId}
+            initialQuery={browse.q}
+            scrollIntoViewOnOpen={browse.opened > 0}
             selected={selected}
             setSelected={setSelected}
             disabled={running}
@@ -372,16 +384,19 @@ export function ImportTool({
   );
 }
 
-/** Paste one or more album links; each becomes a product. With a single
- *  link the tool then opens that product's page for editing. */
+/** Paste Yupoo links. Album links (one or many) each become a product —
+ *  with a single one the tool then opens that product's page for editing.
+ *  A shop, category or search link opens that page's albums to pick from. */
 function LinkImport({
   disabled,
   department,
   onImport,
+  onShop,
 }: {
   disabled: boolean;
   department: Department;
   onImport: (items: { sourceId: string; albumId: string; productId: string | null }[]) => void;
+  onShop: (shop: { sourceId: string; categoryId?: string; q?: string }) => void;
 }) {
   const [text, setText] = useState("");
   const [password, setPassword] = useState("");
@@ -398,7 +413,7 @@ function LinkImport({
         setError(result.error ?? null);
         return;
       }
-      if (result.error || !result.items) {
+      if (result.error || (!result.items && !result.shop)) {
         setError(result.error ?? "Không đọc được link này.");
         return;
       }
@@ -406,22 +421,29 @@ function LinkImport({
       setPassword("");
       setError(null);
       setText("");
-      onImport(result.items);
+      if (result.shop) onShop(result.shop);
+      else if (result.items) onImport(result.items);
     });
   }
 
   return (
     <section aria-labelledby="import-link" className="die-cut bg-paper p-4">
       <h2 id="import-link" className="font-display text-lg text-ink">
-        Dán link album
+        Dán link Yupoo
       </h2>
-      <p className="mt-1 font-body text-sm text-graphite">
-        Mở album trên Yupoo, copy link trên thanh địa chỉ rồi dán vào đây. Tool lấy đủ ảnh, tên, mô tả, size rồi mở
-        trang sản phẩm để bạn sửa, điền giá và đăng.
-      </p>
+      <ul className="mt-1 flex flex-col gap-0.5 font-body text-sm text-graphite">
+        <li>
+          <span className="text-ink">Link một album</span> → lấy đủ ảnh, tên, mô tả, size rồi mở trang sản phẩm để bạn
+          sửa, điền giá và đăng.
+        </li>
+        <li>
+          <span className="text-ink">Link shop, danh mục hoặc trang tìm kiếm</span> → hiện các album ở trang đó để bạn
+          chọn nhiều cái một lúc.
+        </li>
+      </ul>
       <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
         <label htmlFor="album-links" className="sr-only">
-          Link album Yupoo
+          Link Yupoo
         </label>
         <textarea
           id="album-links"
@@ -435,7 +457,7 @@ function LinkImport({
             setPassword("");
             setError(null);
           }}
-          placeholder="https://cpdk8888.x.yupoo.com/albums/256250530?uid=1 — nhiều link thì mỗi dòng một link"
+          placeholder={"https://cpdk8888.x.yupoo.com/albums/256250530?uid=1\nhoặc https://cpdk8888.x.yupoo.com/albums — nhiều link album thì mỗi dòng một link"}
           className={`${inputClass} font-mono text-xs`}
         />
         {needPassword && (
@@ -467,7 +489,7 @@ function LinkImport({
           disabled={disabled || pending || !text.trim() || (!!needPassword && !password.trim())}
           className={`${buttonClass} min-h-11 w-fit`}
         >
-          {pending ? "Đang kiểm tra link…" : "Lấy sản phẩm"}
+          {pending ? "Đang kiểm tra link…" : "Mở link"}
         </button>
       </form>
     </section>
@@ -655,15 +677,26 @@ function AlbumBrowser({
   selected,
   setSelected,
   disabled,
+  initialCategory,
+  initialQuery,
+  scrollIntoViewOnOpen,
 }: {
   source: Source;
   selected: Map<string, AlbumCard>;
   setSelected: (next: Map<string, AlbumCard>) => void;
   disabled: boolean;
+  initialCategory?: string;
+  initialQuery?: string;
+  // Opened from a pasted shop link: bring the grid into view.
+  scrollIntoViewOnOpen?: boolean;
 }) {
-  const [category, setCategory] = useState("");
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState(initialCategory ?? "");
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const [search, setSearch] = useState(initialQuery ?? "");
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (scrollIntoViewOnOpen) sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollIntoViewOnOpen]);
   const [page, setPage] = useState(1);
   const [categories, setCategories] = useState<Listing["categories"]>([]);
   // What was last loaded, and for which request — "loading" is simply the
@@ -719,7 +752,7 @@ function AlbumBrowser({
   }
 
   return (
-    <section aria-labelledby="import-albums" className="min-w-0">
+    <section ref={sectionRef} aria-labelledby="import-albums" className="min-w-0 scroll-mt-4">
       <h2 id="import-albums" className="sr-only">
         Album trong shop
       </h2>
