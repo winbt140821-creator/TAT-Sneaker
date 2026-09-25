@@ -159,7 +159,7 @@ export function BookmarkletLink() {
       }}
       className="inline-flex min-h-11 cursor-grab items-center border-2 border-dashed border-ink bg-paper px-4 font-mono text-xs font-semibold uppercase tracking-wider text-ink"
     >
-      ⤴ Gửi về TAT
+      Gửi về TAT
     </a>
   );
 }
