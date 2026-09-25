@@ -24,14 +24,19 @@ export function ProductPageSkeleton({ department }: { department: Department }) 
 
   const image = photo?.src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={photo.src} alt={photo.name} className="absolute inset-0 h-full w-full object-cover" />
+    <img
+      src={photo.src}
+      alt={photo.name}
+      // Matches the page it turns into: clothing photos are shown whole.
+      className={`absolute inset-0 h-full w-full ${department === "CLOTHING" ? "object-contain" : "object-cover"}`}
+    />
   ) : null;
   const bar = "animate-pulse bg-kraft-dark/60 motion-reduce:animate-none";
 
   if (department === "CLOTHING") {
     return (
       <div aria-busy="true" className="lg:grid lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_480px]">
-        <div className="relative aspect-[3/4] bg-kraft lg:aspect-auto lg:min-h-[calc(100svh-60px)]" style={{ viewTransitionName: "product-photo" }}>
+        <div className="relative aspect-[4/5] bg-kraft lg:aspect-auto lg:min-h-[calc(100svh-60px)]" style={{ viewTransitionName: "product-photo" }}>
           {image}
         </div>
         <div className="flex flex-col gap-3 px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-10">

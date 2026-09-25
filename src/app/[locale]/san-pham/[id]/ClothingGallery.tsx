@@ -6,10 +6,15 @@ import { GarmentArt, garmentSilhouetteFor } from "@/components/GarmentArt";
 // left of the page (the buyer scrolls the pictures, the purchase column
 // stays put); on phones they become a swipeable full-width strip. No
 // thumbnails, no arrows, no zoom lens.
+//
+// Photos are shown whole (object-contain) on the frame's grey: supplier
+// photos are mostly square and editorial ones portrait, and cropping to fill
+// the frame cut the sides off square ones. Phones use a 4:5 frame — close to
+// both, so neither kind leaves much empty space.
 export function ClothingGallery({ images, name }: { images: string[]; name: string }) {
   if (images.length === 0) {
     return (
-      <div className="relative flex aspect-[3/4] items-center justify-center bg-kraft p-16 lg:aspect-auto lg:min-h-[calc(100svh-60px)]">
+      <div className="relative flex aspect-[4/5] items-center justify-center bg-kraft p-16 lg:aspect-auto lg:min-h-[calc(100svh-60px)]">
         <GarmentArt silhouette={garmentSilhouetteFor(0)} accent="#b5b5b5" className="h-full max-h-[420px] w-full" />
       </div>
     );
@@ -21,7 +26,7 @@ export function ClothingGallery({ images, name }: { images: string[]; name: stri
         {images.map((src, i) => (
           <div
             key={src}
-            className="relative aspect-[3/4] w-full shrink-0 snap-center bg-kraft"
+            className="relative aspect-[4/5] w-full shrink-0 snap-center bg-kraft"
             style={i === 0 ? { viewTransitionName: "product-photo" } : undefined}
           >
             <Image
@@ -31,7 +36,7 @@ export function ClothingGallery({ images, name }: { images: string[]; name: stri
               priority={i === 0}
               sizes="100vw"
               quality={90}
-              className="object-cover"
+              className="object-contain"
             />
             {images.length > 1 && (
               <span className="absolute bottom-3 right-3 text-[11px] text-ink/70">
@@ -61,7 +66,7 @@ export function ClothingGallery({ images, name }: { images: string[]; name: stri
                 priority={i === 0}
                 sizes={full ? "65vw" : "33vw"}
                 quality={95}
-                className="object-cover"
+                className="object-contain"
               />
             </div>
           );
