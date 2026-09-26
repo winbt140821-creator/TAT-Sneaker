@@ -2,6 +2,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
 import type { Department } from "./inventory";
+import { site, defaultContactEmail } from "./site-config";
 
 // Every admin mutation that touches SiteSettings already calls
 // revalidatePath("/") (see admin/settings/actions.ts) — that busts this
@@ -54,15 +55,28 @@ export const getBranding = cache(async (department: Department) => {
   }
 });
 
+// A store's footer icons / quick-contact links: its own plus the ones set
+// for both stores (department null).
 export const getSocialLinks = unstable_cache(
-  (onlyEnabled = true) =>
+  (department: Department) =>
     prisma.socialLink.findMany({
-      where: onlyEnabled ? { enabled: true } : {},
+      where: { enabled: true, OR: [{ department: null }, { department }] },
       orderBy: [{ sortOrder: "asc" }, { platform: "asc" }],
     }),
-  ["social-links"],
+  ["social-links-by-store"],
   { revalidate: 60, tags: ["social-links"] }
 );
+
+/** The contact details a store shows (footer, "Liên hệ" page, structured
+ *  data), with the site-wide defaults filling in a missing phone/email. */
+export function storeContact(branding: Awaited<ReturnType<typeof getBranding>>) {
+  return {
+    address: branding?.address ?? null,
+    phone: branding?.phone || site.hotline,
+    email: branding?.email || defaultContactEmail,
+    footerAbout: branding?.footerAbout ?? null,
+  };
+}
 
 /** Maps a raw StorefrontBranding row into the shape <Hero> expects, so both
  *  the filtered and unfiltered homepage branches can just spread the result. */

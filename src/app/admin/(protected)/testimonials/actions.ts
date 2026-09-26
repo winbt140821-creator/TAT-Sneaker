@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
+import { readDepartment } from "@/lib/admin-store";
 
 export type TestimonialFormState = { error?: string };
 
@@ -12,8 +13,9 @@ function readTestimonialForm(formData: FormData) {
   const authorName = String(formData.get("authorName") ?? "").trim();
   const newAvatar = String(formData.get("avatar") ?? "").trim();
   const keepAvatar = String(formData.get("keepAvatar") ?? "");
+  const department = readDepartment(formData.get("department")) ?? "SHOES";
 
-  return { quote, authorName, newAvatar, keepAvatar };
+  return { quote, authorName, newAvatar, keepAvatar, department };
 }
 
 export async function createTestimonialAction(
@@ -27,7 +29,7 @@ export async function createTestimonialAction(
     return { error: "Vui lòng nhập nội dung đánh giá và tên khách hàng." };
   }
 
-  const count = await prisma.testimonial.count();
+  const count = await prisma.testimonial.count({ where: { department: data.department } });
 
   await prisma.testimonial.create({
     data: {
@@ -35,12 +37,13 @@ export async function createTestimonialAction(
       authorName: data.authorName,
       avatarUrl: data.newAvatar || null,
       sortOrder: count,
+      department: data.department,
     },
   });
 
   revalidatePath("/admin/testimonials");
   revalidatePath("/");
-  redirect("/admin/testimonials");
+  redirect(`/admin/testimonials?department=${data.department}`);
 }
 
 export async function updateTestimonialAction(
@@ -63,12 +66,13 @@ export async function updateTestimonialAction(
       quote: data.quote,
       authorName: data.authorName,
       avatarUrl,
+      department: data.department,
     },
   });
 
   revalidatePath("/admin/testimonials");
   revalidatePath("/");
-  redirect("/admin/testimonials");
+  redirect(`/admin/testimonials?department=${data.department}`);
 }
 
 export async function deleteTestimonialAction(id: string) {

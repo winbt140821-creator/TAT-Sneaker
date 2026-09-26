@@ -6,6 +6,8 @@ import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { StoreField } from "@/components/admin/form/StoreField";
+import type { Department } from "@/lib/inventory";
 import type { TestimonialFormState } from "./actions";
 
 const initialState: TestimonialFormState = {};
@@ -20,6 +22,7 @@ export function TestimonialForm({
     quote?: string;
     authorName?: string;
     avatarUrl?: string | null;
+    department?: Department;
   };
   submitLabel: string;
 }) {
@@ -28,6 +31,12 @@ export function TestimonialForm({
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-4">
+      <StoreField
+        label="Hiện ở trang chủ cửa hàng"
+        defaultValue={defaultValues?.department ?? "SHOES"}
+        className="w-48"
+      />
+
       <TextAreaField
         id="quote"
         name="quote"

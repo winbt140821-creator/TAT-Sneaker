@@ -1,17 +1,42 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
+import type { Department } from "@/lib/inventory";
 
-export async function TestimonialsSection() {
+// Each store shows only its own reviews (admin → Đánh giá, per store).
+export async function TestimonialsSection({ department = "SHOES" }: { department?: Department }) {
   const [testimonials, t] = await Promise.all([
     prisma.testimonial.findMany({
+      where: { department },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      take: 6,
+      take: department === "CLOTHING" ? 3 : 6,
     }),
     getTranslations("testimonials"),
   ]);
 
   if (testimonials.length === 0) return null;
+
+  if (department === "CLOTHING") {
+    // Customers' words set as quiet serif statements between hairlines,
+    // the name in small caps underneath — no cards, no avatars.
+    return (
+      <section className="cv-auto border-t border-kraft-dark px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-16">
+        <h2 className="text-[12px] font-medium uppercase tracking-[0.16em] text-ink">{t("title")}</h2>
+        <div className="mt-10 grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
+          {testimonials.map((item) => (
+            <figure key={item.id} className="flex flex-col">
+              <blockquote className="font-display text-xl leading-snug text-ink">
+                &ldquo;{item.quote}&rdquo;
+              </blockquote>
+              <figcaption className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-graphite">
+                {item.authorName}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="cv-auto pb-12">

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
+import { readDepartment } from "@/lib/admin-store";
 
 export type NewsFormState = { error?: string };
 
@@ -14,8 +15,9 @@ function readNewsForm(formData: FormData) {
   const publishedAt = publishedAtRaw ? new Date(publishedAtRaw) : new Date();
   const newImage = String(formData.get("image") ?? "").trim();
   const keepImage = String(formData.get("keepImage") ?? "");
+  const department = readDepartment(formData.get("department")) ?? "SHOES";
 
-  return { title, excerpt, publishedAt, newImage, keepImage };
+  return { title, excerpt, publishedAt, newImage, keepImage, department };
 }
 
 export async function createNewsAction(
@@ -29,7 +31,7 @@ export async function createNewsAction(
     return { error: "Vui lòng nhập tiêu đề và tóm tắt." };
   }
 
-  const count = await prisma.newsArticle.count();
+  const count = await prisma.newsArticle.count({ where: { department: data.department } });
 
   await prisma.newsArticle.create({
     data: {
@@ -38,12 +40,13 @@ export async function createNewsAction(
       publishedAt: data.publishedAt,
       imageUrl: data.newImage || null,
       sortOrder: count,
+      department: data.department,
     },
   });
 
   revalidatePath("/admin/news");
   revalidatePath("/");
-  redirect("/admin/news");
+  redirect(`/admin/news?department=${data.department}`);
 }
 
 export async function updateNewsAction(
@@ -67,12 +70,13 @@ export async function updateNewsAction(
       excerpt: data.excerpt,
       publishedAt: data.publishedAt,
       imageUrl,
+      department: data.department,
     },
   });
 
   revalidatePath("/admin/news");
   revalidatePath("/");
-  redirect("/admin/news");
+  redirect(`/admin/news?department=${data.department}`);
 }
 
 export async function deleteNewsAction(id: string) {

@@ -1,5 +1,6 @@
 import { AdminLink as Link } from "@/components/admin/AdminLink";
 import { prisma } from "@/lib/db";
+import { getAdminStore, orderStoreWhere, STORE_LABEL } from "@/lib/admin-store";
 
 const PROVIDER_LABEL: Record<string, string> = {
   google: "Google",
@@ -17,15 +18,21 @@ export default async function AdminCustomersPage({
   const query = q?.trim();
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const searchWhere = query
-    ? {
-        OR: [
-          { name: { contains: query } },
-          { email: { contains: query } },
-          { addresses: { some: { phone: { contains: query } } } },
-        ],
-      }
-    : {};
+  // One account works in both stores (shared cart); managing one store
+  // lists the customers who have ordered from it.
+  const store = await getAdminStore();
+  const searchWhere = {
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query } },
+            { email: { contains: query } },
+            { addresses: { some: { phone: { contains: query } } } },
+          ],
+        }
+      : {}),
+    ...(store === "ALL" ? {} : { orders: { some: orderStoreWhere(store) } }),
+  };
 
   const [customers, totalCount] = await Promise.all([
     prisma.customer.findMany({
@@ -48,6 +55,12 @@ export default async function AdminCustomersPage({
   return (
     <div>
       <h1 className="font-display text-2xl text-ink">Khách hàng</h1>
+      {store !== "ALL" && (
+        <p className="mt-1 font-mono text-xs text-graphite">
+          Khách đã đặt hàng ở cửa hàng {STORE_LABEL[store].toLowerCase()}. Chọn &ldquo;Tất cả&rdquo; ở trên để
+          xem mọi tài khoản.
+        </p>
+      )}
 
       <form action="/admin/customers" method="GET" className="mt-4 flex max-w-md gap-2">
         <input

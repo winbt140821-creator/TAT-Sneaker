@@ -5,6 +5,9 @@ import { TextField } from "@/components/admin/form/TextField";
 import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { StoreField } from "@/components/admin/form/StoreField";
+import { STORE_LABEL } from "@/lib/store-label";
+import type { Department } from "@/lib/inventory";
 import type { StaticPageFormState } from "./actions";
 
 const initialState: StaticPageFormState = {};
@@ -16,7 +19,7 @@ export function PageForm({
   submitLabel = "Lưu thay đổi",
 }: {
   action: (state: StaticPageFormState, formData: FormData) => Promise<StaticPageFormState>;
-  defaultValues: { title: string; content: string; slug: string };
+  defaultValues: { title: string; content: string; slug: string; department: Department };
   slugEditable?: boolean;
   submitLabel?: string;
 }) {
@@ -24,19 +27,26 @@ export function PageForm({
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
+      {/* The store and link are fixed once a page exists: each store has at
+          most one page per link. */}
       {slugEditable ? (
-        <TextField
-          id="slug"
-          name="slug"
-          label="Đường dẫn (/trang/...)"
-          required
-          defaultValue={defaultValues.slug}
-          hint="Chỉ chữ thường, số và dấu gạch ngang, ví dụ: chinh-sach-bao-mat"
-        />
+        <>
+          <StoreField label="Cửa hàng" defaultValue={defaultValues.department} className="w-48" />
+          <TextField
+            id="slug"
+            name="slug"
+            label="Đường dẫn (/trang/...)"
+            required
+            defaultValue={defaultValues.slug}
+            hint="Chỉ chữ thường, số và dấu gạch ngang, ví dụ: chinh-sach-bao-mat"
+          />
+        </>
       ) : (
         <div className="flex flex-col gap-1.5">
           <p className="font-mono text-xs uppercase tracking-wide text-graphite">Đường dẫn</p>
-          <p className="font-mono text-sm text-ink">/trang/{defaultValues.slug}</p>
+          <p className="font-mono text-sm text-ink">
+            /trang/{defaultValues.slug} · cửa hàng {STORE_LABEL[defaultValues.department].toLowerCase()}
+          </p>
         </div>
       )}
 

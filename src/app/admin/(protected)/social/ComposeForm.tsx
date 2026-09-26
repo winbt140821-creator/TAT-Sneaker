@@ -6,7 +6,10 @@ import { SearchIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
 import { ImageUploadFieldMulti } from "@/components/admin/form/ImageUploadFieldMulti";
+import { StoreBadge } from "@/components/admin/StoreBadge";
 import { renderSocialPostTemplate } from "@/lib/social-post-template";
+import type { AdminStore } from "@/lib/admin-store";
+import type { Department } from "@/lib/inventory";
 import { publishNowAction, schedulePostAction, type ComposeFormState } from "./actions";
 
 type Account = { id: string; platform: "FACEBOOK" | "INSTAGRAM"; name: string };
@@ -18,6 +21,7 @@ type Product = {
   images: string[];
   link: string;
   categoryIds: string[];
+  department: Department;
 };
 type Category = { id: string; label: string; parentId: string | null };
 
@@ -49,16 +53,19 @@ function ProductThumb({ src, alt }: { src: string | undefined; alt: string }) {
 }
 
 export function ComposeForm({
+  store,
   accounts,
   products,
   categories,
-  socialPostTemplate,
+  templates,
   catalogConfigured,
 }: {
+  /** the admin store switch — products/pages passed in are already narrowed to it */
+  store: AdminStore;
   accounts: Account[];
   products: Product[];
   categories: Category[];
-  socialPostTemplate: string;
+  templates: Record<Department, string>;
   catalogConfigured: boolean;
 }) {
   const [publishState, publishAction] = useActionState(publishNowAction, initialState);
@@ -89,7 +96,7 @@ export function ComposeForm({
   function pickProduct(p: Product) {
     setActiveProductId(p.id);
     setSelectedImages(p.images);
-    setMessage(renderSocialPostTemplate(socialPostTemplate, { ten: p.name, link: p.link }));
+    setMessage(renderSocialPostTemplate(templates[p.department], { ten: p.name, link: p.link }));
   }
 
   const allImages = useMemo(
@@ -129,6 +136,7 @@ export function ComposeForm({
   const commonFields = (
     <>
       <input type="hidden" name="message" value={message} />
+      {store !== "ALL" && <input type="hidden" name="department" value={store} />}
       {activeProductId && <input type="hidden" name="productId" value={activeProductId} />}
       {[...selectedTargets].map((id) => (
         <input key={id} type="hidden" name="targetIds" value={id} />
@@ -293,6 +301,7 @@ export function ComposeForm({
                   )}
                 </div>
                 <p className="font-mono text-[10px] text-graphite">
+                  {store === "ALL" && <StoreBadge department={p.department} className="mr-1" />}
                   {p.sku} · {p.images.length} ảnh
                 </p>
                 <p className="line-clamp-2 font-body text-xs text-ink">{p.name}</p>

@@ -1,11 +1,22 @@
 import { AdminLink as Link } from "@/components/admin/AdminLink";
 import Image from "next/image";
 import { prisma } from "@/lib/db";
+import { editingStore, getAdminStore } from "@/lib/admin-store";
+import { DepartmentTabs } from "@/components/admin/DepartmentTabs";
 import { deleteNewsAction } from "./actions";
 import { RowActions } from "@/components/admin/RowActions";
 
-export default async function AdminNewsPage() {
+export default async function AdminNewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const { department: departmentParam } = await searchParams;
+  // Each store's homepage shows its own articles — an explicit tab wins,
+  // otherwise follow the admin store switch.
+  const department = editingStore(departmentParam, await getAdminStore());
   const articles = await prisma.newsArticle.findMany({
+    where: { department },
     orderBy: [{ sortOrder: "asc" }, { publishedAt: "desc" }],
   });
 
@@ -14,12 +25,14 @@ export default async function AdminNewsPage() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-2xl text-ink">Tin tức</h1>
         <Link
-          href="/admin/news/new"
+          href={`/admin/news/new?department=${department}`}
           className="die-cut-flat cursor-pointer bg-ink px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-ink-soft"
         >
           + Thêm bài viết
         </Link>
       </div>
+
+      <DepartmentTabs basePath="/admin/news" department={department} className="mt-4" />
 
       <div className="mt-6 flex flex-col gap-3">
         {articles.length === 0 && (

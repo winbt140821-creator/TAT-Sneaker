@@ -10,7 +10,7 @@ export type AdminStore = Department | "ALL";
 
 export const ADMIN_STORE_COOKIE = "admin_store";
 
-export const STORE_LABEL: Record<Department, string> = { SHOES: "Giày", CLOTHING: "Quần áo" };
+export { STORE_LABEL } from "./store-label";
 
 export async function getAdminStore(): Promise<AdminStore> {
   const value = (await cookies()).get(ADMIN_STORE_COOKIE)?.value;
@@ -28,6 +28,17 @@ export function storeWhere(store: AdminStore): { department?: Department } {
  *  then shows under either store. */
 export function orderStoreWhere(store: AdminStore) {
   return store === "ALL" ? {} : { items: { some: { product: { department: store } } } };
+}
+
+/** Same, for rows where no store means "both stores" (social links and
+ *  connected Facebook pages): those show under either store. */
+export function sharedOrStoreWhere(store: AdminStore) {
+  return store === "ALL" ? {} : { OR: [{ department: null }, { department: store }] };
+}
+
+/** Reads a store picked in an admin form; anything else is null. */
+export function readDepartment(value: FormDataEntryValue | null): Department | null {
+  return value === "SHOES" || value === "CLOTHING" ? value : null;
 }
 
 /** For pages that edit exactly one store's data (categories, logo, homepage

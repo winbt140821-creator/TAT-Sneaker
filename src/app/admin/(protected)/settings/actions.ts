@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { getBankByBin } from "@/lib/vietqr-banks";
+import { readDepartment } from "@/lib/admin-store";
 import type { Department } from "@/lib/inventory";
 
 // updateTag on top of the paths: getSiteSettings/getBranding sit behind a
@@ -12,6 +13,7 @@ import type { Department } from "@/lib/inventory";
 function revalidateSettings() {
   updateTag("site-settings");
   updateTag("storefront-branding");
+  updateTag("social-links");
   revalidatePath("/admin/settings", "layout");
   revalidatePath("/");
 }
@@ -116,7 +118,7 @@ export async function updateCodOptionAction(formData: FormData): Promise<void> {
   revalidateSettings();
 }
 
-export async function updateContactInfoAction(formData: FormData): Promise<void> {
+export async function updateContactInfoAction(department: Department, formData: FormData): Promise<void> {
   await requireStaff();
 
   const data = {
@@ -126,10 +128,10 @@ export async function updateContactInfoAction(formData: FormData): Promise<void>
     footerAbout: String(formData.get("footerAbout") ?? "").trim() || null,
   };
 
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
+  await prisma.storefrontBranding.upsert({
+    where: { department },
     update: data,
-    create: { id: "singleton", ...data },
+    create: { department, ...data },
   });
 
   revalidateSettings();
@@ -225,12 +227,23 @@ export async function createSocialLinkAction(formData: FormData): Promise<void> 
   const platform = String(formData.get("platform") ?? "").trim();
   const url = String(formData.get("url") ?? "").trim();
   if (!ALLOWED_SOCIAL_PLATFORMS.includes(platform) || !url) return;
+  // Empty = both stores.
+  const department = readDepartment(formData.get("department"));
 
   const count = await prisma.socialLink.count();
   await prisma.socialLink.create({
-    data: { platform, url, sortOrder: count },
+    data: { platform, url, sortOrder: count, department },
   });
 
+  revalidateSettings();
+}
+
+export async function setSocialLinkStoreAction(id: string, formData: FormData): Promise<void> {
+  await requireStaff();
+  await prisma.socialLink.update({
+    where: { id },
+    data: { department: readDepartment(formData.get("department")) },
+  });
   revalidateSettings();
 }
 
@@ -247,15 +260,18 @@ export async function deleteSocialLinkAction(id: string): Promise<void> {
   revalidateSettings();
 }
 
-export async function updateDefaultProductDescriptionAction(formData: FormData): Promise<void> {
+export async function updateDefaultProductDescriptionAction(
+  department: Department,
+  formData: FormData
+): Promise<void> {
   await requireStaff();
 
   const defaultProductDescription = String(formData.get("defaultProductDescription") ?? "").trim() || null;
 
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
+  await prisma.storefrontBranding.upsert({
+    where: { department },
     update: { defaultProductDescription },
-    create: { id: "singleton", defaultProductDescription },
+    create: { department, defaultProductDescription },
   });
 
   revalidateSettings();

@@ -311,6 +311,8 @@ export default async function Home({
           {bestSelling.length >= 4 && (
             <CategorySection heading={t("bestSelling")} products={bestSelling} department={department} />
           )}
+          <NewsSection department={department} />
+          <TestimonialsSection department={department} />
           <ClothingManifesto />
         </main>
         <Footer />
@@ -360,8 +362,8 @@ export default async function Home({
           />
         ))}
 
-        <NewsSection />
-        <TestimonialsSection />
+        <NewsSection department={department} />
+        <TestimonialsSection department={department} />
         <CategoryShowcase categories={showcaseCategories} />
       </main>
       <Footer />

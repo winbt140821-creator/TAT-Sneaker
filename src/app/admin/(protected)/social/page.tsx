@@ -1,16 +1,21 @@
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/products";
 import { isMetaConfigured, isCatalogConfigured, getFacebookLoginUrl } from "@/lib/meta";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/seo";
 import { DEFAULT_SOCIAL_POST_TEMPLATE } from "@/lib/social-post-template";
+import { getAdminStore, sharedOrStoreWhere, storeWhere, STORE_LABEL } from "@/lib/admin-store";
+import type { Department } from "@/lib/inventory";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
+import { StoreField } from "@/components/admin/form/StoreField";
+import { StoreBadge } from "@/components/admin/StoreBadge";
 import { ComposeForm } from "./ComposeForm";
 import {
   deleteSocialPostAction,
   disconnectSocialAccountAction,
+  setSocialAccountStoreAction,
   updateSocialPostTemplateAction,
 } from "./actions";
 
@@ -20,8 +25,12 @@ export default async function AdminSocialPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  // Composing for one store offers only that store's products, categories
+  // and pages, and shows only its posts; "Tất cả" shows both.
+  const store = await getAdminStore();
+  const departments: Department[] = store === "ALL" ? ["SHOES", "CLOTHING"] : [store];
 
-  const [accounts, posts, products, categories, settings] = await Promise.all([
+  const [accounts, posts, products, categories, shoeBranding, clothingBranding] = await Promise.all([
     // Never select accessToken here — this result (via `accounts` below)
     // gets passed straight into <ComposeForm>, a Client Component, which
     // would serialize the raw Facebook Page token into the page's HTML/RSC
@@ -29,12 +38,12 @@ export default async function AdminSocialPage({
     // themselves server-side (see actions.ts loadTargets) using only the
     // account id the client sends back.
     prisma.socialAccount.findMany({
-      select: { id: true, platform: true, name: true, avatarUrl: true },
+      select: { id: true, platform: true, name: true, avatarUrl: true, department: true },
       orderBy: { connectedAt: "desc" },
     }),
-    prisma.socialPost.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
+    prisma.socialPost.findMany({ where: sharedOrStoreWhere(store), orderBy: { createdAt: "desc" }, take: 30 }),
     prisma.product.findMany({
-      where: { hidden: false },
+      where: { hidden: false, ...storeWhere(store) },
       select: {
         id: true,
         sku: true,
@@ -47,10 +56,12 @@ export default async function AdminSocialPage({
       orderBy: { name: "asc" },
     }),
     prisma.category.findMany({
+      where: storeWhere(store),
       select: { id: true, label: true, parentId: true },
       orderBy: { sortOrder: "asc" },
     }),
-    getSiteSettings(),
+    getBranding("SHOES"),
+    getBranding("CLOTHING"),
   ]);
 
   const productOptions = products.map((p) => ({
@@ -61,16 +72,25 @@ export default async function AdminSocialPage({
     images: JSON.parse(p.images || "[]") as string[],
     link: absoluteUrl(`/san-pham/${p.id}`, p.department),
     categoryIds: p.categories.map((c) => c.id),
+    department: p.department,
   }));
 
   const categoryOptions = categories.map((c) => ({ id: c.id, label: c.label, parentId: c.parentId }));
-  const socialPostTemplate = settings?.socialPostTemplate ?? DEFAULT_SOCIAL_POST_TEMPLATE;
+  // Each store has its own post template (a product fills in its store's).
+  const templates: Record<Department, string> = {
+    SHOES: shoeBranding?.socialPostTemplate ?? DEFAULT_SOCIAL_POST_TEMPLATE,
+    CLOTHING: clothingBranding?.socialPostTemplate ?? DEFAULT_SOCIAL_POST_TEMPLATE,
+  };
+  // Pages set to "both stores" are offered when composing for either.
+  const composeAccounts =
+    store === "ALL" ? accounts : accounts.filter((a) => !a.department || a.department === store);
 
   return (
     <div>
       <h1 className="font-display text-2xl text-ink">Mạng xã hội</h1>
       <p className="mt-1 font-mono text-xs text-graphite">
-        Đăng bài lên Facebook Page &amp; Instagram, lấy ảnh trực tiếp từ sản phẩm trong kho.
+        Đăng bài lên Facebook Page &amp; Instagram, lấy ảnh trực tiếp từ sản phẩm trong kho
+        {store === "ALL" ? " của cả hai cửa hàng" : ` ${STORE_LABEL[store].toLowerCase()}`}.
       </p>
 
       {error && (
@@ -89,9 +109,13 @@ export default async function AdminSocialPage({
           </p>
         )}
 
+        <p className="mt-1 font-mono text-[11px] text-graphite">
+          Chọn mỗi trang đăng cho cửa hàng nào — khi soạn bài cho giày hay quần áo, chỉ hiện các trang
+          của cửa hàng đó (và các trang dùng chung).
+        </p>
         <div className="mt-3 flex flex-wrap gap-3">
           {accounts.map((a) => (
-            <div key={a.id} className="die-cut-flat flex items-center gap-3 bg-kraft p-3">
+            <div key={a.id} className="die-cut-flat flex flex-wrap items-center gap-3 bg-kraft p-3">
               {a.avatarUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={a.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
@@ -107,6 +131,25 @@ export default async function AdminSocialPage({
                 </span>
                 <p className="truncate font-body text-sm text-ink">{a.name}</p>
               </div>
+              <form
+                key={a.department ?? "both"}
+                action={setSocialAccountStoreAction.bind(null, a.id)}
+                className="flex items-end gap-2"
+              >
+                <StoreField
+                  id={`account-store-${a.id}`}
+                  label="Đăng cho"
+                  defaultValue={a.department}
+                  allowBoth
+                  className="py-1.5 text-xs"
+                />
+                <button
+                  type="submit"
+                  className="cursor-pointer pb-2 font-mono text-[11px] uppercase text-graphite hover:text-ink hover:underline"
+                >
+                  Lưu
+                </button>
+              </form>
               <form action={disconnectSocialAccountAction.bind(null, a.id)}>
                 <ConfirmSubmitButton
                   label="Ngắt"
@@ -140,25 +183,36 @@ export default async function AdminSocialPage({
           <code className="text-ink">{"{link}"}</code> cho đường dẫn sản phẩm trên web. Vẫn có thể gõ
           thêm/sửa nội dung sau khi chọn sản phẩm.
         </p>
-        <form action={updateSocialPostTemplateAction} className="mt-3 flex flex-col gap-3">
-          <TextAreaField
-            id="socialPostTemplate"
-            name="socialPostTemplate"
-            label="Mẫu"
-            rows={4}
-            defaultValue={socialPostTemplate}
-          />
-          <SubmitButton>Lưu mẫu</SubmitButton>
-        </form>
+        {departments.map((d) => (
+          <form
+            key={d}
+            action={updateSocialPostTemplateAction.bind(null, d)}
+            className="mt-3 flex flex-col gap-3"
+          >
+            <TextAreaField
+              id={`socialPostTemplate-${d}`}
+              name="socialPostTemplate"
+              label={`Mẫu cho ${STORE_LABEL[d].toLowerCase()}`}
+              rows={4}
+              defaultValue={templates[d]}
+            />
+            <SubmitButton>Lưu mẫu {STORE_LABEL[d].toLowerCase()}</SubmitButton>
+          </form>
+        ))}
       </details>
 
       {/* Soạn & đăng bài */}
       <div className="mt-6">
+        {/* key: start fresh when the store switch changes, so nothing
+            picked for the other store (a page, a product) is still selected
+            out of sight. */}
         <ComposeForm
-          accounts={accounts}
+          key={store}
+          store={store}
+          accounts={composeAccounts}
           products={productOptions}
           categories={categoryOptions}
-          socialPostTemplate={socialPostTemplate}
+          templates={templates}
           catalogConfigured={isCatalogConfigured()}
         />
       </div>
@@ -191,6 +245,7 @@ export default async function AdminSocialPage({
                   <span className={`px-1.5 py-0.5 font-mono text-[10px] uppercase ${statusColor[p.status]}`}>
                     {statusLabel[p.status]}
                   </span>
+                  {store === "ALL" && p.department && <StoreBadge department={p.department} className="ml-1.5" />}
                   <p className="mt-1.5 line-clamp-2 font-body text-sm text-ink">{p.message || "(không có chữ)"}</p>
                   {images.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">

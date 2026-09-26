@@ -137,7 +137,7 @@ async function main() {
 
   for (const page of staticPages) {
     await prisma.staticPage.upsert({
-      where: { slug: page.slug },
+      where: { slug_department: { slug: page.slug, department: "SHOES" } },
       update: {},
       create: page,
     });

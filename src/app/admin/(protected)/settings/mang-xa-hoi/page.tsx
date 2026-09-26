@@ -1,5 +1,8 @@
-import { getSocialLinks } from "@/lib/settings";
+import { prisma } from "@/lib/db";
+import { editingStore, getAdminStore, STORE_LABEL } from "@/lib/admin-store";
 import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
+import { DepartmentTabs } from "@/components/admin/DepartmentTabs";
+import { StoreField } from "@/components/admin/form/StoreField";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -8,7 +11,12 @@ import {
   YoutubeIcon,
   ZaloIcon,
 } from "@/components/icons";
-import { createSocialLinkAction, deleteSocialLinkAction, toggleSocialLinkAction } from "../actions";
+import {
+  createSocialLinkAction,
+  deleteSocialLinkAction,
+  setSocialLinkStoreAction,
+  toggleSocialLinkAction,
+} from "../actions";
 
 // Fixed set matching the icons Footer.tsx already knows how to render
 // (keyed by lowercase platform name) — admin picks an icon instead of typing
@@ -22,15 +30,30 @@ const SOCIAL_PLATFORMS = [
   { value: "YouTube", Icon: YoutubeIcon, bg: "bg-[#FF0000]" },
 ] as const;
 
-export default async function AdminSettingsSocialPage() {
-  const socialLinks = await getSocialLinks(false);
+export default async function AdminSettingsSocialPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
+  const { department: departmentParam } = await searchParams;
+  // An explicit tab (?department=) wins; otherwise follow the admin store switch.
+  const department = editingStore(departmentParam, await getAdminStore());
+  // What this store's footer shows: its own links plus those set for both.
+  const socialLinks = await prisma.socialLink.findMany({
+    where: { OR: [{ department: null }, { department }] },
+    orderBy: [{ sortOrder: "asc" }, { platform: "asc" }],
+  });
 
   return (
     <div>
       <h2 className="font-display text-xl text-ink">Mạng xã hội</h2>
       <p className="mt-1 font-mono text-xs text-graphite">
-        Bấm &quot;Ẩn/Hiện&quot; để bật tắt hiển thị một liên kết trên trang chủ mà không cần xóa.
+        Các liên kết hiện ở chân trang cửa hàng {STORE_LABEL[department].toLowerCase()}. Bấm
+        &quot;Ẩn/Hiện&quot; để bật tắt một liên kết mà không cần xóa; chọn &quot;Cả hai cửa hàng&quot;
+        nếu dùng chung một trang cho cả hai web.
       </p>
+
+      <DepartmentTabs basePath="/admin/settings/mang-xa-hoi" department={department} className="mt-4" />
 
       <div className="mt-6 flex flex-col gap-3">
         {socialLinks.length === 0 && (
@@ -39,9 +62,33 @@ export default async function AdminSettingsSocialPage() {
         {socialLinks.map((link) => (
           <div key={link.id} className="die-cut-flat flex flex-wrap items-center gap-4 bg-paper p-3">
             <div className="min-w-0 flex-1">
-              <p className="font-body text-sm font-medium text-ink">{link.platform}</p>
+              <p className="font-body text-sm font-medium text-ink">
+                {link.platform}{" "}
+                <span className="font-mono text-[10px] uppercase tracking-wide text-graphite">
+                  · {link.department ? `Chỉ ${STORE_LABEL[link.department].toLowerCase()}` : "Cả hai cửa hàng"}
+                </span>
+              </p>
               <p className="truncate font-mono text-xs text-graphite">{link.url}</p>
             </div>
+            <form
+              key={link.department ?? "both"}
+              action={setSocialLinkStoreAction.bind(null, link.id)}
+              className="flex shrink-0 items-end gap-2"
+            >
+              <StoreField
+                id={`store-${link.id}`}
+                label="Hiện ở"
+                defaultValue={link.department}
+                allowBoth
+                className="py-1.5 text-xs"
+              />
+              <button
+                type="submit"
+                className="cursor-pointer pb-2 font-mono text-xs uppercase tracking-wide text-graphite hover:text-ink hover:underline"
+              >
+                Lưu
+              </button>
+            </form>
             <span
               className={
                 "shrink-0 px-2 py-1 font-mono text-[10px] uppercase tracking-wide " +
@@ -90,6 +137,7 @@ export default async function AdminSettingsSocialPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
+          <StoreField id="newLinkStore" label="Hiện ở" defaultValue={department} allowBoth />
           <div className="flex flex-1 flex-col gap-1.5">
             <label htmlFor="url" className="font-mono text-xs uppercase tracking-wide text-graphite">
               Đường dẫn

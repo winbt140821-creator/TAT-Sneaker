@@ -1,5 +1,6 @@
 import { site } from "@/lib/site-config";
-import { getSiteSettings, getSocialLinks } from "@/lib/settings";
+import { getBranding, getSocialLinks } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { SITE_URL } from "@/lib/seo";
 import { jsonLdScript } from "@/lib/json-ld";
 
@@ -7,9 +8,12 @@ import { jsonLdScript } from "@/lib/json-ld";
 // Knowledge Panel / sitelinks search box for the store as a whole, not just
 // individual pages. Inert data, safe to include even on admin routes.
 export async function OrganizationJsonLd() {
+  // Contact details and profiles of the store being viewed (the gateway
+  // and admin count as the shoe store, see getDepartment()).
+  const department = await getDepartment();
   const [settings, socialLinks] = await Promise.all([
-    getSiteSettings(),
-    getSocialLinks(),
+    getBranding(department),
+    getSocialLinks(department),
   ]);
 
   const json = {

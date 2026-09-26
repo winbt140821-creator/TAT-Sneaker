@@ -10,7 +10,7 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { Link, redirectGuard } from "@/i18n/navigation";
 import { getDiscontinuedProduct, getProductById, getProductDepartment, getRelatedProducts } from "@/lib/catalog";
 import { storeHref } from "@/lib/store-path";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import type { Department } from "@/lib/inventory";
 import { getDiscountPct } from "@/lib/pricing";
@@ -137,17 +137,19 @@ export default async function ProductDetailPage({
 
   const brandCategory = getBrandCategory(product);
 
-  const [related, sizeChartRows, price, originalPrice, depositAmount, settings] = await Promise.all([
+  const [related, sizeChartRows, price, originalPrice, depositAmount, branding] = await Promise.all([
     getRelatedProducts(product.id, product.categories.map((c) => c.id)),
     // Size chart (VN/US/UK/CM shoe conversion) doesn't apply to clothing.
     department === "CLOTHING" ? Promise.resolve([]) : getSizeChartForCategory(brandCategory?.id),
     formatPriceForCurrentLocale(product.price),
     product.originalPrice ? formatPriceForCurrentLocale(product.originalPrice) : Promise.resolve(null),
     formatPriceForCurrentLocale(product.depositAmount ?? 0),
-    getSiteSettings(),
+    getBranding(department),
   ]);
 
-  const description = product.description || settings?.defaultProductDescription;
+  // The store's shared description (Cài đặt → Mô tả sản phẩm, per store)
+  // unless the product has its own.
+  const description = product.description || branding?.defaultProductDescription;
 
   const PROMO_ITEMS = [
     { icon: ShieldCheckIcon, text: t("promo1") },

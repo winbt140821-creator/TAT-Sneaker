@@ -1,9 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
+import { readDepartment } from "@/lib/admin-store";
 import { publishToTarget, type PublishTarget } from "@/lib/meta";
+import type { Department } from "@/lib/inventory";
 
 export type ComposeFormState = { error?: string; ok?: boolean };
 
@@ -12,7 +14,17 @@ function readCompose(formData: FormData) {
   const images = formData.getAll("images").map(String).filter(Boolean);
   const targetIds = formData.getAll("targetIds").map(String).filter(Boolean);
   const productId = String(formData.get("productId") ?? "").trim() || null;
-  return { message, images, targetIds, productId };
+  return { message, images, targetIds, productId, department: readDepartment(formData.get("department")) };
+}
+
+/** Which store a post belongs to (for the history list): the picked
+ *  product's store, else the store it was composed under, else none. */
+async function postDepartment(productId: string | null, department: Department | null) {
+  if (productId) {
+    const product = await prisma.product.findUnique({ where: { id: productId }, select: { department: true } });
+    if (product) return product.department;
+  }
+  return department;
 }
 
 async function loadTargets(targetIds: string[]): Promise<PublishTarget[]> {
@@ -32,7 +44,7 @@ export async function publishNowAction(
   formData: FormData
 ): Promise<ComposeFormState> {
   await requireStaff();
-  const { message, images, targetIds, productId } = readCompose(formData);
+  const { message, images, targetIds, productId, department } = readCompose(formData);
   if (targetIds.length === 0) return { error: "Hãy chọn ít nhất 1 trang để đăng." };
 
   const targets = await loadTargets(targetIds);
@@ -57,6 +69,8 @@ export async function publishNowAction(
       message,
       images: JSON.stringify(images),
       targetIds: JSON.stringify(targetIds),
+      productId,
+      department: await postDepartment(productId, department),
       status: results.every((r) => r.ok) ? "PUBLISHED" : "PARTIAL",
       results: JSON.stringify(results),
       publishedAt: new Date(),
@@ -77,7 +91,7 @@ export async function schedulePostAction(
   formData: FormData
 ): Promise<ComposeFormState> {
   await requireStaff();
-  const { message, images, targetIds, productId } = readCompose(formData);
+  const { message, images, targetIds, productId, department } = readCompose(formData);
   const scheduledAt = String(formData.get("scheduledAt") ?? "");
   if (targetIds.length === 0) return { error: "Hãy chọn ít nhất 1 trang để đăng." };
   if (!scheduledAt) return { error: "Hãy chọn thời gian hẹn giờ." };
@@ -88,6 +102,7 @@ export async function schedulePostAction(
       images: JSON.stringify(images),
       targetIds: JSON.stringify(targetIds),
       productId,
+      department: await postDepartment(productId, department),
       status: "SCHEDULED",
       scheduledAt: new Date(scheduledAt),
     },
@@ -111,15 +126,27 @@ export async function disconnectSocialAccountAction(id: string) {
   revalidatePath("/admin/social");
 }
 
-export async function updateSocialPostTemplateAction(formData: FormData): Promise<void> {
+export async function updateSocialPostTemplateAction(department: Department, formData: FormData): Promise<void> {
   await requireStaff();
   const socialPostTemplate = String(formData.get("socialPostTemplate") ?? "").trim() || null;
 
-  await prisma.siteSettings.upsert({
-    where: { id: "singleton" },
+  await prisma.storefrontBranding.upsert({
+    where: { department },
     update: { socialPostTemplate },
-    create: { id: "singleton", socialPostTemplate },
+    create: { department, socialPostTemplate },
   });
 
+  // getBranding() sits behind a 60s cache — see settings/actions.ts.
+  updateTag("storefront-branding");
+  revalidatePath("/admin/social");
+}
+
+// Which store a connected page posts for (null = both).
+export async function setSocialAccountStoreAction(id: string, formData: FormData): Promise<void> {
+  await requireStaff();
+  await prisma.socialAccount.update({
+    where: { id },
+    data: { department: readDepartment(formData.get("department")) },
+  });
   revalidatePath("/admin/social");
 }

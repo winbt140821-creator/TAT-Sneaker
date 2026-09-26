@@ -105,7 +105,9 @@ export default async function AdminDashboardPage() {
     autoCancelStaleOrders(),
     Promise.all(departments.map((d) => storeStats(d, startOfToday, startOfMonth, now))),
     Promise.all(departments.map(storeTodos)),
-    prisma.staticPage.findMany({ select: { slug: true } }),
+    // The clothing store falls back to the shoe store's copy of a page, so a
+    // footer link only breaks when the shoe store has no copy.
+    prisma.staticPage.findMany({ where: { department: "SHOES" }, select: { slug: true } }),
     prisma.order.groupBy({ by: ["status"], where: orderStoreWhere(store), _count: true }),
     prisma.order.findMany({
       where: orderStoreWhere(store),
@@ -158,7 +160,7 @@ export default async function AdminDashboardPage() {
     ...todosByStore.flat(),
     ...FOOTER_PAGES.filter((p) => !existing.has(p.slug)).map((p) => ({
       text: `Chân trang có link "${p.title}" nhưng trang này chưa được tạo — khách bấm vào sẽ gặp trang lỗi.`,
-      href: `/admin/pages/new?slug=${p.slug}&title=${encodeURIComponent(p.title)}`,
+      href: `/admin/pages/new?department=SHOES&slug=${p.slug}&title=${encodeURIComponent(p.title)}`,
       action: "Tạo trang",
     })),
   ];

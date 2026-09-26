@@ -1,8 +1,8 @@
 import { FacebookPagePlugin } from "./FacebookPagePlugin";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { site, defaultContactEmail } from "@/lib/site-config";
-import { getSiteSettings, getSocialLinks } from "@/lib/settings";
+import { site } from "@/lib/site-config";
+import { getBranding, getSocialLinks, storeContact } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { ClothingWordmark } from "./ClothingWordmark";
 import {
@@ -46,14 +46,15 @@ const SOCIAL_BG: Record<string, string> = {
 };
 
 export async function Footer() {
-  const [settings, socialLinks, t] = await Promise.all([
-    getSiteSettings(),
-    getSocialLinks(),
+  const department = await getDepartment();
+  const [branding, socialLinks, t] = await Promise.all([
+    getBranding(department),
+    getSocialLinks(department),
     getTranslations("footer"),
   ]);
 
-  const phone = settings?.phone || site.hotline;
-  const email = settings?.email || defaultContactEmail;
+  // Each store's own contact details (Cài đặt → Liên hệ, per store).
+  const { address, phone, email, footerAbout } = storeContact(branding);
 
   // Slugs mirror FOOTER_PAGES (src/lib/footer-pages.ts), which admin uses to
   // flag pages that haven't been created yet.
@@ -90,13 +91,13 @@ export async function Footer() {
   const zaloLink = byPlatform.get("zalo");
   const facebookLink = byPlatform.get("facebook");
 
-  if ((await getDepartment()) === "CLOTHING") {
+  if (department === "CLOTHING") {
     // COS/Zara footers are plain text on a quiet ground: small uppercase
     // column titles, links in grey, social channels as words rather than
     // coloured brand bubbles, no embedded Facebook widget and no fixed
     // contact bar. Contact channels (Messenger/Zalo) stay reachable from
-    // the "Liên hệ" column instead. Shared copy that's written for the
-    // shoe shop (footerAbout, "Về TAT Sneaker") is left out here.
+    // the "Liên hệ" column instead. "Về TAT Sneaker" names the shoe shop,
+    // so that column is retitled.
     const clothingColumns = columns.map((col, i) =>
       i === 2 ? { ...col, title: "Về chúng tôi" } : col
     );
@@ -131,6 +132,7 @@ export async function Footer() {
           <div>
             <p className={titleClass}>{t("aboutContact")}</p>
             <ul className="mt-5 space-y-2.5">
+              {address && <li className="font-body text-[13px] text-graphite">{address}</li>}
               <li>
                 <a href={`tel:${phone}`} className={linkClass}>
                   {phone}
@@ -153,7 +155,12 @@ export async function Footer() {
         </div>
 
         <div className="flex flex-col gap-4 border-t border-kraft-dark px-4 py-8 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8">
-          <ClothingWordmark className="h-6 w-auto" />
+          <div>
+            <ClothingWordmark className="h-6 w-auto" />
+            {footerAbout && (
+              <p className="mt-3 max-w-sm font-body text-[12px] leading-relaxed text-graphite">{footerAbout}</p>
+            )}
+          </div>
           <p className="font-body text-[11px] text-graphite">
             © {new Date().getFullYear()} TAT. {t("rights")}
           </p>
@@ -233,17 +240,17 @@ export async function Footer() {
           <div className="order-5 col-span-2 sm:order-1 md:col-span-1">
             <p className="font-display text-xl uppercase tracking-[0.08em] text-paper">{site.name}</p>
 
-            {settings?.footerAbout && (
+            {footerAbout && (
               <p className="mt-2 max-w-xs font-body text-xs leading-relaxed text-kraft">
-                {settings.footerAbout}
+                {footerAbout}
               </p>
             )}
 
             <div className="mt-3 flex flex-col gap-1.5">
-              {settings?.address && (
+              {address && (
                 <p className="flex items-start gap-1.5 font-mono text-xs text-graphite">
                   <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-forest" />
-                  {settings.address}
+                  {address}
                 </p>
               )}
               <p className="flex items-center gap-1.5 font-mono text-xs text-graphite">

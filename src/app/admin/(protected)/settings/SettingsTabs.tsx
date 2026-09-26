@@ -12,16 +12,17 @@ const GROUPS = [
     tabs: [
       { href: "/admin/settings/logo", label: "Logo" },
       { href: "/admin/settings/trang-chu", label: "Ảnh bìa trang chủ" },
+      { href: "/admin/settings/lien-he", label: "Liên hệ" },
+      { href: "/admin/settings/mang-xa-hoi", label: "Mạng xã hội" },
+      { href: "/admin/settings/mo-ta-san-pham", label: "Mô tả sản phẩm" },
     ],
   },
   {
+    // One checkout and one ad account serve both stores.
     label: "Dùng chung cho cả hai",
     tabs: [
-      { href: "/admin/settings/lien-he", label: "Liên hệ" },
-      { href: "/admin/settings/mang-xa-hoi", label: "Mạng xã hội" },
       { href: "/admin/settings/thanh-toan", label: "Thanh toán" },
       { href: "/admin/settings/quang-cao", label: "Quảng cáo" },
-      { href: "/admin/settings/mo-ta-san-pham", label: "Mô tả sản phẩm" },
     ],
   },
 ];
@@ -30,11 +31,11 @@ export function SettingsTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="mt-4 flex flex-col gap-3 border-b border-kraft-dark pb-px sm:flex-row sm:gap-8">
+    <nav className="mt-4 flex flex-col gap-3 border-b border-kraft-dark pb-px">
       {GROUPS.map((group) => (
         <div key={group.label} className="min-w-0">
           <p className="px-3 font-mono text-[10px] uppercase tracking-wider text-graphite">{group.label}</p>
-          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-wrap gap-x-2">
             {group.tabs.map((tab) => {
               const active = pathname?.startsWith(tab.href);
               return (

@@ -6,6 +6,8 @@ import { TextAreaField } from "@/components/admin/form/TextAreaField";
 import { ImageUploadField } from "@/components/admin/form/ImageUploadField";
 import { SubmitButton } from "@/components/admin/form/SubmitButton";
 import { FormError } from "@/components/admin/form/FormError";
+import { StoreField } from "@/components/admin/form/StoreField";
+import type { Department } from "@/lib/inventory";
 import type { NewsFormState } from "./actions";
 
 const initialState: NewsFormState = {};
@@ -21,6 +23,7 @@ export function NewsForm({
     excerpt?: string;
     publishedAt?: Date;
     imageUrl?: string | null;
+    department?: Department;
   };
   submitLabel: string;
 }) {
@@ -32,6 +35,12 @@ export function NewsForm({
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-4">
+      <StoreField
+        label="Hiện ở trang chủ cửa hàng"
+        defaultValue={defaultValues?.department ?? "SHOES"}
+        className="w-48"
+      />
+
       <TextField id="title" name="title" label="Tiêu đề" required defaultValue={defaultValues?.title} />
 
       <TextAreaField

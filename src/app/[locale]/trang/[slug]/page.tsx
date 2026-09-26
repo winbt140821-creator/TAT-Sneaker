@@ -6,9 +6,10 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { Footer } from "@/components/Footer";
 import { FloatingActions } from "@/components/FloatingActions";
 import { getStaticPage } from "@/lib/pages";
-import { getSiteSettings } from "@/lib/settings";
+import { getBranding, storeContact } from "@/lib/settings";
+import { getDepartment } from "@/lib/department";
 import { languageAlternates } from "@/lib/seo";
-import { site, defaultContactEmail } from "@/lib/site-config";
+import { storeHref } from "@/lib/store-path";
 import { MailIcon, MapPinIcon, PhoneIcon } from "@/components/icons";
 
 // Admin writes content as plain text (see PageForm.tsx) with two lightweight
@@ -69,7 +70,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getStaticPage(slug);
+  const page = await getStaticPage(slug, await getDepartment());
   if (!page) return {};
 
   const plainContent = page.content.replace(/\*\*/g, "");
@@ -77,10 +78,15 @@ export async function generateMetadata({
 
   const path = `/trang/${slug}`;
 
+  // A store showing the shoe store's page (it has none of its own) points
+  // search engines at the shoe store's copy.
   return {
     title: page.title,
     description: excerpt,
-    alternates: { canonical: path, languages: languageAlternates(path) },
+    alternates: {
+      canonical: storeHref(page.department, path),
+      languages: languageAlternates(path, page.department),
+    },
   };
 }
 
@@ -90,12 +96,13 @@ export default async function StaticPageRoute({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { slug } = await params;
-  const page = await getStaticPage(slug);
+  const department = await getDepartment();
+  const page = await getStaticPage(slug, department);
 
   if (!page) notFound();
 
   const isContactPage = slug === "lien-he";
-  const settings = isContactPage ? await getSiteSettings() : null;
+  const contact = isContactPage ? storeContact(await getBranding(department)) : null;
 
   return (
     <>
@@ -113,21 +120,21 @@ export default async function StaticPageRoute({
             {renderContent(page.content)}
           </div>
 
-          {isContactPage && (
+          {contact && (
             <div className="die-cut-flat mt-8 flex flex-col gap-3 bg-kraft p-5">
-              {settings?.address && (
+              {contact.address && (
                 <p className="flex items-start gap-2 font-mono text-sm text-ink">
                   <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
-                  {settings.address}
+                  {contact.address}
                 </p>
               )}
               <p className="flex items-center gap-2 font-mono text-sm text-ink">
                 <PhoneIcon className="h-4 w-4 shrink-0 text-forest" />
-                {settings?.phone || site.hotline}
+                {contact.phone}
               </p>
               <p className="flex items-center gap-2 font-mono text-sm text-ink">
                 <MailIcon className="h-4 w-4 shrink-0 text-forest" />
-                {settings?.email || defaultContactEmail}
+                {contact.email}
               </p>
             </div>
           )}

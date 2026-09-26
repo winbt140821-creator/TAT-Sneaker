@@ -6,9 +6,9 @@ const TABS: { value: Department; label: string }[] = [
   { value: "CLOTHING", label: "Quần áo" },
 ];
 
-// Switches which storefront a settings page is editing (currently only the
-// Logo and Trang chủ/hero tabs need this — every other settings tab is one
-// shared config for the whole business, see SiteSettings).
+// Switches which store a page is editing — settings kept per store (logo,
+// cover, contact, social links, product description) and each store's own
+// content (news, reviews, content pages, categories).
 export function DepartmentTabs({
   basePath,
   department,
