@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { site } from "@/lib/site-config";
+import { STORE_SITE } from "@/lib/site-config";
 import { BrandLogo } from "./BrandLogo";
 import { ClothingWordmark } from "./ClothingWordmark";
 import type { Department } from "@/lib/inventory";
@@ -25,7 +25,7 @@ export function Logo({
     return (
       <Image
         src={logoUrl}
-        alt={site.name}
+        alt={STORE_SITE[department].name}
         width={160}
         height={48}
         className={imageClassName ?? "h-8 w-auto object-contain"}

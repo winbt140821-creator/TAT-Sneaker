@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { absoluteUrl } from "@/lib/seo";
+import { STORE_SITE } from "@/lib/site-config";
 import { parseSizeQuantities, hasAnyStock } from "@/lib/inventory";
 
 // Product feed for Meta Commerce Manager (Facebook/Instagram Shop). Follows
@@ -55,7 +56,7 @@ export async function GET() {
             : "out of stock";
 
       const category = p.categories[0];
-      const brand = category ? (category.parent?.label ?? category.label) : "TAT Sneaker";
+      const brand = category ? (category.parent?.label ?? category.label) : STORE_SITE[p.department].name;
       const productType = category
         ? category.parent
           ? `${category.parent.label} > ${category.label}`

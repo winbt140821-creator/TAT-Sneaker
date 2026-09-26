@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Serif_Display, Inter_Tight, Permanent_Marker } from "next/font/google";
-import { site } from "@/lib/site-config";
+import { STORE_SITE } from "@/lib/site-config";
 import { SITE_URL } from "@/lib/seo";
 import { getSiteSettings, getBranding } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
@@ -75,9 +75,6 @@ const STORE_SWITCH_TRANSITION = `(function () {
   });
 })();`;
 
-const DEFAULT_TITLE = `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`;
-const DEFAULT_DESCRIPTION = site.tagline;
-
 // Async so we can fall back to the admin-uploaded hero/logo image as the
 // default share image (og:image) — otherwise every non-product page (home,
 // static pages, category listings) shares with no image at all.
@@ -89,14 +86,17 @@ export async function generateMetadata(): Promise<Metadata> {
     : undefined;
   const ogImage = firstHeroImage || branding?.heroImageUrl || branding?.logoUrl || undefined;
   const siteUrl = SITE_URL;
+  // Each store names itself — the clothing store shouldn't show up on
+  // Google or in a shared link as "TAT Sneaker".
+  const { name, title, description } = STORE_SITE[department];
 
   return {
     metadataBase: new URL(siteUrl),
     title: {
-      template: `%s | ${site.name}`,
-      default: DEFAULT_TITLE,
+      template: `%s | ${name}`,
+      default: title,
     },
-    description: DEFAULT_DESCRIPTION,
+    description,
     robots: { index: true, follow: true },
     verification: {
       other: { "facebook-domain-verification": "04pcggc6wyxa7rew8kc14cpxpb2rhu" },
@@ -104,16 +104,16 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       locale: "vi_VN",
-      siteName: site.name,
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      siteName: name,
+      title,
+      description,
       url: siteUrl,
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title,
+      description,
       ...(ogImage ? { images: [ogImage] } : {}),
     },
   };

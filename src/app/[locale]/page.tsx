@@ -65,12 +65,13 @@ export async function generateMetadata({
     if (activeCategory) {
       const path = `/?category=${encodeURIComponent(activeCategory.slug)}`;
       const title =
-        department === "CLOTHING"
-          ? `${activeCategory.label} chính hãng`
-          : `Giày ${activeCategory.label} chính hãng`;
+        department === "CLOTHING" ? activeCategory.label : `Giày ${activeCategory.label} chính hãng`;
       return {
         title,
-        description: `${title}, đã qua kiểm định 3 bước. Giao hàng toàn quốc, thanh toán khi nhận hàng.`,
+        description:
+          department === "CLOTHING"
+            ? `${title} tại TAT STORE — chọn kỹ về chất liệu, đường may và phom dáng. Giao hàng toàn quốc.`
+            : `${title}, đã qua kiểm định 3 bước. Giao hàng toàn quốc, thanh toán khi nhận hàng.`,
         alternates: { canonical: storeHref(department, path), languages: languageAlternates(path, department) },
       };
     }

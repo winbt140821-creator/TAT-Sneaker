@@ -93,12 +93,17 @@ export async function generateMetadata({
   }
 
   const brandCategory = getBrandCategory(product);
-  const title = brandCategory
-    ? department === "CLOTHING"
-      ? `${product.name} - ${brandCategory.label} chính hãng`
-      : `${product.name} - Giày ${brandCategory.label} chính hãng`
-    : product.name;
-  const description = `${product.name} — ${product.quality}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Đã qua kiểm định 3 bước, giao hàng toàn quốc, thanh toán khi nhận hàng.`;
+  // Clothing categories are garment types (Áo khoác, Quần…), not brands,
+  // and the shoe store's "chính hãng" / 3-step check claims aren't made
+  // for clothing — its titles are the product name alone.
+  const title =
+    brandCategory && department !== "CLOTHING"
+      ? `${product.name} - Giày ${brandCategory.label} chính hãng`
+      : product.name;
+  const description =
+    department === "CLOTHING"
+      ? `${product.name} — ${product.quality}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Giao hàng toàn quốc.`
+      : `${product.name} — ${product.quality}, SKU ${product.sku}, giá ${formatPrice(product.price)}. Đã qua kiểm định 3 bước, giao hàng toàn quốc, thanh toán khi nhận hàng.`;
   const image = product.images[0];
   const path = `/san-pham/${product.id}`;
 

@@ -1,4 +1,4 @@
-import { site } from "@/lib/site-config";
+import { STORE_SITE } from "@/lib/site-config";
 import { getBranding, getSocialLinks } from "@/lib/settings";
 import { getDepartment } from "@/lib/department";
 import { SITE_URL } from "@/lib/seo";
@@ -19,9 +19,9 @@ export async function OrganizationJsonLd() {
   const json = {
     "@context": "https://schema.org",
     "@type": "Store",
-    name: site.name,
+    name: STORE_SITE[department].name,
     url: SITE_URL,
-    description: site.tagline,
+    description: STORE_SITE[department].description,
     ...(settings?.phone ? { telephone: settings.phone } : {}),
     ...(settings?.email ? { email: settings.email } : {}),
     ...(settings?.address ? { address: { "@type": "PostalAddress", streetAddress: settings.address } } : {}),

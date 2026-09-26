@@ -1,7 +1,26 @@
+import type { Department } from "./inventory";
+
 export const site = {
   name: "TAT Sneaker",
   tagline: "1.000+ đôi sneaker. Mỗi đôi đều qua kiểm định.",
   hotline: "0900 000 000",
+};
+
+/** How each store names itself to search engines and link previews (page
+ *  titles, Open Graph, structured data). The clothing store is TAT STORE —
+ *  the same name its wordmark shows (ClothingWordmark). */
+export const STORE_SITE: Record<Department, { name: string; title: string; description: string }> = {
+  SHOES: {
+    name: site.name,
+    title: `${site.name} — Không Rẻ Nhất, Nhưng Đáng Tiền Nhất`,
+    description: site.tagline,
+  },
+  CLOTHING: {
+    name: "TAT STORE",
+    title: "TAT STORE — Quần áo chọn lọc, mặc bền lâu",
+    description:
+      "Quần áo được chọn kỹ về chất liệu, đường may và phom dáng trước khi đến tay bạn. Giao hàng toàn quốc.",
+  },
 };
 
 // Fallback contact email domain (used until an admin sets a real one in

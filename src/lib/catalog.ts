@@ -13,24 +13,34 @@ import type { Department } from "./inventory";
 // same request. department is part of the unstable_cache key automatically
 // (included arguments), so the shoe and clothing storefronts each get their
 // own cache entry instead of clobbering one another.
-export const getNavCategories = cache(
-  unstable_cache(
-    (department: Department) =>
-      prisma.category.findMany({
-        where: { parentId: null, department },
-        include: {
-          children: {
-            orderBy: { sortOrder: "asc" },
-            include: { _count: { select: { products: true } } },
-          },
-          _count: { select: { products: true } },
+const fetchNavCategories = unstable_cache(
+  (department: Department) =>
+    prisma.category.findMany({
+      where: { parentId: null, department },
+      include: {
+        children: {
+          orderBy: { sortOrder: "asc" },
+          include: { _count: { select: { products: { where: { hidden: false } } } } },
         },
-        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
-      }),
-    ["nav-categories"],
-    { revalidate: 60, tags: ["nav-categories"] }
-  )
+        _count: { select: { products: { where: { hidden: false } } } },
+      },
+      orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+    }),
+  ["nav-categories-visible-count"],
+  { revalidate: 60, tags: ["nav-categories"] }
 );
+
+export const getNavCategories = cache(async (department: Department) => {
+  const categories = await fetchNavCategories(department);
+  // The clothing store is still being stocked: a category with nothing on
+  // sale would open an empty page, so it stays out of its menu until it has
+  // products. The shoe menu is left exactly as staff set it (its SALE entry,
+  // for one, is filled by sale campaigns rather than product links).
+  if (department !== "CLOTHING") return categories;
+  return categories
+    .map((c) => ({ ...c, children: c.children.filter((child) => child._count.products > 0) }))
+    .filter((c) => c._count.products > 0 || c.children.length > 0);
+});
 
 // Includes children (for the pills row when viewing a parent category) and
 // parent.children — i.e. siblings — for when the active category is itself

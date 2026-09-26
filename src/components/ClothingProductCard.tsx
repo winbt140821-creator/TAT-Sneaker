@@ -35,6 +35,9 @@ export async function ClothingProductCard({
 
   return (
     <Link href={`/san-pham/${product.id}`} store={product.department} className="press group block">
+      {/* Photos shown whole on the frame's grey, as on the product page:
+          supplier photos are mostly square, and filling the tall frame cut
+          their sides off. */}
       <div data-product-photo className="relative aspect-[3/4] overflow-hidden bg-kraft">
         {img0 ? (
           <>
@@ -46,7 +49,7 @@ export async function ClothingProductCard({
               sizes="(min-width: 1024px) 25vw, 50vw"
               quality={90}
               className={
-                "object-cover transition-opacity duration-500 ease-out motion-reduce:transition-none " +
+                "object-contain transition-opacity duration-500 ease-out motion-reduce:transition-none " +
                 (img1 ? "lg:group-hover:opacity-0" : "")
               }
             />
@@ -57,7 +60,7 @@ export async function ClothingProductCard({
                 fill
                 sizes="(min-width: 1024px) 25vw, 50vw"
                 quality={90}
-                className="hidden object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none lg:block"
+                className="hidden object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none lg:block"
               />
             )}
           </>
